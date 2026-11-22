@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.19.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.19.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,10 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.hold-bn{display:flex;gap:10px;align-items:flex-start;background:var(--sun-tint);border:1px solid var(--sun-line);color:var(--navy);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:13.5px;line-height:1.45}
+.hold-bn>.ic{width:20px;height:20px;flex:none;margin-top:2px}.hold-bn span{flex:1}.hold-bn b{display:block;font-size:15px;margin-bottom:2px}
+.hold-bn.alt{flex-wrap:wrap}.hold-bn.alt .btn{flex:none}
+
 .drv-eta2{margin:3px 0 0;font-size:13px;color:var(--mut)}
 .solo-steps{margin:8px 0 4px}.solo-now{display:block;margin-top:8px;font-size:15px;color:var(--navy)}
 .done-ic{width:56px;height:56px;border-radius:50%;background:var(--ok-tint,#E7F6EC);color:var(--ok-text,#1E6B3A);display:flex;align-items:center;justify-content:center;margin:18px auto 4px}.done-ic .ic{width:30px;height:30px}
@@ -1518,7 +1522,15 @@ function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).
  if(due&&RIDE_REVIEW){due.reviewShown=true;save();rateModal(due.id,'b')}}
 const RIDE_REVIEW=false; // ride/driver review switched off for now
 let STORM_UNTIL=0,STORM_T=null,STORM_KEY='';function stormTowns(){return Object.entries(S.signals).filter(([k,v])=>v>0).map(([k])=>k)}function stormBar(){const towns=stormTowns();if(!towns.length)return '';const on=Date.now()<STORM_UNTIL;return `<div class="storm-bar${on?' show':''}" role="status" aria-live="polite" aria-hidden="${on?'false':'true'}">${ic('storm')}<span><b>Storm signal in ${esc(towns.join(', '))}</b> · road bookings paused</span></div>`}function flashStorm(){if(!stormTowns().length)return;STORM_UNTIL=Date.now()+3000;const el=document.querySelector('.storm-bar');if(el){el.classList.add('show');el.setAttribute('aria-hidden','false')}clearTimeout(STORM_T);STORM_T=setTimeout(()=>{const b=document.querySelector('.storm-bar');if(b){b.classList.remove('show');b.setAttribute('aria-hidden','true')}},3000)}function stormCheck(){if(S.role!=='booker'||S.tab!=='ride')return;const f=S.rideForm;const a=P(f.from),b=P(f.to);const hit=(a&&paused(a.t))||(b&&paused(b.t));const key=f.from+'|'+f.to;if(hit&&key!==STORM_KEY){STORM_KEY=key;flashStorm()}if(!hit)STORM_KEY=''}
-function setRole(r){if(r!==S.role&&$('#modalRoot').innerHTML){const t=$('#modalRoot').innerText;if(typeof RT!=='undefined'&&RT&&RT.side==='b'&&/Ride completed/.test(t)){const x=ride(RT.id);if(x&&!x.rated.b)x.reviewShown=false}if(typeof BZ!=='undefined'&&BZ&&/stop by|How was your visit/i.test(t)){const x=ride(BZ.id);if(x)x.bizReviewShown=false}closeModal()}S.role=r;S.tab=NAV[r][0][0];save();render()}
+
+function myHeld(){return S.rides.filter(r=>r.booker==='me'&&!(r.live&&r.shared)&&(r.status==='pending'||['accepted','started'].includes(r.status))).sort((a,b)=>b.createdAt-a.createdAt)[0]}
+function holderOf(r){return r?(r.status==='pending'?r.cands[r.offerIdx]:r.pid):null}
+function holdBanner(){const r=myHeld();const hid=holderOf(r);const h=hid&&prov(hid);if(!h)return '';const di=drvInfo(h);const route=esc(P(r.from).n.replace(' (sample)',''))+' → '+esc(P(r.to).n.replace(' (sample)',''));
+ const what=r.status==='pending'?'Accept it below.':r.status==='accepted'?'Tap Arrived at pickup, then Start trip.':'Tap Complete ride at the drop-off.';
+ if(S.actingAs===hid)return `<div class="hold-bn">${ic('user')}<span><b>Your booking ${r.id} is with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)} · ${route}. ${what}</span></div>`;
+ return `<div class="hold-bn alt">${ic('user')}<span><b>Your booking ${r.id} is now with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)}</span><button class="btn sm" onclick="S.actingAs='${hid}';save();render()">Switch to ${esc(di.name)}</button></div>`}
+
+function setRole(r){if(r==='provider'&&S.role!=='provider'){const h=holderOf(myHeld());if(h)S.actingAs=h}if(r!==S.role&&$('#modalRoot').innerHTML){const t=$('#modalRoot').innerText;if(typeof RT!=='undefined'&&RT&&RT.side==='b'&&/Ride completed/.test(t)){const x=ride(RT.id);if(x&&!x.rated.b)x.reviewShown=false}if(typeof BZ!=='undefined'&&BZ&&/stop by|How was your visit/i.test(t)){const x=ride(BZ.id);if(x)x.bizReviewShown=false}closeModal()}S.role=r;S.tab=NAV[r][0][0];save();render()}
 function go(t){S.tab=t;save();render();$('#main').scrollTop=0}
 
 /* =================== MAP (Module 8) =================== */
@@ -1938,7 +1950,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  const autoShared=S.rides.filter(r=>r.booker==='me'&&r.live&&r.shared&&!r.tripDone&&['pending','accepted','started'].includes(r.status));
  const payq=S.rides.filter(r=>r.pid===p.id&&['proof','cash'].includes(r.pay));
  const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
- let h=`<h2>${ic('file-text')} Offers & jobs</h2>${provPick()}${provBanner(p)}
+ let h=`<h2>${ic('file-text')} Offers & jobs</h2>${holdBanner()}${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
  if(autoShared.length)h+=autoShared.map(r=>{const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const L={waiting:'Waiting for riders · '+sharedSeats(r)+' of '+seatsOf(r),finding:'Finding a driver…',coming:'Driver on the way',riding:'On the trip',arrived:'Arrived',cancelled:'Cancelled'}[st]||st;return `<div class="card"><div class="share-line">${ic('tricycle')} Live shared ride · ${esc(L)}</div><b style="display:block;margin-top:8px">${esc(P(r.from).n.replace(' (sample)',''))} → ${esc(P(r.to).n.replace(' (sample)',''))}</b><p class="muted" style="margin:6px 0 10px">In this demo a sample TODA driver runs shared rides automatically, in sync on every phone. Switch to Rider to follow the trip.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button></div>`}).join('');
  h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
@@ -2213,13 +2225,13 @@ function tripRated(r,stars){const code=r.liveCode||r.joinCode;const who=r.joinCo
 
 /* ---- Driver details + simulated live location (straight-line, demo pace). Same position on every phone. ---- */
 function hashN(s){let h=7;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h}
-function plateOf(p){const h=hashN(p.id||p.n);const A='ABCDEFGHJKLMNPRSTUVWXYZ';const L3=A[h%23]+A[(h>>5)%23]+A[(h>>10)%23];const n=(h>>3)%9000+1000;
+function plateOf(p){const h=hashN(p.id||p.n);const A='ABCDEFGHJKLMNPRSTUVWXYZ';const h2=hashN('plate:'+(p.id||p.n)+':'+p.n);const L3=A[h%23]+A[h2%23]+A[(h2>>>7)%23];const n=(h2>>>3)%9000+1000;
  return ['tricycle','moto'].includes(p.type)?`${String(n).slice(0,3)}-${L3}`:`${L3} ${n}`}
 function rateNum(pid){const rs=S.ratings.filter(x=>x.to===pid);return rs.length?{v:+(rs.reduce((a,x)=>a+x.stars,0)/rs.length).toFixed(1),c:rs.length}:{v:0,c:0}}
 function drvName(n,id){n=String(n);const m=n.match(/\(([^)]+)\)/);if(m&&!/\d|seat/i.test(m[1]))return {name:m[1].trim(),op:n.replace(/\s*\([^)]*\)/,'').trim()};
  const base=n.replace(/\s*\([^)]*\)/,'').trim();const parts=base.split(/\s+[–-]\s+/);
- if(parts.length>=2){if(/car|van|seater|shuttle|bus/i.test(parts[1]))return {name:parts[0],op:parts.slice(1).join(' – ')};return {name:parts.slice(1).join(' – '),op:parts[0]}}
- const pool=['Dodong','Boyet','Nards','Totoy','Jun-Jun'];return {name:pool[hashN(id||n)%pool.length]+' (sample driver)',op:base}}
+ if(parts.length>=2){if(/\b(car|van|seater|shuttle|bus)\b/i.test(parts[1]))return {name:parts[0],op:parts.slice(1).join(' – ')};return {name:parts.slice(1).join(' – '),op:parts[0]}}
+ const pool=['Dodong','Boyet','Nards','Totoy','Jun-Jun','Bert','Dado'];return {name:pool[(hashN('drv:'+n)>>>4)%pool.length]+' (sample driver)',op:base}}
 function drvInfo(p){if(!p)return null;const nm=drvName(p.n,p.id);const rn=rateNum(p.id);
  return {name:nm.name,op:nm.op,plate:plateOf(p),type:p.type,pid:p.id,rv:rn.v,rc:rn.c}}
 function drvCard(d,key){if(!d)return '';const ini=esc(String(d.name).replace(/^(Mang|Aling|Kuya|Ate|Manong|Manang)\s+/i,'').trim().charAt(0).toUpperCase()||'D');
