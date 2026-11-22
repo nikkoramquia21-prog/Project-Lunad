@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.21.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.21.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1069,6 +1069,7 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 #lunadSplash .sp-dots span{width:8px;height:8px;border-radius:50%;background:#F5B544;animation:spDot 1s infinite ease-in-out}
 #lunadSplash .sp-dots span:nth-child(2){animation-delay:.15s}#lunadSplash .sp-dots span:nth-child(3){animation-delay:.3s}
 @keyframes spDot{0%,100%{opacity:.25}50%{opacity:1}}
+#lunadSplash{cursor:pointer}#lunadSplash.welcome{cursor:default}#lunadSplash .sp-hint{font-size:14px;font-weight:600;color:#F5B544;animation:spDot 2s infinite ease-in-out}
 #lunadSplash .sp-place{font-size:12px;color:#8798A8;letter-spacing:.08em}
 #lunadSplash .sp-skip{position:absolute;z-index:2;top:16px;right:16px;cursor:pointer;min-height:44px;padding:0 16px;border:0;background:none;color:#C5D0DB;font-weight:600;font-size:14px;font-family:inherit}
 #lunadSplash .sp-sheet{display:none;background:#fff;color:#0D1B2A;border-radius:28px 28px 0 0;padding:32px 24px 40px;flex-direction:column;gap:12px;position:relative;min-height:46%;transform:translateY(100%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
@@ -2422,11 +2423,11 @@ function boot(){if(!BOOTED&&!JOIN_ONLY){BOOTED=true;freshStart(location.hash==='
 function splashWanted(){if(JOIN_ONLY||location.hash==='#joined')return false;const q=new URLSearchParams(location.search).get('splash');return q!=='0'}
 let SPLASH_T=null;const SPLASH_OK=splashWanted();
 function splashShow(){if(!SPLASH_OK)return;const el=document.createElement('div');el.id='lunadSplash';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','Welcome to LUNAD');
- el.innerHTML=`<div class="sp-in"><div class="sp-glow"></div><button class="sp-skip" onclick="event.stopPropagation();splashWelcome()">Skip</button><div class="sp-top"><div class="sp-word">LUNAD</div><p class="sp-tag">Book. Ride. Explore Catanduanes.</p></div><div class="sp-foot"><div class="sp-dots" aria-hidden="true"><span></span><span></span><span></span></div><span class="sp-place">CATANDUANES · PHILIPPINES</span></div><div class="sp-sheet"><h1>Your ride around the island</h1><p>Tricycles, motos, cars and vans — solo or shared, with LGU-verified drivers.</p><button class="sp-go" onclick="splashDone('booker')">Get started</button><button class="sp-drv" onclick="splashDone('provider')">I’m a driver</button></div></div>`;
- el.addEventListener('click',e=>{if(!el.classList.contains('welcome'))splashWelcome()});(document.querySelector('.phone')||document.body).appendChild(el);SPLASH_T=setTimeout(splashWelcome,1800)}
+ el.innerHTML=`<div class="sp-in"><div class="sp-glow"></div><div class="sp-top"><div class="sp-word">LUNAD</div><p class="sp-tag">Book. Ride. Explore Catanduanes.</p></div><div class="sp-foot"><div class="sp-dots" aria-hidden="true"><span></span><span></span><span></span></div><span class="sp-hint">Tap to continue</span><span class="sp-place">CATANDUANES · PHILIPPINES</span></div><div class="sp-sheet"><h1>Your ride around the island</h1><p>Tricycles, motos, cars and vans — solo or shared, with LGU-verified drivers.</p><button class="sp-go" onclick="splashDone('booker')">Get started</button><button class="sp-drv" onclick="splashDone('provider')">I’m a driver</button></div></div>`;
+ el.addEventListener('click',e=>{if(!el.classList.contains('welcome'))splashWelcome()});(document.querySelector('.phone')||document.body).appendChild(el)}
 function splashWelcome(){const el=document.getElementById('lunadSplash');if(!el||el.classList.contains('welcome'))return;clearTimeout(SPLASH_T);el.classList.add('welcome');requestAnimationFrame(()=>requestAnimationFrame(()=>{el.classList.add('up')}))}
 function splashDone(role){const el=document.getElementById('lunadSplash');if(!el)return;clearTimeout(SPLASH_T);if(role==='provider'){setRole('provider')}else{S.role='booker';S.tab='home';save();render()}el.classList.add('out');setTimeout(()=>el.remove(),300)}
-boot();splashShow();setInterval(tick,1000);liveInit();
+boot();if(!JOIN_ONLY&&new URLSearchParams(location.search).get("role")==="driver")setRole("provider");splashShow();setInterval(tick,1000);liveInit();
 setTimeout(flashStorm,400);
 </script>
 </body>
