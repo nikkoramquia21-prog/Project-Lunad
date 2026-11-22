@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.6 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -938,6 +938,14 @@ textarea.inp{min-height:96px;font-weight:500}
 .stars span{color:var(--ctrl);font-size:32px}
 .stars span.on{color:var(--sunc)}
 .bars .b i{background:var(--navy)}
+.share-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.share-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:60px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--navy);text-align:left;cursor:pointer;font:inherit}
+.share-opt b{font-size:15px}.share-opt span{font-size:12.5px;color:var(--mut)}
+.share-opt.on{border:2px solid var(--navy);background:var(--sun-tint)}
+.share-opt:disabled{opacity:.5;cursor:not-allowed}
+.share-line{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:700;color:var(--sun-text);background:var(--sun-tint);border-radius:8px;padding:6px 10px}
+.share-line .ic{width:15px;height:15px}
+
 .lim{padding-left:18px;margin:0}.lim li{font-size:14.5px;line-height:1.5;margin-bottom:8px}.lim b{color:var(--navy)}
 /* storm notice: one compact amber line inside the navy header; flashes for 3 s */
 .storm-bar{display:flex;gap:8px;align-items:center;color:#F7C873;font-size:13px;font-weight:600;line-height:1.3;max-height:0;opacity:0;overflow:hidden;margin-top:0;padding:0 12px;border-radius:10px;background:rgba(245,181,68,.12);border:1px solid transparent;transition:max-height .35s var(--ease),opacity .35s var(--ease),margin-top .35s var(--ease),padding .35s var(--ease),border-color .35s var(--ease)}
@@ -1339,6 +1347,7 @@ function bookingLimit(){return S.me.noShows>=2?1:5}
 /* =================== CHECKS (timers, expiry, fares) =================== */
 function tick(){let changed=false;const now=Date.now();
  for(const r of S.rides)if(r.status==='pending'&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
+ for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-r.createdAt>6000&&coJoin(r))changed=true;
  if(changed){save();render()}
  document.querySelectorAll('.cd').forEach(el=>{const r=ride(el.dataset.id);if(!r||r.status!=='pending'){el.textContent='';return}const s=Math.max(0,Math.ceil((OFFER_MS-(now-r.offerAt))/1000));el.textContent=` ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`})}
 function dailyChecks(){const today=D(0);
@@ -1526,12 +1535,13 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a||!b){f.fro
   <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
   <div class="check">${f.type===k?ic('check'):''}</div>
  </div>`).join('')}
+ ${f.type==='tricycle'?(()=>{const q=sharedQuote('tricycle',d,f.pax,f.pax);const ok=f.pax<SHARE.seats;return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole tricycle · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?peso(q.per)+' per seat · '+SHARE.seats+' seats':'Not available for '+f.pax+' passengers'}</span></button></div>${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Shared with riders from the same pickup and drop-off area. Your fare only goes down if more riders join. Sample fare: ₱15 + ₱5/km per passenger.</p>`:''}`})():''}
  <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
  <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
  ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
  <div class="sep"></div>
  <div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,f.type)} min</b></div>
- <div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>
+ ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${f.pax} seat${f.pax>1?'s':''})</span><b>${peso(sharedQuote(f.type,d,f.pax,f.pax).you)}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
  <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
  ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
  
@@ -1542,17 +1552,29 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a||!b){f.fro
 function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
- <div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>
+ ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),f.pax,f.pax);return `<div class="kv"><span>Shared ride</span><b>${f.pax} of ${SHARE.seats} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">Your fare only goes down if more riders join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
  <button class="btn block" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
-function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});S.rides.push(r);
+function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(shareOn(f)){r.shared=true;r.co=[];applyShared(r)}S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
  dispatch(r);
  closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No rider available — see options')}
 
 /* =================== RIDE CARD (booker) =================== */
+/* =================== SHARED TODA RIDES (sample rates) =================== */
+// Rider pays the LOWER of: per-passenger regular fare (sample ₱15 + ₱5/km) or the whole-trip fare split by seats filled.
+// Riders share only with the same pickup and drop-off area. 3 seats. In the demo a sample co-rider joins automatically.
+const SHARE={base:15,km:5,seats:3,co:{n:'Maria (sample)',pax:1}};
+function seatFare(d){return Math.round(SHARE.base+SHARE.km*d)}
+function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));const reg=seatFare(d);const per=Math.round(Math.min(reg,whole/seats));return {per,you:per*pax,whole,reg}}
+function shareOn(f){return f.type==='tricycle'&&!!f.shared&&f.pax<SHARE.seats}
+function sharedSeats(r){return r.pax+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
+function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r);const q=sharedQuote(r.type,d,r.pax,n);r.fare=q.you;r.seatFare=q.per;r.tripTotal=q.per*n}
+function coJoin(r){if(!r.shared||r.coDone)return false;if(!['pending','accepted','started'].includes(r.status))return false;
+ const free=SHARE.seats-sharedSeats(r);r.coDone=true;if(free<1)return false;const before=r.fare;r.co=[{n:SHARE.co.n,pax:1}];applyShared(r);
+ toast(`${SHARE.co.n} joined your shared ride · ${sharedSeats(r)} of ${SHARE.seats} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}`);return true}
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
- <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>
+ <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${SHARE.seats} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):' · looking for co-riders'} · ${peso(r.seatFare)}/seat</div>`:''}
  ${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
@@ -1726,11 +1748,11 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
  let h=`<h2>${ic('file-text')} Offers & jobs</h2>${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
- h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div><div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>
+ h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${SHARE.seats} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
- h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
+ h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' seats shared'+(r.co&&r.co.length?' (with '+esc(r.co.map(c=>c.n).join(', '))+')':'')+' · '+peso(r.tripTotal):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
   <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived at pickup':'Arrived at pickup'}</button>`:''}<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>
    <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
    <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
@@ -1792,7 +1814,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> the co-rider is a sample, and the per-passenger fare (₱15 + ₱5/km) is a sample rate.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
 
 /* =================== BOOT =================== */
 function boot(){dailyChecks();save();render()}
