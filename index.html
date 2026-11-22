@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.17.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.18.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,10 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.drv-eta2{margin:3px 0 0;font-size:13px;color:var(--mut)}
+.solo-steps{margin:8px 0 4px}.solo-now{display:block;margin-top:8px;font-size:15px;color:var(--navy)}
+.done-ic{width:56px;height:56px;border-radius:50%;background:var(--ok-tint,#E7F6EC);color:var(--ok-text,#1E6B3A);display:flex;align-items:center;justify-content:center;margin:18px auto 4px}.done-ic .ic{width:30px;height:30px}
+
 .drv{border:1px solid var(--line);border-radius:12px;padding:12px;margin:4px 0 12px;background:#fff}
 .drv-top{display:flex;gap:10px;align-items:center}
 .drv-av{width:42px;height:42px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex:none}
@@ -1504,7 +1508,7 @@ function render(){const nav=navFor();
  $('#nav').innerHTML=nav.map(n=>`<button class="${S.tab===n[0]?'act':''}" onclick="go('${n[0]}')"><span class="i">${ic(n[1])}</span>${n[2]}</button>`).join('');
  let b='';
  const V={home:vHome,ride:vRide,map:vMap,mytrips:vMyTrips,me:vMe,offers:vOffers,status:vStatus,payset:vPaySet,register:vRegister,pinbox:vPInbox}[S.tab];
- $('#main').innerHTML=b+(S.role==='booker'&&['ride','mytrips'].includes(S.tab)?joinedHTML():'')+V();try{tripTick()}catch(e){}try{drvTick()}catch(e){}tick();maybeAutoReview();initMaps();stormCheck()}
+ $('#main').innerHTML=b+(S.role==='booker'&&['ride','mytrips'].includes(S.tab)?joinedHTML():'')+V();try{tripTick()}catch(e){}try{doneTick()}catch(e){}try{drvTick()}catch(e){}tick();maybeAutoReview();initMaps();stormCheck()}
 function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
  // Business/place review takes priority: it pops up right after ride completion,
  // before the driver rating — not after it.
@@ -1749,7 +1753,7 @@ function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
  <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${SHARE.seats} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=SHARE.seats?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample riders':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<SHARE.seats?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
- ${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
+ ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
  if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
@@ -2139,12 +2143,12 @@ function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);cons
   finding:['Finding a driver…','The tricycle is full. Asking TODA drivers near '+esc(from)+'.'],
   coming:['Driver on the way',`Your tricycle is heading to ${esc(from)}. Check the plate before you get on.`],
   riding:['On the way to '+esc(to),`${used} riders on board.`],
-  arrived:['You’ve arrived','At '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
+  arrived:['Trip completed','You’ve arrived at '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
   cancelled:['Ride cancelled','The rider who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
  let act='';
  if(st==='waiting')act=a.host?`${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
  else if(st==='finding')act=`<div class="trip-spin" aria-hidden="true"></div>`;
- else if(st==='arrived'){act=`<button class="btn block" onclick="tripDone()">Done</button>`}else if(false){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Rider'):((d.members||{})[k]||{}).name||'Rider')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
+ else if(st==='arrived'){const lr=a.host?a.r:S.rides.find(x=>x.joinCode===a.code);act=(lr&&lr.pay==='unpaid'?`<button class="btn block" onclick="payModal('${lr.id}')">Pay now · ${peso(pay)}</button>`:'')+`<button class="btn ${lr&&lr.pay==='unpaid'?'sec ':''}block" style="margin-top:8px" onclick="tripDone()">Done</button>`}else if(false){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Rider'):((d.members||{})[k]||{}).name||'Rider')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
  else if(st==='cancelled'||st==='gone')act=`<button class="btn block" onclick="tripDone()">Back to home</button>`;
  return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle${a.host?' · you booked':''}</span></div>
  <div class="join-body">${tripSteps(st==='gone'?'cancelled':st)}<h2 style="margin:16px 0 4px">${T[0]}</h2><p class="muted" style="margin:0 0 14px">${T[1]}</p>${['coming','riding','arrived'].includes(st)?drvCard(tripDrv(a),'trip'):''}${act}
@@ -2208,7 +2212,7 @@ function drvInfo(p){if(!p)return null;const nm=drvName(p.n,p.id);const rn=rateNu
 function drvCard(d,key){if(!d)return '';const ini=esc(String(d.name).replace(/^(Mang|Aling|Kuya|Ate|Manong|Manang)\s+/i,'').trim().charAt(0).toUpperCase()||'D');
  const rate=d.rv?`${ic('star-f','',' #F5B544')} ${d.rv} (${d.rc})`:`${ic('star-f','',' #F5B544')} New`;
  return `<div class="drv"><div class="drv-top"><span class="drv-av" aria-hidden="true">${ini}</span><span class="drv-tx"><b>${esc(d.name)}</b><span>${rate} · ${esc(d.op||'')}</span></span><span class="drv-plate" aria-label="Plate number ${esc(d.plate)}"><small>Plate</small>${esc(d.plate)}</span></div>
- <div class="drv-live" data-key="${key}" data-type="${esc(d.type||'tricycle')}" data-plate="${esc(d.plate)}"><div class="drv-map" aria-label="Driver location map"></div><p class="drv-eta" aria-live="polite">Locating your driver…</p></div></div>`}
+ <div class="drv-live" data-key="${key}" data-type="${esc(d.type||'tricycle')}" data-plate="${esc(d.plate)}"><div class="drv-map" aria-label="Driver location map"></div><p class="drv-eta" aria-live="polite">Locating your driver…</p><p class="drv-eta2"></p></div></div>`}
 function startPt(a,seed){const h=hashN(seed);const ang=(h%360)*Math.PI/180;const dkm=1.1+((h>>9)%5)/10;return {lat:a.lat+Math.sin(ang)*dkm/111,lng:a.lng+Math.cos(ang)*dkm/(111*Math.cos(a.lat*Math.PI/180))}}
 function lerpP(a,b,t){t=Math.max(0,Math.min(1,t));return {lat:a.lat+(b.lat-a.lat)*t,lng:a.lng+(b.lng-a.lng)*t}}
 function fmtKm(k){return k<1?Math.max(10,Math.round(k*1000/10)*10)+' m':k.toFixed(1)+' km'}
@@ -2224,7 +2228,7 @@ function drvState(key,plate){const now=Date.now();
  if(r.status==='started'){const t=(now-(r.startedAt||now))/90000;const pos=lerpP(A,B,t);return {A,B,s,pos,text:t>=1?`Almost at ${B.n.replace(' (sample)','')}`:`On the way · ${fmtKm(km(pos,B))} to ${B.n.replace(' (sample)','')}`}}
  return null}
 function drvTick(){document.querySelectorAll('.drv-live').forEach(el=>{const st=drvState(el.dataset.key,el.dataset.plate);const eta=el.querySelector('.drv-eta'),mp=el.querySelector('.drv-map');
- if(!st){if(eta)eta.textContent='Waiting for your driver…';return}if(eta&&eta.textContent!==st.text)eta.textContent=st.text;
+ if(!st){if(eta)eta.textContent='Waiting for your driver…';return}if(eta&&eta.textContent!==st.text)eta.textContent=st.text;{const e2=el.querySelector('.drv-eta2');const tx=dropEta(el.dataset.key);if(e2&&e2.textContent!==tx)e2.textContent=tx}
  if(!hasLeaflet()||!mp){if(mp)mp.style.display='none';return}
  try{if(!el._m){const m=L.map(mp,{zoomControl:false,attributionControl:true,dragging:true,scrollWheelZoom:false});
    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(m);
@@ -2237,6 +2241,40 @@ function drvTick(){document.querySelectorAll('.drv-live').forEach(el=>{const st=
 setInterval(drvTick,1000);
 function tripDrv(a){const dd=(a.d&&a.d.driver)||{};if(dd.plate)return {name:dd.name||dd.n,op:dd.op||'',plate:dd.plate,type:dd.type||'tricycle',rv:dd.rv||0,rc:dd.rc||0};
  const p=S.providers.find(x=>x.n===dd.n)||(a.r&&prov(a.r.pid||(a.r.cands||[])[0]));return drvInfo(p)||{name:dd.n||'TODA driver',op:'',plate:'—',type:'tricycle'}}
+
+
+function clock(ms){const d=new Date(ms);let h=d.getHours(),m=d.getMinutes();const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap}
+function dropEta(key){const now=Date.now();
+ if(key==='trip'){const a=activeTrip();if(!a||!a.d)return '';const d=a.d;const A=P(d.from),B=P(d.to);if(!A||!B)return '';const st=tripStage(d);const rideMin=dur(routeKm(A,B),'tricycle');const el=nowS()-(d.fullAt||nowS());
+  if(st==='coming'){const t=Math.max(0,Math.min(1,(el-TRIP_T.find)/(TRIP_T.come-TRIP_T.find)));const pm=Math.max(0,Math.round(km(lerpP(startPt(A,a.code),A,t),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
+  if(st==='riding'){const t=Math.max(0,Math.min(1,(el-TRIP_T.come)/(TRIP_T.ride-TRIP_T.come)));const m=Math.max(1,Math.round(rideMin*(1-t)));return `Drop-off ETA ${clock(now+m*MIN)} · ${m} min left`}
+  return ''}
+ const r=ride(key.slice(2));if(!r)return '';const A=P(r.from),B=P(r.to);if(!A||!B)return '';const rideMin=dur(routeKm(A,B),r.type);
+ if(r.status==='accepted'){const t=Math.max(0,Math.min(1,(now-(r.acceptedAt||now))/60000));const pm=r.arriving?0:Math.max(0,Math.round(km(lerpP(startPt(A,r.id),A,t),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
+ if(r.status==='started'){const t=Math.max(0,Math.min(1,(now-(r.startedAt||now))/90000));const m=Math.max(1,Math.round(rideMin*(1-t)));return `Drop-off ETA ${clock(now+m*MIN)} · ${m} min left`}
+ return ''}
+function soloSteps(r){const st=r.status==='pending'?0:r.status==='accepted'?(r.arriving?2:1):r.status==='started'?3:4;
+ const L=['Driver','On the way','Pickup','Trip','Arrived'];const T=['Finding a driver…','Driver on the way','Driver is at your pickup','On the trip','Arrived'];
+ return `<div class="solo-steps"><ol class="trip-steps">${L.map((x,k)=>`<li class="${k<st?'done':k===st?'now':''}"><span></span>${x}</li>`).join('')}</ol><b class="solo-now">${T[st]}</b></div>`}
+function doneHTML(r){const A=P(r.from),B=P(r.to),p=prov(r.pid),di=drvInfo(p);const km_=routeKm(A,B);const mins=dur(km_,r.type);
+ const paid=r.pay&&r.pay!=='unpaid';
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Trip completed</span></div>
+ <div class="join-body"><ol class="trip-steps">${['Driver','On the way','Pickup','Trip','Arrived'].map(x=>`<li class="done"><span></span>${x}</li>`).join('')}</ol>
+ <div class="done-ic" aria-hidden="true">${ic('check')}</div><h2 style="margin:6px 0 4px;text-align:center">Trip completed</h2><p class="muted" style="margin:0 0 14px;text-align:center">You've arrived at ${esc(B.n.replace(' (sample)',''))}. Thanks for riding with LUNAD.</p>
+ <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))}</b></div>
+ <div class="kv"><span>Arrived</span><b>${clock(r.end||Date.now())}</b></div>
+ <div class="kv"><span>Distance</span><b>${km_.toFixed(1)} km · about ${mins} min</b></div>
+ ${di?`<div class="kv"><span>Driver</span><b>${esc(di.name)}</b></div><div class="kv"><span>Plate</span><b>${esc(di.plate)} · ${esc((TYPES[r.type]||{}).label||'')}</b></div>`:''}
+ <div class="kv"><span>${paid?'Paid':'You pay'}</span><b style="font-size:18px">${peso(amount(r))}</b></div></div>
+ ${paid?'':`<button class="btn block" style="margin-top:14px" onclick="payModal('${r.id}')">Pay now · ${peso(amount(r))}</button>`}
+ <button class="btn ${paid?'':'sec '}block" style="margin-top:8px" onclick="doneAck('${r.id}')">Done</button></div>`}
+function doneAck(id){const r=ride(id);if(r){r.doneSeen=true;save()}const el=document.getElementById('doneLock');if(el)el.remove();closeModal();S.tab='home';render()}
+function doneTick(){let el=document.getElementById('doneLock');
+ const r=(S.role==='booker'&&!document.getElementById('joinScreen')&&!document.getElementById('tripLock'))?S.rides.filter(x=>x.booker==='me'&&x.status==='completed'&&!x.doneSeen&&!(x.live&&x.shared)&&!x.joinCode).sort((a,b)=>(b.end||0)-(a.end||0))[0]:null;
+ if(!r){if(el)el.remove();return}
+ if(!el){el=document.createElement('div');el.id='doneLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
+ const h=doneHTML(r);if(el._h!==h){el.innerHTML=h;el._h=h}}
+setInterval(doneTick,1000);
 
 function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
  else setJoins(myJoins().filter(j=>j.code!==a.code));const el=document.getElementById('tripLock');if(el)el.remove();S.tab='home';render()}
@@ -2267,7 +2305,7 @@ window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0
 const FRESH={close:[],leave:[]};let BOOTED=false;
 function freshStart(keepJoins){
  for(const r of S.rides)if(['pending','accepted','started','queued'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
- for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true}
+ for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true;r.doneSeen=true}
  if(!keepJoins){for(const j of myJoins())FRESH.leave.push(j);setJoins([])}
  S.custom=S.custom.filter(p=>!p.mine);Object.assign(S.rideForm,{from:'catsu',to:'',pax:1,shared:false,pin:'to'});
  S.role='booker';S.tab='home'}
