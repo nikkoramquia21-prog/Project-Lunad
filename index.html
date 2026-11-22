@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.9 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.10.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1450,7 +1450,7 @@ function render(){const nav=navFor();
  $('#nav').innerHTML=nav.map(n=>`<button class="${S.tab===n[0]?'act':''}" onclick="go('${n[0]}')"><span class="i">${ic(n[1])}</span>${n[2]}</button>`).join('');
  let b='';
  const V={home:vHome,ride:vRide,map:vMap,mytrips:vMyTrips,me:vMe,offers:vOffers,status:vStatus,payset:vPaySet,register:vRegister,pinbox:vPInbox}[S.tab];
- $('#main').innerHTML=b+V();tick();maybeAutoReview();initMaps();stormCheck()}
+ $('#main').innerHTML=b+(S.role==='booker'&&['ride','mytrips'].includes(S.tab)?joinedHTML():'')+V();tick();maybeAutoReview();initMaps();stormCheck()}
 function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
  // Business/place review takes priority: it pops up right after ride completion,
  // before the driver rating — not after it.
@@ -1941,7 +1941,7 @@ function nearCard(o){const left=o.seats-o.used;const per=Math.round(Math.min(o.r
  return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>Goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}
 function nearbyHTML(){if(!LIVE.db)return '';const all=S.shareAll===true;nearbySub();
  if(!NEAR.asked){const p=P(S.rideForm.from);NEAR.pos=p?{lat:p.lat,lng:p.lng}:null;NEAR.posLabel=p?p.n.replace(' (sample)',''):''}
- const mine=S.rides.map(r=>r.liveCode).filter(Boolean);
+ const mine=S.rides.map(r=>r.liveCode).filter(Boolean).concat(myJoins().map(j=>j.code));
  const open=NEAR.items.filter(o=>!mine.includes(o.code)&&o.used<o.seats&&Date.now()-o.createdAt<30*MIN)
   .map(o=>Object.assign({},o,{dist:NEAR.pos?km(NEAR.pos,o)*1000:null})).sort((a,b)=>(a.dist==null?1e9:a.dist)-(b.dist==null?1e9:b.dist)||b.createdAt-a.createdAt);
  const near=all?open:open.filter(o=>o.dist!=null&&o.dist<=500),far=all?[]:open.filter(o=>!(o.dist!=null&&o.dist<=500));
@@ -1975,7 +1975,7 @@ function drawJoin(box,head,code,d){
  const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
  let action='';
  if(!open)action=`<div class="banner info">This ride is ${d.status==='started'?'on its way':'no longer open'}.</div>`;
- else if(mine)action=`<div class="banner">${full?'<b>Tricycle full — ready to leave.</b>':'<b>You’re in!</b> Leaves when all '+d.seats+' seats are filled.'}</div><button class="btn sec block" onclick="leaveRide('${code}')">Leave ride</button>`;
+ else if(mine){if(!myJoins().some(j=>j.code===code))addJoin(code,JOINKEY);action=`<div class="banner">${full?'<b>Tricycle full — ready to leave.</b>':'<b>You’re in!</b> Leaves when all '+d.seats+' seats are filled.'}</div><button class="btn block" onclick="goJoined()">View my shared ride</button>`}
  else if(full)action=`<div class="banner info">This tricycle is full.</div>`;
  else action=`<button class="btn block" onclick="joinRide('${code}')">Join this ride · ${peso(per)}</button><p class="muted" style="text-align:center;margin:8px 0 0">Your fare only goes down if more riders join.</p>`;
  box.innerHTML=head+`<div class="join-body"><h2>${esc(d.fromName)} → ${esc(d.toName)}</h2><p class="muted" style="margin:-4px 0 6px">Pickup at ${esc(d.fromName)} · goes to ${esc(d.toName)} · leaves when full</p>
@@ -1983,15 +1983,44 @@ function drawJoin(box,head,code,d){
  <div class="kv"><span>${mine?'You pay':'Your fare if you join'}</span><b>${peso(per)}</b></div>
  <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
  <h3>Riders</h3><ul class="join-riders">${riders}</ul>${action}
- <a class="btn ghost block" style="margin-top:12px;text-decoration:none" href="${location.pathname}">Open the LUNAD app</a><p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
+ ${JOIN_ONLY?'':`<button class="btn ghost block" style="margin-top:12px" onclick="document.getElementById('joinScreen').remove()">Back</button>`}<p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
+
+/* ---- rides this phone joined (kept in localStorage 'lunad-joins', separate from demo state) ---- */
+const JOINED={data:{},subs:{}};
+function myJoins(){try{return JSON.parse(localStorage.getItem('lunad-joins')||'[]')}catch(e){return []}}
+function setJoins(a){try{localStorage.setItem('lunad-joins',JSON.stringify(a))}catch(e){}}
+function addJoin(code,key){const a=myJoins().filter(j=>j.code!==code);a.unshift({code,key,at:Date.now()});setJoins(a)}
+function joinedSub(){if(!LIVE.db)return;for(const j of myJoins()){if(JOINED.subs[j.code])continue;JOINED.subs[j.code]=true;
+ LIVE.db.ref('rides/'+j.code).on('value',s=>{JOINED.data[j.code]=s.val();if(S.role==='booker'&&['ride','mytrips'].includes(S.tab)&&!($('#modalRoot')||{}).innerHTML&&!document.getElementById('joinScreen'))render()},()=>{})}}
+function goJoined(){if(JOIN_ONLY){location.replace(location.pathname+'#joined');return}const bx=document.getElementById('joinScreen');if(bx)bx.remove();S.role='booker';S.tab='ride';save();render();window.scrollTo(0,0)}
+function leaveJoined(code){const j=myJoins().find(x=>x.code===code);if(!j)return;JOINKEY=j.key;leaveRide(code)}
+function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const js=myJoins();if(!js.length)return '';
+ const out=js.map(j=>{const d=JOINED.data[j.code];if(d===undefined)return `<div class="card muted">Loading your shared ride ${esc(j.code)}…</div>`;
+  const m=d&&d.members&&d.members[j.key];if(!d||!m||['closed','cancelled'].includes(d.status)){setJoins(myJoins().filter(x=>x.code!==j.code));return ''}
+  const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((a,[k,x])=>a+(x.pax||1),0);
+  let per=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(j.best&&j.best<per)per=j.best;if(!j.best||per<j.best){j.best=per;setJoins(myJoins().map(x=>x.code===j.code?Object.assign(x,{best:per}):x))}
+  const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
+  const full=used>=d.seats;
+  const riders=[`<li><b>${esc(d.hostName||'Rider')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,x])=>`<li><b>${esc(x.name)}</b>${k===j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
+  const state=d.status==='started'?'<b>On the way.</b> Your tricycle has left the pickup.':full?'<b>Tricycle full — ready to leave.</b> Head to the pickup.':`<b>You’re in!</b> Leaves when all ${d.seats} seats are filled.`;
+  return `<section class="card joined-card" style="border:2px solid var(--sunc)"><div class="share-line">${ic('user')} Shared ride · you joined · live</div>
+  <h3 style="margin:8px 0 2px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--navy)">${esc(d.fromName)} → ${esc(d.toName)}</h3><p class="muted" style="margin:0 0 6px">Pickup at ${esc(d.fromName)} · ride code ${esc(j.code)}</p>
+  <div class="kv"><span>Seats</span><b class="seats">${seatDots} ${used} of ${d.seats}</b></div>
+  <div class="kv"><span>You pay</span><b>${peso(per)}</b></div>
+  <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
+  <ul class="join-riders" style="margin-top:6px">${riders}</ul>
+  <div class="banner" style="margin-bottom:10px">${state}</div>
+  ${d.status==='started'?'':`<button class="btn sec block" onclick="leaveJoined('${j.code}')">Leave ride</button>`}</section>`}).join('');
+ return out?`<h3>Your shared ride</h3>`+out:''}
+
 function joinRide(code){let key=null;
  LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;if(!(d.status==='open'))return;const used=(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0);if(used>=d.seats)return;
   const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Judge '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
- (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined-'+code,key);localStorage.setItem('lunad-joined-'+code,key)}catch(e){}toast('You joined the shared ride')}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
-function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;toast('You left the ride')})}
+ (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined-'+code,key);localStorage.setItem('lunad-joined-'+code,key)}catch(e){}addJoin(code,key);toast('You joined the shared ride');setTimeout(goJoined,600);return}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
+function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;setJoins(myJoins().filter(j=>j.code!==code));toast('You left the ride');if(!document.getElementById('joinScreen'))render()})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
 /* =================== BOOT =================== */
-function boot(){loadMyBiz();dailyChecks();save();render()}
+function boot(){if(!JOIN_ONLY&&location.hash==='#joined'){S.role='booker';S.tab='ride';try{history.replaceState(null,'',location.pathname)}catch(e){}setTimeout(()=>toast('You joined the shared ride'),300)}loadMyBiz();dailyChecks();save();render()}
 boot();setInterval(tick,1000);liveInit();
 setTimeout(flashStorm,400);
 </script>
