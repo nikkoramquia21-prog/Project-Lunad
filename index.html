@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1347,7 +1347,7 @@ function bookingLimit(){return S.me.noShows>=2?1:5}
 /* =================== CHECKS (timers, expiry, fares) =================== */
 function tick(){let changed=false;const now=Date.now();
  for(const r of S.rides)if(r.status==='pending'&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
- for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-r.createdAt>6000&&coJoin(r))changed=true;
+ for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-(r.lastJoin||r.createdAt)>SHARE.gap&&coJoin(r))changed=true;
  if(changed){save();render()}
  document.querySelectorAll('.cd').forEach(el=>{const r=ride(el.dataset.id);if(!r||r.status!=='pending'){el.textContent='';return}const s=Math.max(0,Math.ceil((OFFER_MS-(now-r.offerAt))/1000));el.textContent=` ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`})}
 function dailyChecks(){const today=D(0);
@@ -1535,13 +1535,13 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a||!b){f.fro
   <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
   <div class="check">${f.type===k?ic('check'):''}</div>
  </div>`).join('')}
- ${f.type==='tricycle'?(()=>{const q=sharedQuote('tricycle',d,f.pax,f.pax);const ok=f.pax<SHARE.seats;return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole tricycle · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?peso(q.per)+' per seat · '+SHARE.seats+' seats':'Not available for '+f.pax+' passengers'}</span></button></div>${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Shared with riders from the same pickup and drop-off area. Your fare only goes down if more riders join. Sample fare: ₱15 + ₱5/km per passenger.</p>`:''}`})():''}
+ ${f.type==='tricycle'?(()=>{const q=sharedQuote('tricycle',d,f.pax,f.pax);const ok=f.pax<SHARE.seats;return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole tricycle · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,f.pax,1)+' per seat · drops as riders join':'Not available for '+f.pax+' passengers'}</span></button></div>${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Shared with riders from the same pickup and drop-off area. Your fare only goes down if more riders join. Sample fare: ₱15 + ₱5/km per passenger.</p>`:''}`})():''}
  <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
  <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
  ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
  <div class="sep"></div>
  <div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,f.type)} min</b></div>
- ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${f.pax} seat${f.pax>1?'s':''})</span><b>${peso(sharedQuote(f.type,d,f.pax,f.pax).you)}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
+ ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${f.pax} seat${f.pax>1?'s':''})</span><b>${shareRange(d,f.pax,f.pax)}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
  <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
  ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
  
@@ -1563,15 +1563,14 @@ function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,t
 /* =================== SHARED TODA RIDES (sample rates) =================== */
 // Rider pays the LOWER of: per-passenger regular fare (sample ₱15 + ₱5/km) or the whole-trip fare split by seats filled.
 // Riders share only with the same pickup and drop-off area. 3 seats. In the demo a sample co-rider joins automatically.
-const SHARE={base:15,km:5,seats:3,co:{n:'Maria (sample)',pax:1}};
+const SHARE={base:15,km:5,seats:3,co:[{n:'Maria (sample)'},{n:'Carla (sample)'}],gap:6000};
 function seatFare(d){return Math.round(SHARE.base+SHARE.km*d)}
 function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));const reg=seatFare(d);const per=Math.round(Math.min(reg,whole/seats));return {per,you:per*pax,whole,reg}}
+function shareRange(d,pax,mult){const hi=sharedQuote('tricycle',d,pax,pax).per*mult,lo=sharedQuote('tricycle',d,pax,SHARE.seats).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
 function shareOn(f){return f.type==='tricycle'&&!!f.shared&&f.pax<SHARE.seats}
 function sharedSeats(r){return r.pax+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
 function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r);const q=sharedQuote(r.type,d,r.pax,n);r.fare=q.you;r.seatFare=q.per;r.tripTotal=q.per*n}
-function coJoin(r){if(!r.shared||r.coDone)return false;if(!['pending','accepted','started'].includes(r.status))return false;
- const free=SHARE.seats-sharedSeats(r);r.coDone=true;if(free<1)return false;const before=r.fare;r.co=[{n:SHARE.co.n,pax:1}];applyShared(r);
- toast(`${SHARE.co.n} joined your shared ride · ${sharedSeats(r)} of ${SHARE.seats} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}`);return true}
+function coJoin(r){if(!r.shared||r.coDone)return false;if(!['pending','accepted','started'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(SHARE.seats-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();if(sharedSeats(r)>=SHARE.seats||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);toast(`${next.n} joined your shared ride · ${sharedSeats(r)} of ${SHARE.seats} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}`);return true}
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
  <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${SHARE.seats} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):' · looking for co-riders'} · ${peso(r.seatFare)}/seat</div>`:''}
