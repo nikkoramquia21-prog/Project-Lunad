@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -959,6 +959,7 @@ textarea.inp{min-height:96px;font-weight:500}
 .trip-steps li span{height:5px;border-radius:999px;background:var(--line)}
 .trip-steps li.done span{background:var(--navy)}.trip-steps li.done{color:var(--navy)}
 .trip-steps li.now span{background:var(--sunc)}.trip-steps li.now{color:var(--navy)}
+.trip-demo{margin-top:18px;padding:12px 14px;border:1px dashed var(--ctrl);border-radius:12px;display:flex;flex-direction:column;gap:8px}.trip-demo b{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
 .trip-box{border:1px solid var(--line);border-radius:12px;padding:6px 14px;margin-top:16px}
 .trip-spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--sunc);margin:6px auto 4px;animation:tripspin 1s linear infinite}
 @keyframes tripspin{to{transform:rotate(360deg)}}
@@ -2068,7 +2069,18 @@ function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);cons
  <div class="kv"><span>Seats</span><b class="seats">${dots} ${used} of ${seats}</b></div>
  <div class="kv"><span>${st==='arrived'?'You pay':'Your fare'}</span><b>${peso(pay)}</b></div>${['coming','riding','arrived'].includes(st)?`<div class="kv"><span>Driver</span><b>${esc(drv)}</b></div>`:''}
  <h3>Riders</h3><ul class="join-riders">${riders}</ul></div>
- <p class="muted" style="margin-top:14px">Demo · a sample TODA driver accepts automatically. Ride code ${esc(a.code)}.</p></div>`}
+ ${['arrived','cancelled','gone'].includes(st)?'':tripDemo(a,st)}<p class="muted" style="margin-top:14px">Demo · a sample TODA driver accepts automatically. Ride code ${esc(a.code)}.</p></div>`}
+
+function fillSample(code){if(!LIVE.db)return;LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;d.members=d.members||{};let used=(d.hostSeats||1)+Object.values(d.members).reduce((s,m)=>s+(m.pax||1),0);let i=1;
+  while(used<d.seats){d.members['s'+Date.now().toString(36)+i]={name:'Sample rider '+i,pax:1,joinedAt:Date.now()};used++;i++}d.status='full';d.fullAt=d.fullAt||nowS();return d},
+ (e,ok)=>{toast(ok?'Sample riders filled the empty seats':'Could not add sample riders — check your connection')})}
+function skipStep(code){if(!LIVE.db)return;LIVE.db.ref('rides/'+code+'/fullAt').transaction(x=>{const t=nowS();if(!x)return t;const el=t-x;const next=el<TRIP_T.find?TRIP_T.find:el<TRIP_T.come?TRIP_T.come:TRIP_T.ride;return t-next-200})}
+function tripDemo(a,st){const b=[];
+ if(a.host&&st==='waiting')b.push(`<button class="btn sec block" onclick="fillSample('${a.code}')">Fill empty seats with sample riders</button>`);
+ if(['finding','coming','riding'].includes(st))b.push(`<button class="btn sec block" onclick="skipStep('${a.code}')">Skip to next step</button>`);
+ b.push(`<div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" onclick="setRole('provider');tripTick()">Switch to Driver</button><button class="btn ghost" style="flex:1" onclick="openAbout()">Menu</button></div>`);
+ return `<div class="trip-demo"><b>Demo controls</b>${b.join('')}</div>`}
+
 function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
  else setJoins(myJoins().filter(j=>j.code!==a.code));const el=document.getElementById('tripLock');if(el)el.remove();S.tab='home';render()}
 function tripTick(){const a=activeTrip();let el=document.getElementById('tripLock');
