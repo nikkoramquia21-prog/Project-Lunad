@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.20.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.20.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -952,7 +952,13 @@ textarea.inp{min-height:96px;font-weight:500}
 .live-code{width:132px;height:132px;flex:none}.big-qr{width:100%;max-width:300px;margin:0 auto}.big-qr svg{width:100%;height:auto;display:block}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
-.near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}.leafmap{isolation:isolate;position:relative;z-index:0}
+.near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.pay-amt{display:flex;justify-content:space-between;align-items:center;background:var(--alt);border-radius:12px;padding:12px 14px}.pay-amt span{font-size:13.5px;color:var(--mut)}.pay-amt b{font-size:22px;color:var(--navy)}
+.pay-opts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.pay-opt{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;font:inherit;color:var(--navy);cursor:pointer}
+.pay-opt:hover,.pay-opt:focus-visible{border-color:var(--navy)}.pay-opt .tile{width:42px;height:42px;border-radius:10px;background:var(--sun-tint);color:var(--sun-text);display:flex;align-items:center;justify-content:center;flex:none}.pay-opt .tile .ic{width:20px;height:20px}
+.pay-opt .tile.peso{font-size:20px;font-weight:800}.pay-opt .tx{flex:1;display:flex;flex-direction:column;gap:2px}.pay-opt .tx b{font-size:16px}.pay-opt .tx span{font-size:12.5px;color:var(--mut)}.pay-opt .chev{color:var(--mut)}
+.leafmap{isolation:isolate;position:relative;z-index:0}
 .hold-bn{display:flex;gap:10px;align-items:flex-start;background:var(--sun-tint);border:1px solid var(--sun-line);color:var(--navy);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:13.5px;line-height:1.45}
 .hold-bn>.ic{width:20px;height:20px;flex:none;margin-top:2px}.hold-bn span{flex:1}.hold-bn b{display:block;font-size:15px;margin-bottom:2px}
 .hold-bn.alt{flex-wrap:wrap}.hold-bn.alt .btn{flex:none}
@@ -1801,14 +1807,20 @@ function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  return h+'</div>'}
 
 /* =================== PAYMENT (Module 3) =================== */
-function payModal(id){const r=ride(id);const p=prov(r.pid);
- modal(`<h2>${ic('card')} Pay ${esc(p.n)}</h2><div class="muted">Ref <b>${r.id}</b> · ${peso(amount(r))}</div>
- <div class="card" style="text-align:center;margin-top:10px"><b>Scan to pay ${peso(amount(r))}</b>${p.pay.qr?`<img class="qr" src="${p.pay.qr}" alt="QR">`:fakeQR(p.pay.acct+p.id)}
- <div class="muted">${esc(p.pay.m)} · ${esc(p.pay.name)} · ${esc(p.pay.acct)}</div>${p.pay.qr?'':'<span class="st wait">Sample QR — not payable</span>'}
- <p class="muted">Pay in your GCash, Maya or bank app, and put <b>${r.id}</b> in the message.</p></div>
- <label class="f">Upload payment screenshot</label><input class="inp" type="file" accept="image/*" onchange="if(this.files[0])readImg(this.files[0],d=>submitProof('${id}',d))">
- ${r.proof?`<img class="proof" src="${r.proof}" alt="proof">`:''}
- <div class="btns"><button class="btn sm ghost" onclick="payCash('${id}')">Pay cash to driver instead</button><button class="btn sm ghost" onclick="closeModal()">Later</button></div>`)}
+function payModal(id,step){const r=ride(id);if(!r)return;const p=prov(r.pid);const di=drvInfo(p)||{name:'your driver',plate:''};const amt=peso(amount(r));
+ const head=`<h2 style="margin:0 0 2px">${step?(step==='cash'?'Pay in cash':'Pay cashless'):'How would you like to pay?'}</h2><p class="muted" style="margin:0 0 12px">${esc(di.name)}${di.plate?' · Plate '+esc(di.plate):''} · Ref <b>${r.id}</b></p>
+ <div class="pay-amt"><span>Amount to pay</span><b>${amt}</b></div>`;
+ if(!step){modal(head+`<div class="pay-opts">
+  <button class="pay-opt" onclick="payModal('${id}','cashless')"><span class="tile">${ic('card')}</span><span class="tx"><b>Cashless</b><span>GCash, Maya or bank app · scan the driver’s QR</span></span>${ic('chevron','chev')}</button>
+  <button class="pay-opt" onclick="payModal('${id}','cash')"><span class="tile peso">₱</span><span class="tx"><b>Cash</b><span>Pay ${esc(di.name)} directly · driver confirms</span></span>${ic('chevron','chev')}</button></div>
+  <button class="sb-skip" onclick="closeModal()">Pay later</button>`);return}
+ if(step==='cash'){modal(head+`<div class="card" style="margin:12px 0 0"><b style="display:block;margin-bottom:4px">Hand ${amt} to ${esc(di.name)}</b><span class="muted">Check the plate${di.plate?' <b>'+esc(di.plate)+'</b>':''} before paying. Exact change helps. ${esc(di.name)} confirms on the Driver screen when received.</span></div>
+  <button class="btn block" style="margin-top:12px" onclick="payCash('${id}')">I’ve paid in cash</button><button class="sb-skip" onclick="payModal('${id}')">Back</button>`);return}
+ modal(head+`<div class="card" style="text-align:center;margin-top:12px"><b>Scan to pay ${amt}</b>${p.pay.qr?`<img class="qr" src="${p.pay.qr}" alt="QR">`:fakeQR(p.pay.acct+p.id)}
+  <div class="muted">${esc(p.pay.m)} · ${esc(p.pay.name)} · ${esc(p.pay.acct)}</div>${p.pay.qr?'':'<span class="st wait">Sample QR — not payable</span>'}
+  <p class="muted" style="margin:8px 0 0">Pay in your GCash, Maya or bank app and put <b>${r.id}</b> in the message.</p></div>
+  <label class="f">Upload payment screenshot</label><input class="inp" type="file" accept="image/*" onchange="if(this.files[0])readImg(this.files[0],d=>submitProof('${id}',d))">
+  ${r.proof?`<img class="proof" src="${r.proof}" alt="proof">`:''}<button class="sb-skip" onclick="payModal('${id}')">Back</button>`)}
 function submitProof(id,d){const r=ride(id);r.proof=d;r.pay='proof';r.proofAt=Date.now();notify(r.pid,'dispute',{});S.notifs[0].text=`LUNAD: Payment proof for ${r.id} uploaded. Confirm within 15 min.`;save();closeModal();render();toast('Proof sent — the provider has 15 minutes to confirm')}
 function payCash(id){const r=ride(id);r.pay='cash';r.proofAt=Date.now();save();closeModal();render();toast('Marked as cash — driver confirms on receipt')}
 
@@ -2353,7 +2365,6 @@ function tripTick(){const a=activeTrip();let el=document.getElementById('tripLoc
  {const st=a.d?tripStage(a.d):'waiting';const mt=($('#modalRoot').innerText||'');
   if(!a.host&&st==='riding')joinLocal(a,'started');
   if(mt&&st!=='waiting'&&/leaves only when all/.test(mt))closeModal();
-  if(mt&&st==='arrived'&&!/Ride completed|Thanks for your review|stop by|How was your visit|Help other travelers/i.test(mt))closeModal();
   if(st==='arrived')setTimeout(()=>tripArrive(a),0)}
  if(!el){el=document.createElement('div');el.id='tripLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
  const h=tripHTML(a);if(el._h!==h){el.innerHTML=h;el._h=h;try{drvTick()}catch(e){}}}
