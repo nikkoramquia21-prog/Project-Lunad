@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.13.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.14.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1154,6 +1154,8 @@ const PLACES=[
  {id:'b10',n:'Puraran Surf Café (sample)',t:'Baras',lat:13.6955,lng:124.4043,k:'shop',e:'utensils',cat:'Coffee'},
  {id:'b11',n:'Majestic Waves Homestay (sample)',t:'Baras',lat:13.6966,lng:124.4057,k:'stay',e:'building',cat:'Homestay'},
  {id:'b12',n:'Gigmoto Fish Grill (sample)',t:'Gigmoto',lat:13.7795,lng:124.3895,k:'shop',e:'fish',cat:'Eatery'},
+ {id:'b13',n:'Ate Bing’s Student Carinderia (sample)',t:'Virac',lat:13.5968,lng:124.2158,k:'shop',e:'utensils',cat:'Eatery'},
+ {id:'b14',n:'Kapeng Isko Coffee & Milk Tea (sample)',t:'Virac',lat:13.5952,lng:124.2139,k:'shop',e:'utensils',cat:'Coffee'},
  ...Object.entries(TOWNS).filter(([n])=>n!=='Virac').map(([n,[la,ln]])=>({id:'town-'+n.replace(/\s/g,''),n:n+' town proper',t:n,lat:la,lng:ln,k:'town',e:'building'}))
 ];
 const SPOT_REVIEWS={
@@ -1193,7 +1195,9 @@ const BIZ={
  b09:{avg:4.5,count:42,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B09'},
  b10:{avg:4.3,count:20,offer:'Free banana bread with any drink',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B10'},
  b11:{avg:4.6,count:43,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B11'},
- b12:{avg:4.9,count:42,offer:'Free soup with any grilled fish',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B12'}
+ b12:{avg:4.9,count:42,offer:'Free soup with any grilled fish',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B12'},
+ b13:{avg:4.6,count:9,offer:'Free iced tea for CatSU students',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B13'},
+ b14:{avg:4.9,count:8,offer:'₱10 off with your student ID',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B14'}
 };
 // Unified review stats lookup: a destination is reviewable if it has either a business-partner
 // micro-offer record (BIZ) or a tourism sample-review record (SPOT_REVIEWS) — covers every
@@ -1325,7 +1329,7 @@ function seed(){
   providers:provs,
   rides:hist,notifs:[],reports:[],ratings:[],sos:[],signals:{Gigmoto:1},threads:{},
   fares:{active:JSON.parse(JSON.stringify(FARES0))},
-  rideForm:{from:'air',to:'twin',type:'tricycle',pax:2,when:'now',date:D(0),time:'14:00',pin:'from'},
+  rideForm:{from:'catsu',to:'',type:'tricycle',pax:1,when:'now',date:D(0),time:'14:00',pin:'from'},
   mapFilter:{spot:true,hub:true,stay:true,shop:true},custom:[],seq:1000};
 }
 const FARES0={tricycle:{base:30,km:15},moto:{base:25,km:12},car:{base:300,km:25},minivan:{base:400,km:28},van:{base:500,km:30},cancelFee:20,lateFee:30};
@@ -1605,7 +1609,24 @@ function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['
  <h3>Featured</h3>
  ${featured.map(destCard).join('')}
  ${active?`<p class="muted" style="text-align:center">${ic('clock','sm')} ${active} active booking${active>1?'s':''} — see Bookings for details.</p>`:''}`}
-function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a||!b){f.from='air';f.to='twin';return vRide()}
+
+function vRideNoDrop(a){const f=S.rideForm;if(f.pin!=='from')f.pin='to';let h=activeCard();
+ h+=`<h2>Book a ride</h2>
+ <datalist id="placeList">${[...PLACES,...S.custom].map(p=>`<option value="${esc(p.n)}">`).join('')}${Object.keys(TOWNS).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+ <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('pin')} Drop-off</span></div>
+ ${mapView('map-ride',{route:[a,a],marks:[[a,'pickup','#0D1B2A',esc(a.n)]],drop:true,h:230})}
+ <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
+ <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('from',this.value);this.value=''">
+ <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()"><option value="" selected disabled>Where are you going?</option>${placeOpts('')}</select>
+ <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('to',this.value);this.value=''">
+ <p class="muted" style="margin:12px 0 8px">Choose a drop-off to see vehicles and fares.</p>
+ <button class="btn block" disabled>Request ride</button></div>`;return h}
+function autoGPS(){if(JOIN_ONLY||!navigator.geolocation)return;
+ navigator.geolocation.getCurrentPosition(pos=>{const {latitude:lat,longitude:lng}=pos.coords;
+  if(lat>=GEO_BOUNDS.lat0&&lat<=GEO_BOUNDS.lat1&&lng>=GEO_BOUNDS.lng0&&lng<=GEO_BOUNDS.lng1&&S.rideForm.from==='catsu')setMyLocation(lat,lng,'My location','Pickup set to your current location')},
+  ()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
+
+function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='catsu';return vRide()}if(!b)return vRideNoDrop(a);
  const d=routeKm(a,b),start=formStart(),end=start+dur(d,f.type)*MIN,storm=paused(a.t)||paused(b.t);
  const lim=activeCount()>=bookingLimit();
  const marks=[[a,'pickup','#0D1B2A',esc(a.n)],[b,'dropoff','#F5B544',esc(b.n)]];
@@ -2144,11 +2165,12 @@ function freshStart(keepJoins){
  for(const r of S.rides)if(['pending','accepted','started','queued'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
  for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true}
  if(!keepJoins){for(const j of myJoins())FRESH.leave.push(j);setJoins([])}
+ S.custom=S.custom.filter(p=>!p.mine);Object.assign(S.rideForm,{from:'catsu',to:'',pax:1,shared:false,pin:'to'});
  S.role='booker';S.tab='home'}
 function freshFlush(){if(!LIVE.db)return;for(const c of FRESH.close.splice(0)){LIVE.db.ref('rides/'+c+'/cancelled').set(true).catch(()=>{});LIVE.db.ref('rides/'+c+'/status').set('closed').catch(()=>{});LIVE.db.ref('open/'+c).remove().catch(()=>{})}
  for(const j of FRESH.leave.splice(0))LIVE.db.ref('rides/'+j.code).transaction(d=>{if(!d||d.fullAt||!d.members||!d.members[j.key])return;delete d.members[j.key];if(d.status==='full')d.status='open';return d}).catch(()=>{})}
 
-function boot(){if(!BOOTED&&!JOIN_ONLY){BOOTED=true;freshStart(location.hash==='#joined')}if(!JOIN_ONLY&&location.hash==='#joined'){S.role='booker';S.tab='home';try{history.replaceState(null,'',location.pathname+(PHONE?'?phone='+PHONE:''))}catch(e){}setTimeout(()=>toast('You joined the shared ride'),300)}loadMyBiz();dailyChecks();save();render()}
+function boot(){if(!BOOTED&&!JOIN_ONLY){BOOTED=true;freshStart(location.hash==='#joined');setTimeout(autoGPS,400)}if(!JOIN_ONLY&&location.hash==='#joined'){S.role='booker';S.tab='home';try{history.replaceState(null,'',location.pathname+(PHONE?'?phone='+PHONE:''))}catch(e){}setTimeout(()=>toast('You joined the shared ride'),300)}loadMyBiz();dailyChecks();save();render()}
 boot();setInterval(tick,1000);liveInit();
 setTimeout(flashStorm,400);
 </script>
