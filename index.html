@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.12.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.12.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -2086,16 +2086,16 @@ function tripDemo(a,st){const b=[];
 
 /* At 'arrived' each phone completes its own copy of the trip and opens the normal review form (Rider side only). */
 function tripArrive(a){if($('#modalRoot').innerHTML)return;const d=a.d||{};
- if(a.host){const r=a.r;if(r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];const pay=r.fare;complete(r.id);r.fare=pay;save();render()}return}
+ if(a.host){const r=a.r;if(r.status==='completed'){if(r.rated&&r.rated.b){r.tripDone=true;save();tripTick();return}r.reviewShown=false;r.bizReviewShown=true;save();render();return}if(r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];const pay=r.fare;complete(r.id);r.fare=pay;save();render()}return}
  let r=S.rides.find(x=>x.joinCode===a.code);
  if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type==='tricycle');
   const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0);
   let pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best;
   r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:'tricycle',pax:1,start:Date.now()-((TRIP_T.ride-TRIP_T.come)||0)});
   Object.assign(r,{pid:p?p.id:null,status:'completed',end:Date.now(),fare:pay,shared:true,joinCode:a.code,joinKey:a.j.key,co:[]});S.rides.push(r);save()}
- render()}
-function tripRated(r,stars){const code=r.liveCode||r.joinCode;if(!code||!LIVE.db)return;const who=r.joinCode?r.joinKey:'host';
- LIVE.db.ref('rides/'+code+'/ratings/'+who).set({s:stars,at:Date.now()}).catch(()=>{});
+ if(r.rated&&r.rated.b){setJoins(myJoins().filter(j=>j.code!==a.code));tripTick();return}r.reviewShown=false;render()}
+function tripRated(r,stars){const code=r.liveCode||r.joinCode;const who=r.joinCode?r.joinKey:'host';
+ if(code&&LIVE.db)LIVE.db.ref('rides/'+code+'/ratings/'+who).set({s:stars,at:Date.now()}).catch(()=>{});
  if(r.joinCode)setJoins(myJoins().filter(j=>j.code!==r.joinCode));else r.tripDone=true;save();const el=document.getElementById('tripLock');if(el)el.remove()}
 (function(){const o=saveRate;saveRate=function(){const id=RT.id,side=RT.side,stars=RT.stars;o();const r=ride(id);if(r&&side==='b'&&r.rated&&r.rated.b&&(r.liveCode||r.joinCode))tripRated(r,stars)}})();
 
@@ -2124,7 +2124,7 @@ window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0
 const FRESH={close:[],leave:[]};let BOOTED=false;
 function freshStart(keepJoins){
  for(const r of S.rides)if(['pending','accepted','started','queued'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
- for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true}
+ for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true}
  if(!keepJoins){for(const j of myJoins())FRESH.leave.push(j);setJoins([])}
  S.role='booker';S.tab='home'}
 function freshFlush(){if(!LIVE.db)return;for(const c of FRESH.close.splice(0)){LIVE.db.ref('rides/'+c+'/cancelled').set(true).catch(()=>{});LIVE.db.ref('rides/'+c+'/status').set('closed').catch(()=>{});LIVE.db.ref('open/'+c).remove().catch(()=>{})}
