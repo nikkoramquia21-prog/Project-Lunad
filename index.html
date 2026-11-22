@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.1 · Signal Sun)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+/* Leaflet 1.9.4 core styles, inlined (not linked) because the artifact viewer's CSP blocks
+   third-party stylesheets; default marker-icon images are unused since every marker here
+   is a custom divIcon, so the two image url() refs below are harmless no-ops. */
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+:root{
+ /* Island Blue — primary brand palette, inspired by Catanduanes' coastal waters */
+ --sea:#0A84B8;--sea-d:#066391;--sea-l:#E7F4FA;--sea-mid:#2EA8D8;
+ --sand:#FEF6E7;--sun:#F5B544;--amber-d:#D9922E;--coral:#E0544B;
+ --ink:#10232E;--mut:#64798A;--line:#E3EAEF;--bg:#F4F9FB;
+ --ok:#0E8F6B;--ok-bg:#E3F6EF;--ok-solid:#16A37A;--bad:#D9453C;--rose-bg:#FDEEED;--rose-line:#F8D9D6;--rose-ink:#9A2E27;
+ --r-sm:12px;--r-md:16px;--r-lg:20px;--r-xl:28px;
+ --sh-sm:0 1px 2px rgba(10,60,85,.06),0 1px 1px rgba(10,60,85,.04);
+ --sh-md:0 6px 18px rgba(10,60,85,.09),0 1px 3px rgba(10,60,85,.05);
+ --sh-lg:0 16px 36px rgba(10,60,85,.16);
+ --ease:cubic-bezier(.22,.8,.3,1)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);font-family:'Inter',system-ui,-apple-system,sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+.ic{width:1em;height:1em;vertical-align:-0.14em;flex:none}
+.ic.sm{width:12px;height:12px}
+.ic.lg{width:22px;height:22px;vertical-align:middle}
+.ic.xl{width:28px;height:28px;vertical-align:middle}
+button,input,select,textarea{font:inherit}
+button{transition:transform .12s var(--ease),background-color .15s var(--ease),box-shadow .15s var(--ease),opacity .15s var(--ease)}
+button:active{transform:scale(.97)}
+.wrap{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:20px}
+.side{max-width:360px;flex:1;min-width:260px}
+.side h1{font-size:24px;margin:0 0 4px;letter-spacing:1px}
+.side p{color:var(--mut);line-height:1.5;margin:6px 0}
+.side .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.phone{width:400px;max-width:100%;height:840px;max-height:calc(100vh - 40px);background:#fff;border-radius:32px;box-shadow:0 24px 60px rgba(10,40,60,.22),0 2px 8px rgba(10,40,60,.08);overflow:hidden;display:flex;flex-direction:column;position:relative;border:1px solid var(--line)}
+@media(max-width:820px){.wrap{padding:0;flex-direction:column;align-items:stretch}.side{display:none}.phone{width:100%;height:100vh;max-height:none;border-radius:0;border:0;box-shadow:none}}
+header.top{background:linear-gradient(155deg,var(--sea-mid),var(--sea) 55%,var(--sea-d));color:#fff;padding:14px 16px 12px;position:relative}
+header.top::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:rgba(255,255,255,.12)}
+.top .row{display:flex;align-items:center;gap:8px}
+.logo{font-weight:800;font-size:19px;letter-spacing:1.5px}
+.logo small{font-weight:500;opacity:.85;font-size:11.5px;display:block;letter-spacing:.2px;margin-top:1px}
+.top select{margin-left:auto;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:9px;padding:5px 7px;font-size:12px;max-width:150px}
+.top select option{color:#000}
+.net{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;transition:background-color .2s var(--ease)}
+.pill.on{background:rgba(255,255,255,.22);color:#fff}.pill.off{background:rgba(255,255,255,.95);color:var(--rose-ink)}
+.dot{width:7px;height:7px;border-radius:50%;background:#ecfdf5;box-shadow:0 0 0 2px rgba(16,185,129,.35)}.pill.off .dot{background:var(--rose-ink);box-shadow:0 0 0 2px rgba(153,27,27,.25)}
+.tgl{margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer}
+.iconbtn{background:rgba(255,255,255,.16);border:0;color:#fff;border-radius:9px;padding:5px 9px;cursor:pointer;font-size:12px}
+main{flex:1;overflow-y:auto;padding:16px;background:#fafcfc}
+nav.bottom{display:flex;border-top:1px solid var(--line);background:#fff;padding:2px 4px;box-shadow:0 -4px 16px rgba(15,35,55,.04)}
+nav.bottom button{flex:1;border:0;background:none;padding:9px 1px 10px;font-size:10px;color:var(--mut);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:14px;margin:2px}
+nav.bottom button .i{width:21px;height:21px;transition:transform .2s var(--ease)}
+nav.bottom button.act{color:var(--sea-d);font-weight:700;background:var(--sea-l)}
+nav.bottom button.act .i{transform:translateY(-1px)}
+h2{font-size:18px;margin:2px 0 12px;color:var(--ink);font-weight:800;letter-spacing:-.2px}h3{font-size:11px;margin:18px 0 8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:13px;margin-bottom:10px;box-shadow:var(--sh-sm);transition:box-shadow .2s var(--ease)}
+.card.hl{border-color:var(--sea);box-shadow:0 0 0 2px var(--sea-l),var(--sh-sm)}
+.btn{background:var(--sea);color:#fff;border:0;border-radius:var(--r-sm);padding:10px 14px;font-weight:700;cursor:pointer;font-size:13px;box-shadow:var(--sh-sm)}
+.btn:hover{background:var(--sea-d);box-shadow:var(--sh-md)}.btn.sec{background:var(--sea-l);color:var(--sea-d);box-shadow:none}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.warn{background:var(--coral)}.btn.sm{padding:6px 10px;font-size:12px;border-radius:9px}.btn.block{width:100%}.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+label.f{display:block;font-size:12px;color:var(--mut);font-weight:600;margin:8px 0 3px}
+.inp{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:#fff;transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
+.inp:focus{outline:none;border-color:var(--sea);box-shadow:0 0 0 3px var(--sea-l)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:12px;cursor:pointer;transition:all .15s var(--ease)}
+.chip.on{background:var(--sea);color:#fff;border-color:var(--sea);box-shadow:var(--sh-sm)}
+.st{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10.5px;font-weight:700;margin:1px 0}
+.st.ok{background:var(--ok-bg);color:var(--ok)}.st.wait{background:#fef9c3;color:#854d0e}.st.bad{background:var(--rose-bg);color:var(--bad)}.st.info{background:var(--sea-l);color:var(--sea-d)}.st.mut{background:#eaf2fa;color:var(--mut)}.st.gold{background:#fffbeb;color:#92400e}.st.sm{padding:1px 6px;font-size:9.5px}
+.muted{color:var(--mut);font-size:12px}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0}.kv b{font-weight:700;text-align:right}
+.sep{height:1px;background:var(--line);margin:11px 0}
+.banner{background:#fffbeb;border:1px solid #fde68a;border-radius:var(--r-md);padding:11px;font-size:12.5px;margin-bottom:10px}
+.banner.info{background:var(--sea-l);border-color:#bae6fd}.banner.bad{background:var(--rose-bg);border-color:var(--rose-line)}
+.statrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.map{width:100%;background:#dceefb;border-radius:var(--r-lg);border:1px solid var(--line);display:block;overflow:hidden;box-shadow:var(--sh-sm)}
+.leafmap{width:100%;border-radius:var(--r-lg);border:1px solid var(--line);overflow:hidden;background:#dceefb;box-shadow:var(--sh-sm)}
+.lpin{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.lpin.sm{width:26px;height:26px;border-radius:50%;transform:none;display:flex;align-items:center;justify-content:center;font-size:13px;background:#fff;border:2px solid var(--sea)}
+.lpin-label{background:#fff!important;border:1.3px solid var(--sea-d);border-radius:7px!important;font-size:10.5px;font-weight:700;color:var(--ink);padding:1px 7px!important;box-shadow:none!important}
+.lpin-label:before{display:none}
+.pin{cursor:pointer}
+/* ============ Home / Explore / Ride — Island Blue component layer ============ */
+.hero{background:linear-gradient(155deg,var(--sea-mid),var(--sea) 60%,var(--sea-d));color:#fff;border-radius:var(--r-lg);padding:20px 18px 18px;margin-bottom:14px;box-shadow:var(--sh-md);position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero h2{color:#fff;font-size:20px;margin:0 0 4px}
+.hero p{margin:0;opacity:.92;font-size:12.5px;line-height:1.5}
+.search-bar{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.95);color:var(--mut);border-radius:var(--r-md);padding:11px 14px;margin-top:14px;font-size:13px;box-shadow:var(--sh-sm);cursor:pointer}
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.qa-card{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:14px 12px;cursor:pointer;transition:box-shadow .2s var(--ease),transform .15s var(--ease);box-shadow:var(--sh-sm)}
+.qa-card:active{transform:scale(.97)}
+.qa-card .ic-badge{width:38px;height:38px;border-radius:12px;background:var(--sea-l);color:var(--sea-d);display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.qa-card .ic-badge .ic{width:20px;height:20px}
+.qa-card b{display:block;font-size:13px;margin-bottom:2px}
+.qa-card span{display:block;font-size:11px;color:var(--mut);line-height:1.3}
+.dest-card{position:relative;border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px;box-shadow:var(--sh-sm);cursor:pointer;background:var(--sea-l)}
+.dest-card .img{height:120px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--sea-mid),var(--sea-d));color:#fff}
+.dest-card .img .ic{width:34px;height:34px;opacity:.9}
+.dest-card .body{padding:11px 13px 12px;background:#fff}
+.dest-card .body .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.dest-card .body b{font-size:13.5px}
+.dest-card .tag{position:absolute;top:9px;left:9px;background:rgba(16,35,46,.55);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;display:flex;align-items:center;gap:4px;backdrop-filter:blur(2px)}
+.cat-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
+.cat-chip{flex:none;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;color:var(--mut);transition:all .15s var(--ease)}
+.cat-chip.on{background:var(--sea);color:#fff;border-color:var(--sea);box-shadow:var(--sh-sm)}
+.cat-chip .ic{width:15px;height:15px}
+.veh-card{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);background:#fff;border-radius:var(--r-md);padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:all .15s var(--ease)}
+.veh-card.on{border-color:var(--sea);background:var(--sea-l);box-shadow:0 0 0 1px var(--sea)}
+.veh-card .ic-badge{width:42px;height:42px;border-radius:12px;background:var(--sea-l);color:var(--sea-d);display:flex;align-items:center;justify-content:center;flex:none}
+.veh-card.on .ic-badge{background:#fff}
+.veh-card .ic-badge .ic{width:22px;height:22px}
+.veh-card .meta{flex:1;min-width:0}
+.veh-card .meta b{display:block;font-size:13.5px}
+.veh-card .meta span{display:block;font-size:11.5px;color:var(--mut);margin-top:1px}
+.veh-card .check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;color:#fff}
+.veh-card.on .check{background:var(--sea);border-color:var(--sea)}
+.veh-card.on .check .ic{width:13px;height:13px}
+.modalbg{position:absolute;inset:0;background:rgba(10,25,40,.5);backdrop-filter:blur(1px);display:flex;align-items:flex-end;z-index:20;animation:fadeIn .18s var(--ease)}
+.modal{background:#fff;width:100%;max-height:90%;overflow-y:auto;border-radius:24px 24px 0 0;padding:18px;box-shadow:0 -12px 40px rgba(10,30,50,.18);animation:slideUp .22s var(--ease)}
+.modal .close{float:right;border:0;background:#eaf2fa;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px}
+.toast{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--r-sm);font-size:12.5px;z-index:30;max-width:90%;text-align:center;box-shadow:var(--sh-lg);animation:fadeIn .2s var(--ease)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(16px);opacity:.6}to{transform:translateY(0);opacity:1}}
+.qr{width:150px;height:150px;display:block;margin:8px auto;border:6px solid #fff;box-shadow:0 0 0 1px var(--line);border-radius:6px}
+.proof{max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--line);display:block;margin-top:6px}
+.leg{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #f0f3f3;font-size:13px}
+.leg .x{margin-left:auto;display:flex;gap:2px}
+.leg .x button{border:0;background:#eaf2fa;border-radius:6px;cursor:pointer;padding:2px 6px}
+.msg{border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:6px;background:#fff;font-size:12.5px}
+.msg .h{display:flex;justify-content:space-between;color:var(--mut);font-size:11px;margin-bottom:3px}
+.sos{width:100%;padding:14px;border-radius:12px;border:0;background:var(--bad);color:#fff;font-weight:800;font-size:15px;cursor:pointer;position:relative;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+.sos .bar{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.3)}
+.bars .b{display:flex;align-items:center;gap:6px;font-size:11.5px;margin:3px 0}
+.bars .b span:first-child{width:92px;flex:none;color:var(--mut);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.bars .b i{display:block;height:10px;background:var(--sea);border-radius:4px}
+table.fm{width:100%;border-collapse:collapse;font-size:12px}
+table.fm td,table.fm th{padding:4px;border-bottom:1px solid var(--line);text-align:left}
+table.fm input{width:64px;padding:4px;border:1px solid var(--line);border-radius:6px}
+.stars span{font-size:24px;cursor:pointer;color:#cfd8d7}.stars span.on{color:var(--sun)}
+ol.flow li,ul.flow li{margin-bottom:5px;line-height:1.45}
+textarea.inp{min-height:80px}
+/* =================== SIGNAL SUN (v0.8.0) — LUNAD design system layer ===================
+   navy = brand · sun = the one action colour ("tap here") · danger = SOS only.
+   Tokens mirror the LUNAD Signal Sun design system artifact. */
+:root{
+ --navy:#0D1B2A;--sunc:#F5B544;--sun-h:#E9A630;--sun-tint:#FEF3DC;--sun-line:#F3D9A4;--sun-text:#7A4E00;--sun-deep:#8A5A00;--on-sun-muted:#5A3F06;
+ --alt:#EEF2F5;--ph:#D8E3EA;--subtle:#6A7886;--ctrl:#7A8896;--divider:#E6EBEF;--odm:#C5D0DB;--odl:#33475B;
+ --warn-tint:#FFF4E0;--warn-text:#9A4A00;--danger:#B42318;--danger-tint:#FDECEA;--danger-text:#A52A21;
+ --sea:#0D1B2A;--sea-d:#0D1B2A;--sea-l:#EEF2F5;--sea-mid:#33475B;
+ --sand:#FEF3DC;--sun:#F5B544;--amber-d:#8A5A00;--coral:#B42318;
+ --ink:#0D1B2A;--mut:#4B5A69;--line:#DDE3E9;--bg:#F4F6F8;
+ --ok:#0B6B4B;--ok-bg:#E3F5EE;--ok-solid:#0B6B4B;--bad:#B42318;--rose-bg:#FDECEA;--rose-line:#F6CFCB;--rose-ink:#A52A21;
+ --r-sm:10px;--r-md:10px;--r-lg:10px;--r-xl:18px;
+ --sh-sm:none;--sh-md:0 2px 8px rgba(13,27,42,.10);--sh-lg:0 12px 32px rgba(13,27,42,.20)}
+html,body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;font-size:15px;color:var(--ink)}
+button:active{transform:scale(.98)}
+:focus-visible{outline:3px solid var(--sunc);outline-offset:2px}
+/* side panel */
+.side h1{letter-spacing:.12em;color:var(--navy)}
+.side .box{border-radius:10px}
+.side .demo-net{margin-top:8px}
+/* top bar */
+header.top{background:var(--navy);padding:16px 20px}
+header.top::after{display:none}
+.logo{font-size:20px;letter-spacing:.12em}
+.logo small{display:none}
+.mode{margin-left:auto;display:flex;border:1px solid var(--odl);border-radius:10px;padding:3px}
+.mode button{border:0;background:transparent;color:var(--odm);font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;min-height:36px;cursor:pointer}
+.mode button.on{background:#fff;color:var(--navy);font-weight:700}
+.iconbtn{background:transparent;border:1px solid var(--odl);border-radius:10px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.net{margin-top:0}
+.net:empty{display:none}
+.net:not(:empty){margin-top:10px}
+.pill{font-size:12px;padding:5px 10px}
+.pill.off{background:var(--warn-tint);color:var(--warn-text)}
+.pill.off .dot{background:var(--warn-text);box-shadow:none}
+/* main + nav */
+main{background:#fff;padding:20px}
+nav.bottom{padding:8px 6px 12px;box-shadow:none;border-top:1px solid var(--divider)}
+nav.bottom button{font-size:11.5px;font-weight:600;color:var(--subtle);border-radius:10px;min-height:52px;gap:4px;padding:6px 1px}
+nav.bottom button.act{color:var(--navy);font-weight:800;background:transparent}
+nav.bottom button .i{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+nav.bottom button .i .ic{width:22px;height:22px}
+nav.bottom button.act .i svg{stroke-width:2.2}
+/* type */
+h2{font-size:24px;line-height:1.2;margin:0 0 14px;letter-spacing:0;display:flex;align-items:center;gap:8px}
+h2 .ic{width:22px;height:22px}
+h3{font-size:13px;letter-spacing:.1em;margin:22px 0 10px;color:var(--mut)}
+.muted{color:var(--mut);font-size:13px;line-height:1.45}
+label.f{font-size:13px;font-weight:700;color:var(--mut);margin:12px 0 6px}
+.kv{font-size:14.5px;padding:7px 0}
+/* cards */
+.card{border-radius:10px;box-shadow:none;padding:14px 16px;margin-bottom:12px}
+.card.hl{border:2px solid var(--sunc);box-shadow:none}
+/* buttons: sun = primary, white+line = secondary, navy = dark, danger text = destructive */
+.btn{background:var(--sunc);color:var(--navy);border-radius:10px;min-height:48px;padding:10px 16px;font-size:15px;font-weight:800;box-shadow:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--sun-h);box-shadow:none}
+.btn.sec{background:#fff;color:var(--navy);border:1px solid var(--line);font-weight:700}
+.btn.sec:hover{background:var(--alt)}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line);font-weight:700}
+.btn.ghost:hover{background:var(--alt)}
+.btn.warn{background:#fff;color:var(--danger-text);border:1px solid #F0C4BF;font-weight:700}
+.btn.warn:hover{background:var(--danger-tint)}
+.btn.sm{min-height:44px;padding:8px 14px;font-size:14px;border-radius:10px}
+.btn:disabled{opacity:.45}
+.btns{gap:8px;margin-top:10px}
+/* inputs */
+.inp{min-height:48px;padding:10px 14px;border-radius:10px;font-size:16px;font-weight:600;color:var(--navy)}
+textarea.inp{min-height:96px;font-weight:500}
+.inp:focus{border-color:var(--navy);box-shadow:0 0 0 3px var(--sun-tint)}
+/* chips & status */
+.chips{gap:8px}
+.chip{border-radius:10px;min-height:44px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--navy)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:none}
+.st{font-size:12px;padding:4px 10px}
+.st.ok{background:var(--ok-bg);color:var(--ok)}
+.st.wait{background:var(--warn-tint);color:var(--warn-text)}
+.st.bad{background:var(--danger-tint);color:var(--danger-text)}
+.st.info{background:var(--alt);color:var(--navy)}
+.st.mut{background:var(--alt);color:var(--mut)}
+.st.gold{background:var(--sun-tint);color:var(--sun-text)}
+.st.sm{font-size:11px;padding:2px 8px}
+/* banners */
+.banner{background:var(--sun-tint);border:1px solid var(--sun-line);color:var(--sun-text);border-radius:10px;font-size:14px;line-height:1.45;padding:12px 14px}
+.banner.info{background:var(--alt);border-color:var(--line);color:var(--navy)}
+.banner.bad{background:var(--danger-tint);border-color:var(--rose-line);color:var(--danger-text)}
+/* maps */
+.map,.leafmap{border-radius:10px;box-shadow:none;background:var(--ph)}
+.lpin.sm{border-color:var(--navy)}
+.lpin-label{border-color:var(--navy)}
+/* home */
+.hero{background:var(--navy);border-radius:0;margin:-20px -20px 20px;padding:4px 20px 22px;box-shadow:none}
+.hero::after{display:none}
+.hero h2{font-size:21px;line-height:1.25;font-weight:700;margin:0;display:block}
+.search-bar{background:#fff;color:var(--mut);border-radius:10px;min-height:56px;padding:0 16px;margin-top:16px;font-size:16px;font-weight:500;gap:12px}
+.search-bar .ic{width:22px;height:22px;color:var(--navy)}
+.qa-list{display:flex;flex-direction:column;margin:4px 0 8px}
+.qa-row{display:flex;align-items:center;gap:14px;min-height:64px;border:0;border-bottom:1px solid var(--divider);background:transparent;padding:0;text-align:left;cursor:pointer;width:100%;color:var(--navy)}
+.qa-row:last-child{border-bottom:0}
+.qa-row .tile{width:44px;height:44px;border-radius:10px;background:var(--alt);color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none}
+.qa-row .tile .ic{width:24px;height:24px}
+.qa-row.lead .tile{background:var(--sun-deep);color:#fff}
+.qa-row .tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.qa-row .tx b{font-size:17px}
+.qa-row .tx span{font-size:13px;color:var(--mut)}
+.qa-row .chev{color:var(--mut);width:20px;height:20px}
+.dest-card{border-radius:10px;box-shadow:none;border:1px solid var(--line);background:#fff}
+.dest-card .img{height:110px;background:var(--ph);color:var(--navy)}
+.dest-card .tag{background:var(--navy);font-size:11px;padding:4px 10px}
+.dest-card .body b{font-size:16px}
+.cat-chip{border-radius:10px;min-height:44px;padding:0 14px;font-size:14px;font-weight:700;color:var(--navy)}
+.cat-chip.on{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:none}
+/* ride */
+.veh-card{border:1px solid var(--line);border-radius:10px;min-height:60px}
+.veh-card.on{border:2px solid var(--navy);background:var(--sun-tint);box-shadow:none}
+.veh-card .ic-badge{background:var(--alt);color:var(--navy);border-radius:10px}
+.veh-card .meta b{font-size:16px}
+.veh-card .meta span{font-size:13px}
+.veh-card .check{border:2px solid var(--ctrl)}
+.veh-card.on .check{background:var(--navy);border-color:var(--navy)}
+/* modals: bottom sheet */
+.modalbg{background:rgba(13,27,42,.6);backdrop-filter:none}
+.modal{border-radius:18px 18px 0 0;padding:12px 20px 24px}
+.modal::before{content:'';display:block;width:40px;height:5px;border-radius:999px;background:var(--line);margin:0 auto 14px}
+.modal .close{width:44px;height:44px;border-radius:10px;background:var(--alt);font-size:15px;color:var(--navy)}
+.toast{background:var(--navy);border-radius:10px;font-size:14px}
+.qr{border-radius:8px}
+.msg{border-radius:10px;padding:12px;font-size:14px;line-height:1.45}
+.msg .h{font-size:12px;font-weight:600}
+.sos{background:var(--danger);border-radius:10px;min-height:60px;font-size:17px}
+.stars span{color:var(--ctrl);font-size:32px}
+.stars span.on{color:var(--sunc)}
+.bars .b i{background:var(--navy)}
+/* Where-to sheet */
+.wt{position:absolute;inset:0;z-index:25;background:#fff;display:flex;flex-direction:column;animation:slideUp .2s var(--ease)}
+.wt-head{display:flex;gap:10px;align-items:flex-start;padding:16px 16px 14px;border-bottom:1px solid var(--divider)}
+.wt-back{width:44px;height:44px;border:0;border-radius:10px;background:var(--alt);color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer}
+.wt-back .ic{width:20px;height:20px;transform:rotate(180deg)}
+.wt-fields{flex:1;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;min-width:0}
+.wt-from,.wt-to{display:flex;align-items:center;gap:12px;padding:8px 14px;min-height:50px;background:transparent;border:0;text-align:left;font:inherit;color:var(--navy);cursor:pointer}
+.wt-from{border-bottom:1px solid var(--line);font-size:15px;font-weight:700}
+.wt-from small{display:block;font-size:11.5px;font-weight:700;color:var(--mut)}
+.wt-to input{flex:1;border:0;outline:none;font:inherit;font-size:17px;font-weight:700;color:var(--navy);min-width:0;background:transparent}
+.wt-to input::placeholder{color:var(--subtle);font-weight:600}
+.wt-dot{width:12px;height:12px;flex:none;box-sizing:border-box}
+.wt-dot.from{border-radius:50%;border:3px solid var(--navy)}
+.wt-dot.to{border-radius:3px;background:var(--sunc);border:2px solid var(--navy)}
+.wt-body{flex:1;overflow-y:auto;padding:4px 20px 20px}
+.wt-body h3{margin:18px 0 4px}
+.wt-item,.wt-map{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;border:0;border-bottom:1px solid var(--divider);background:transparent;padding:6px 0;text-align:left;font:inherit;color:var(--navy);cursor:pointer}
+.wt-map{border-bottom:1px solid var(--line)}
+.wt-item .tile,.wt-map .tile{width:40px;height:40px;border-radius:10px;background:var(--alt);display:flex;align-items:center;justify-content:center;flex:none}
+.wt-map .tile{background:var(--sun-tint);color:var(--sun-text)}
+.wt-item .tile .ic,.wt-map .tile .ic{width:20px;height:20px}
+.wt-item .tx,.wt-map .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wt-item .tx b,.wt-map .tx b{font-size:16px}
+.wt-item .tx span,.wt-map .tx span{font-size:13px;color:var(--mut)}
+.wt-item:hover,.wt-map:hover{background:var(--alt)}
+
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="side">
+    <h1>LUNAD</h1>
+    <p><b>Book. Ride. Explore Catanduanes.</b> Book a Direct ride (car or van) or a TODA route (tricycle), see who is online, and pay the driver directly. Every operator is LGU-verified.</p>
+    <div class="box"><b>Demo script</b>
+      <p>1. <b>Rider → Ride</b>: set pickup and drop-off, then request. The offer goes to the nearest online operator, who has 3 minutes to answer.</p>
+      <p>2. Switch to <b>Driver</b> and accept, or decline to pass it to the next one. Then arrive → start → complete.</p>
+      <p>3. Back as Rider: pay by QR, upload proof, rate, or report an issue.</p>
+      <p>4. Message the operator directly from an active trip — no phone numbers are shown.</p>
+    </div>
+    <div class="box"><b>Prototype notes</b>
+      <p>All names, fares, permits and numbers are sample data. The map is stylized. SMS and Messenger are simulated in the Inbox. Data stays in this browser only.</p>
+      <div class="btns"><button class="btn sec sm" onclick="toggleNet()">Toggle signal (offline demo)</button><button class="btn sec sm" onclick="openAbout()">Concept & roadmap</button><button class="btn ghost sm" onclick="resetDemo()">Reset demo data</button></div>
+    </div>
+  </div>
+  <div class="phone" id="phone">
+    <header class="top" id="top"></header>
+    <main id="main"></main>
+    <nav class="bottom" id="nav"></nav>
+    <div id="modalRoot"></div><div id="toastRoot"></div>
+  </div>
+</div>
+<script>
+/* =================== ICON SYSTEM =================== */
+// Clean outline icons (24x24, stroke-based, Lucide/Heroicons-inspired) replacing every emoji
+// glyph in the app, per the Island Blue redesign. ic(name,cls) returns an inline <svg> string.
+const ICONS={
+ home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9"/>',
+ car:'<path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><rect x="3" y="11" width="18" height="6" rx="2"/><circle cx="7.5" cy="19" r="1.6"/><circle cx="16.5" cy="19" r="1.6"/>',
+ moto:'<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h4l2-6h3"/><path d="M13 11l-2-3H8"/><circle cx="14.2" cy="8" r="1" fill="currentColor" stroke="none"/>',
+ tricycle:'<circle cx="5.5" cy="18" r="2.2"/><circle cx="12" cy="18" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><path d="M4 14h6.5l1.5-4.5h4L18 14"/>',
+ van:'<path d="M3 16.5V10a1 1 0 0 1 1-1h8l5 4v3.5"/><path d="M3 16.5h18"/><circle cx="7.5" cy="18.3" r="1.7"/><circle cx="17" cy="18.3" r="1.7"/>',
+ compass:'<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2l-2.1 5.4-5.4 2.1 2.1-5.4z"/>',
+ ticket:'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><line x1="9" y1="7.5" x2="9" y2="16.5" stroke-dasharray="2.2 2.2"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/>',
+ menu:'<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>',
+ search:'<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/>',
+ wifi:'<path d="M2.5 8.5a15.5 15.5 0 0 1 19 0"/><path d="M5.8 12.5a11 11 0 0 1 12.4 0"/><path d="M9 16.3a6 6 0 0 1 6 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/>',
+ 'wifi-off':'<path d="M2.5 8.5a15.5 15.5 0 0 1 19 0"/><path d="M5.8 12.5a11 11 0 0 1 12.4 0"/><path d="M9 16.3a6 6 0 0 1 6 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/><line x1="2.5" y1="2.5" x2="21.5" y2="21.5"/>',
+ storm:'<path d="M6.5 16.5a4 4 0 0 1 .8-7.9 5.5 5.5 0 0 1 10.4 1.4A3.5 3.5 0 0 1 17 17z"/><path d="M12.5 13l-1.8 3.4h2.6L11.5 20"/>',
+ 'dot-on':'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>',
+ 'dot-off':'<circle cx="12" cy="12" r="9"/>',
+ warn:'<path d="M10.3 4.5a2 2 0 0 1 3.4 0l8 14A2 2 0 0 1 20 21H4a2 2 0 0 1-1.7-2.5z"/><line x1="12" y1="9.3" x2="12" y2="13.3"/><circle cx="12" cy="16.8" r="1" fill="currentColor" stroke="none"/>',
+ ban:'<circle cx="12" cy="12" r="9"/><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"/>',
+ check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.6 2.6 5.4-5.6"/>',
+ shield:'<path d="M12 3l7 3v6c0 5-3.5 7.5-7 9-3.5-1.5-7-4-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7.3v5l3.3 2"/>',
+ flame:'<path d="M12 2.2c1 3-3 4-3 7.3a3 3 0 0 0 6 0c0-1-0.4-2-1-2.6 2 1.1 3.3 3.7 3.3 5.9a5.3 5.3 0 0 1-10.6 0c0-3.7 2.1-5.3 3.2-7C10.3 4.8 11 3.3 12 2.2z"/>',
+ gift:'<rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M3 13h18"/><path d="M12 9v11"/><path d="M12 9c-1.3-4-6-4-6-1.2C6 9 9 9 12 9z"/><path d="M12 9c1.3-4 6-4 6-1.2C18 9 15 9 12 9z"/>',
+ link:'<path d="M9 15l6-6"/><path d="M8 8.5l1-1a3.5 3.5 0 0 1 5 5l-1 1"/><path d="M16 15.5l-1 1a3.5 3.5 0 0 1-5-5l1-1"/>',
+ 'file-text':'<path d="M7 3h7l4 4v14H7z"/><line x1="10" y1="12" x2="17" y2="12"/><line x1="10" y1="16" x2="17" y2="16"/>',
+ card:'<rect x="3" y="6" width="18" height="13" rx="2"/><line x1="3" y1="10.5" x2="21" y2="10.5"/>',
+ mail:'<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
+ pin:'<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/>',
+ target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+ flag:'<path d="M6 21V4"/><path d="M6 4h10l-2.5 3.5L16 11H6"/>',
+ nav:'<path d="M12 2l8 18-8-4-8 4z"/>',
+ eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/>',
+ pkg:'<path d="M3.5 7.5L12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5"/><line x1="12" y1="12" x2="12" y2="21"/>',
+ phone:'<rect x="7" y="2.5" width="10" height="19" rx="2"/><line x1="11" y1="18.5" x2="13" y2="18.5"/>',
+ sms:'<path d="M21 11.3a8.3 8.3 0 1 1-4-7.1L21 3l-1 4.3c.6 1.2 1 2.6 1 4z"/>',
+ send:'<path d="M3 11l18-8-8 18-2.5-7z"/><path d="M12.5 13.5L21 3"/>',
+ waves:'<path d="M2 13c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/><path d="M2 18c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/>',
+ droplet:'<path d="M12 2.5s6 7 6 11.5a6 6 0 0 1-12 0c0-4.5 6-11.5 6-11.5z"/>',
+ mountain:'<path d="M3 19L9 7l4 6 2-3 6 9z"/>',
+ landmark:'<path d="M4 10l8-6 8 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 19h18"/>',
+ fish:'<path d="M3 12c4-4 10-5 14-2-1 2-1 4 0 6-4 3-10 2-14-2z"/><circle cx="8" cy="11" r="0.6" fill="currentColor" stroke="none"/><path d="M17 10l3-2-1 4 1 4-3-2"/>',
+ grad:'<path d="M2 9l10-4 10 4-10 4z"/><path d="M6 11v4c0 1.5 2.7 3 6 3s6-1.5 6-3v-4"/>',
+ building:'<rect x="5" y="3" width="14" height="18" rx="1.5"/><rect x="8" y="6.5" width="3" height="3"/><rect x="13" y="6.5" width="3" height="3"/><rect x="8" y="12" width="3" height="3"/><rect x="13" y="12" width="3" height="3"/>',
+ bag:'<path d="M6 7h12l1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+ utensils:'<path d="M6 2v8a2 2 0 0 0 4 0V2"/><path d="M8 10v12"/><path d="M16 2c-1.5 0-2.5 2-2.5 5s1 5 2.5 5v9"/>',
+ anchor:'<path d="M12 2v5"/><circle cx="12" cy="7" r="1.6"/><path d="M12 9v11"/><path d="M6 15a6 6 0 0 0 12 0"/><path d="M4 15h3M17 15h3"/>',
+ 'star-f':'<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z" fill="currentColor"/>',
+ 'star-o':'<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z"/>',
+ chevron:'<path d="M9 5l7 7-7 7"/>'
+};
+function ic(name,cls,color){const s=ICONS[name];if(!s)return '';return `<svg class="ic ${cls||''}" style="${color?'color:'+color:''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${s}</svg>`}
+// Renders a 1–5 star rating as outline/filled star icons (replaces the old ★/☆ text glyphs).
+function starRow(n,cls){n=Math.round(n||0);let h='';for(let i=1;i<=5;i++)h+=ic(i<=n?'star-f':'star-o',cls,i<=n?'#F5B544':'#cfd8d7'); return h}
+
+/* =================== STATIC DATA =================== */
+const KEY='lunad-v2', MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
+const TYPES={
+ tricycle:{label:'Tricycle (TODA route)',e:'tricycle',kph:25,seats:3},
+ moto:{label:'Moto Taxi (LUNAD rider)',e:'moto',kph:35,seats:1,inhouse:true},
+ car:{label:'Private car (Direct)',e:'car',kph:45,seats:4},
+ minivan:{label:'Private van · 8-seater (Direct)',e:'van',kph:42,seats:8},
+ van:{label:'Private van · 12-seater (Direct)',e:'van',kph:40,seats:12}
+};
+const ONDEMAND=['tricycle','moto','car','minivan','van'];
+const DOCS={
+ tricycle:['MTOP / TODA franchise','Driver\'s license','Vehicle registration (OR/CR)'],
+ // Moto Taxi riders are LUNAD's own in-house fleet (not independent operators), so they skip
+ // the public self-registration/LGU-verification flow — see REG dropdown below, which excludes
+ // 'moto'. These docs exist only for completeness if that ever changes.
+ moto:['Driver\'s license','Vehicle registration (OR/CR)','Helmet & safety check'],
+ car:['LTFRB / LGU authority','Driver\'s license','Vehicle registration (OR/CR)','Insurance'],
+ minivan:['LTFRB / LGU authority','Business permit','Driver\'s license','Vehicle registration (OR/CR)','Insurance'],
+ van:['LTFRB / LGU authority','Business permit','Driver\'s license','Vehicle registration (OR/CR)','Insurance']
+};
+// Verification badge: independent operators show the LGU-verified badge; LUNAD's own in-house
+// fleet (moto) shows a distinct "LUNAD rider" badge instead — it isn't LGU-verified, it's
+// LUNAD-employed/managed directly, so claiming LGU verification for it would be inaccurate.
+function verifBadge(type,cls){return TYPES[type]&&TYPES[type].inhouse?`<span class="st gold ${cls||''}">${ic('home')} LUNAD rider</span>`:`<span class="st gold ${cls||''}">${ic('shield')} LGU verified</span>`}
+const TOWNS={'Virac':[13.584,124.230],'Bato':[13.607,124.299],'Baras':[13.663,124.366],'Gigmoto':[13.779,124.391],'San Andres':[13.597,124.098],'Caramoran':[13.983,124.135],'Pandan':[14.046,124.168],'Viga':[13.869,124.310],'San Miguel':[13.640,124.300],'Bagamanoc':[13.940,124.287],'Panganiban':[13.905,124.300]};
+// approximate coordinates — prototype only
+const PLACES=[
+ {id:'air',n:'Virac Airport',t:'Virac',lat:13.5764,lng:124.2061,k:'hub',e:'send'},
+ {id:'vport',n:'Virac Port',t:'Virac',lat:13.5810,lng:124.2330,k:'hub',e:'anchor'},
+ {id:'saport',n:'San Andres Port',t:'San Andres',lat:13.6020,lng:124.0950,k:'hub',e:'anchor'},
+ {id:'cath',n:'Virac Cathedral',t:'Virac',lat:13.5830,lng:124.2300,k:'hub',e:'landmark'},
+ {id:'market',n:'Virac Public Market',t:'Virac',lat:13.5822,lng:124.2318,k:'shop',e:'fish'},
+ {id:'catsu',n:'CatSU Main Campus',t:'Virac',lat:13.5960,lng:124.2150,k:'hub',e:'grad'},
+ {id:'twin',n:'Twin Rock Beach (Igang)',t:'Virac',lat:13.5440,lng:124.2170,k:'spot',e:'waves'},
+ {id:'mamangal',n:'Mamangal Beach',t:'Virac',lat:13.5640,lng:124.2600,k:'spot',e:'waves'},
+ {id:'batoch',n:'Bato Church',t:'Bato',lat:13.6075,lng:124.2989,k:'spot',e:'landmark'},
+ {id:'maribina',n:'Maribina Falls',t:'Bato',lat:13.6230,lng:124.2870,k:'spot',e:'droplet'},
+ {id:'binurong',n:'Binurong Point',t:'Baras',lat:13.6620,lng:124.3920,k:'spot',e:'mountain'},
+ {id:'puraran',n:'Puraran Beach',t:'Baras',lat:13.6960,lng:124.4050,k:'spot',e:'waves'},
+ {id:'nahulugan',n:'Nahulugan Falls',t:'Gigmoto',lat:13.7790,lng:124.3880,k:'spot',e:'droplet'},
+ {id:'luyang',n:'Luyang Cave',t:'San Andres',lat:13.6560,lng:124.0750,k:'spot',e:'mountain'},
+ {id:'stay1',n:'Puraran Surf Cottages (sample)',t:'Baras',lat:13.6930,lng:124.4010,k:'stay',e:'building'},
+ {id:'stay2',n:'Virac Town Inn (sample)',t:'Virac',lat:13.5850,lng:124.2280,k:'stay',e:'building'},
+ {id:'shop1',n:'Abaca Weavers Coop (sample)',t:'Virac',lat:13.6100,lng:124.2500,k:'shop',e:'bag'},
+ {id:'eat1',n:'Nanay Rosa\'s Carinderia (sample)',t:'San Andres',lat:13.6570,lng:124.0770,k:'shop',e:'utensils'},
+ ...Object.entries(TOWNS).filter(([n])=>n!=='Virac').map(([n,[la,ln]])=>({id:'town-'+n.replace(/\s/g,''),n:n+' town proper',t:n,lat:la,lng:ln,k:'town',e:'building'}))
+];
+const SPOT_REVIEWS={
+ twin:{avg:4.6,count:128,snips:[{n:'Mika R.',s:5,t:'Calm water, great for kids. Bring your own shade.'},{n:'Jhun A.',s:4,t:'Pretty at sunset, a bit rocky walking in.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_TWIN'},
+ mamangal:{avg:4.4,count:76,snips:[{n:'Dindo P.',s:5,t:'Quiet beach, locals grill fresh fish nearby.'},{n:'Ana V.',s:4,t:'Few vendors, so bring water and snacks.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_MAMANGAL'},
+ batoch:{avg:4.5,count:54,snips:[{n:'Grace T.',s:5,t:'Old stone church, worth the short stop.'},{n:'Noel S.',s:4,t:'Great photos, especially the facade in morning light.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_BATOCH'},
+ maribina:{avg:4.7,count:201,snips:[{n:'Kaye L.',s:5,t:'Multi-tier falls, swim in the lower pool.'},{n:'Rico M.',s:4,t:'Bring sandals — the rocks get slippery.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_MARIBINA'},
+ binurong:{avg:4.8,count:312,snips:[{n:'Liza F.',s:5,t:'Best sunrise view on the island, go early.'},{n:'Jay B.',s:5,t:'Short hike, huge payoff at the top.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_BINURONG'},
+ puraran:{avg:4.6,count:245,snips:[{n:'Marco D.',s:5,t:'Reliable surf break, rentable boards on site.'},{n:'Hanna K.',s:4,t:'Great waves; cottages nearby if you stay overnight.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_PURARAN'},
+ nahulugan:{avg:4.5,count:63,snips:[{n:'Tess O.',s:5,t:'Less crowded than Maribina, just as scenic.'},{n:'Boy C.',s:4,t:'Road in is rough — a van handles it fine.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_NAHULUGAN'},
+ luyang:{avg:4.3,count:39,snips:[{n:'Pia N.',s:4,t:'Bring a flashlight, guide was helpful.'},{n:'Edsel R.',s:4,t:'Cool break from the heat, go with a local guide.'}],googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_LUYANG'}
+};
+function nearestSpot(p){let best=null,bd=Infinity;for(const s of PLACES)if(s.k==='spot'){const d=km(p,s);if(d<bd){bd=d;best=s}}return {spot:best,dist:bd}}
+function attractionCard(dropoff){const {spot,dist}=nearestSpot(dropoff);if(!spot)return'';const rv=SPOT_REVIEWS[spot.id];
+ const near=dist<0.3?'Right at your drop-off':`${dist.toFixed(1)} km from your drop-off`;
+ return `<div class="card hl" style="margin-top:6px">
+ <div class="kv"><span>${ic(spot.e)} <b>${esc(spot.n)}</b></span><span>${ic('star-f','',' #F5B544')} ${rv.avg} (${rv.count})</span></div>
+ <p class="muted" style="margin:2px 0 6px">${near} · sample reviews</p>
+ ${rv.snips.map(s=>`<p style="margin:2px 0;font-size:12.5px">${starRow(s.s)} “${esc(s.t)}” — <span class="muted">${esc(s.n)}</span></p>`).join('')}
+ </div>`}
+
+/* =================== LOCAL BUSINESS MICRO-OFFERS (Partner Spots) =================== */
+// Demo-only Google Place IDs — swap for each business's real Place ID before launch.
+const BIZ={
+ stay1:{avg:4.6,count:38,offer:'10% off your next stay',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_STAY1'},
+ stay2:{avg:4.3,count:22,offer:null,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_STAY2'},
+ shop1:{avg:4.7,count:51,offer:'Free keychain with any purchase',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_SHOP1'},
+ eat1:{avg:4.8,count:64,offer:'Free iced tea with any meal',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_EAT1'}
+};
+// Unified review stats lookup: a destination is reviewable if it has either a business-partner
+// micro-offer record (BIZ) or a tourism sample-review record (SPOT_REVIEWS) — covers every
+// drop-off, not just the registered Partner Spots with a micro-offer attached.
+function revStats(id){return BIZ[id]||SPOT_REVIEWS[id]||null}
+function nearestBiz(dropoffPlaceId,dropoffCoord){
+ // 1) exact match: the rider's chosen drop-off IS itself a reviewable place
+ if(dropoffPlaceId&&revStats(dropoffPlaceId))return {biz:P(dropoffPlaceId),dist:0};
+ // 2) fallback by proximity — ONLY for a dropped custom pin (no named destination to miss),
+ // never for a named hub/town/other PLACE the rider deliberately picked (e.g. an airport or
+ // port stop a few hundred meters from a hotel shouldn't prompt "how was that hotel?").
+ const place=P(dropoffPlaceId);if(!place||place.k!=='pin')return {biz:null,dist:Infinity};
+ let best=null,bd=Infinity;for(const p of PLACES){if(!revStats(p.id))continue;const d=km(dropoffCoord,p);if(d<bd){bd=d;best=p}}
+ return bd<=1.5?{biz:best,dist:bd}:{biz:null,dist:bd}}
+const BIZ_TAGS=['Great food','Clean','Friendly staff','Good value','Worth the trip'];
+let BZ={stars:0};
+// Business/place review runs FIRST, right after ride completion — ahead of, and separate
+// from, the driver/ride rating. It auto-opens via maybeAutoReview() above.
+// Within it, the Google review link is prioritized: it's the FIRST screen shown (before the
+// in-app stars+tags card), since getting the rider onto Google matters more than LUNAD's own
+// in-app rating.
+function bizModal(id){BZ={stars:0,id,tags:[],comment:''};drawBizGoogle()}
+function drawBizGoogle(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revStats(spot.id);const name=esc(spot.n.replace(' (sample)',''));
+ modalForced(`<div style="text-align:center;padding:14px 4px">
+ <div style="font-size:36px">${ic(spot.e)}</div><h2 style="margin:8px 0 2px">You were just dropped off at ${name}</h2>
+ <p class="muted">Help other travelers find ${name} on Google — it takes a few seconds.</p>
+ <a class="btn block" style="margin-top:12px;text-decoration:none" href="${rv.googleUrl}" target="_blank" rel="noopener">${ic('star-f')} Review ${name} on Google →</a>
+ ${rv.offer?`<div class="card" style="margin-top:10px;text-align:left"><b>${ic('gift')} ${esc(rv.offer)}</b><p class="muted" style="margin:3px 0 0">at ${name} — unlocks with a quick review on the next screen (sample offer).</p></div>`:''}
+ <button class="btn sec block" style="margin-top:10px" onclick="drawBiz()">Continue →</button>
+ </div>`)}
+function redrawBiz(){BZ.comment=($('#bc')||{}).value||'';drawBiz()}
+function toggleBizTag(t){const i=BZ.tags.indexOf(t);if(i>=0)BZ.tags.splice(i,1);else BZ.tags.push(t);redrawBiz()}
+// No skip option: every completed ride must get at least a star rating here before the modal
+// can close (Submit stays disabled until BZ.stars is set — see saveBiz, which is the only exit).
+function drawBiz(){const r=ride(BZ.id);const spot=P(r.bizId);const name=esc(spot.n.replace(' (sample)',''));
+ modalForced(`<h2>${ic(spot.e)} How was ${name}?</h2>
+ <p class="muted" style="margin:2px 0 8px">A quick review here also helps other LUNAD travelers decide where to go.</p>
+ <div class="stars">${[1,2,3,4,5].map(i=>`<span class="${i<=BZ.stars?'on':''}" onclick="BZ.stars=${i};drawBiz()">${ic('star-f')}</span>`).join('')}</div>
+ <div class="chips" style="margin:8px 0">${BIZ_TAGS.map(t=>`<span class="chip ${BZ.tags.includes(t)?'on':''}" onclick="toggleBizTag('${t}')">${t}</span>`).join('')}</div>
+ <label class="f">Comment (optional)</label><textarea class="inp" id="bc" placeholder="What stood out?" oninput="BZ.comment=this.value">${esc(BZ.comment||'')}</textarea>
+ <button class="btn block" style="margin-top:10px" ${BZ.stars?'':'disabled'} onclick="saveBiz()">Submit review</button>
+ <p class="muted" style="margin-top:6px">A quick rating is required to continue.</p>`)}
+function saveBiz(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revStats(spot.id);const name=esc(spot.n.replace(' (sample)',''));
+ rv.count++;rv.avg=Math.round(((rv.avg*(rv.count-1))+BZ.stars)/rv.count*10)/10;
+ r.bizReview={stars:BZ.stars,tags:BZ.tags.slice(),comment:BZ.comment,at:Date.now()};r.bizReviewShown=true;save();render();
+ modal(`<div style="text-align:center;padding:14px 4px">
+ <div style="font-size:36px">${ic('check')}</div><h2 style="margin:8px 0 2px">Thanks for reviewing ${name}!</h2>
+ <p class="muted">Your review is now live on LUNAD's Tourism map.</p>
+ <button class="btn block" style="margin-top:10px" onclick="closeModal();render()">Continue →</button>
+ </div>`)}
+const MSG={
+ en:{request:'LUNAD: {ref} requested. Finding a rider…',offer:'LUNAD: New ride {ref}: {route} at {time}. Accept within 3 min.',accepted:'LUNAD: {ref} accepted by {prov}. Pickup {time}.',arriving:'LUNAD: Your rider for {ref} is arriving.',started:'LUNAD: Trip {ref} started.',completed:'LUNAD: Trip {ref} done. Please rate your ride.',cancelled:'LUNAD: {ref} cancelled.{fee}',nomatch:'LUNAD: No rider for {ref}. Reply YES for {alt}.',rematch:'LUNAD: Rider cancelled {ref}. Finding another rider…',storm:'LUNAD: Storm signal in {town}. New bookings paused.',resume:'LUNAD: Signal lifted in {town}. Bookings resumed.',paid:'LUNAD: Payment for {ref} confirmed.',payrej:'LUNAD: Proof for {ref} rejected. Re-upload or pay another way.',noshow:'LUNAD: {ref} marked no-show. Late fee {fee}.',help:'LUNAD help: support 0917-000-0000 (sample).',stop:'LUNAD: SMS stopped. App notices continue.',otp:'LUNAD code {code}. Enter it to link Messenger.',share:'LUNAD: {name} shared a trip: {link}',sos:'LUNAD SOS: {name} needs help near {loc}. Trip {ref}.',dispute:'LUNAD: Fare dispute {ref}: {msg}'},
+ fil:{request:'LUNAD: Na-request ang {ref}. Naghahanap ng rider…',accepted:'LUNAD: Tinanggap ni {prov} ang {ref}. Sundo {time}.',arriving:'LUNAD: Paparating na ang rider mo para sa {ref}.',started:'LUNAD: Nagsimula na ang biyahe {ref}.',completed:'LUNAD: Tapos na ang {ref}. I-rate ang biyahe.',cancelled:'LUNAD: Kanselado ang {ref}.{fee}',nomatch:'LUNAD: Walang rider para sa {ref}. Reply YES para sa {alt}.',rematch:'LUNAD: Nag-cancel ang rider ng {ref}. Naghahanap ng iba…',storm:'LUNAD: May storm signal sa {town}. Hinto muna ang bagong booking.',resume:'LUNAD: Wala nang signal sa {town}. Tuloy na ang booking.',paid:'LUNAD: Kumpirmado ang bayad sa {ref}.',payrej:'LUNAD: Hindi tinanggap ang proof ng {ref}. Mag-upload ulit o ibang paraan ng bayad.'}
+};
+
+/* =================== STATE =================== */
+const D=(o=0)=>{const d=new Date();d.setDate(d.getDate()+o);return d.toISOString().slice(0,10)};
+function hm(ms){return new Date(ms).toTimeString().slice(0,5)}
+function rng(seed){let h=seed>>>0;return()=>{h^=h<<13;h>>>=0;h^=h>>17;h^=h<<5;h>>>=0;return h/4294967296}}
+function doc(n,exp){return {n,file:true,exp}}
+function mkProv(id,n,type,t,seats,status,phone,payM,online,docs,extra={}){return Object.assign({id,n,type,t,seats,status,phone,online,reason:'',pay:{m:payM,name:n.split('(')[0].trim(),acct:phone,qr:null},blocks:[],docs,reliability:0,verifiedDisputes:0,lguReview:false,reminded:false,applied:D(-2)},extra)}
+function seed(){
+ const exp=o=>D(o);
+ const provs=[
+  mkProv('p1','Virac TODA – Unit 12 (Mang Rudy)','tricycle','Virac',3,'approved','0917-000-0012','GCash',true,DOCS.tricycle.map(n=>doc(n,exp(200)))),
+  mkProv('p2','Virac TODA – Unit 07 (Aling Bing)','tricycle','Virac',3,'approved','0917-000-0007','Maya',true,DOCS.tricycle.map(n=>doc(n,exp(150)))),
+  mkProv('p5','Isla Van Rentals (12 seats)','van','Virac',12,'approved','0917-000-0305','Bank (Landbank)',true,DOCS.van.map(n=>doc(n,exp(180)))),
+  mkProv('p6','Mario – Private Car (4 seats)','car','Virac',4,'approved','0917-000-0406','GCash',true,DOCS.car.map(n=>doc(n,exp(220)))),
+  mkProv('p9','Bato TODA – Unit 03 (Kuya Ben)','tricycle','Bato',3,'approved','0917-000-0703','GCash',false,DOCS.tricycle.map(n=>doc(n,exp(365)))),
+  mkProv('p10','San Andres TODA – Unit 05 (Leo)','tricycle','San Andres',3,'approved','0917-000-0810','GCash',true,DOCS.tricycle.map((n,i)=>doc(n,exp(i===1?-3:200)))),
+  mkProv('p11','Elmer – 8-seater Van','minivan','Virac',8,'approved','0917-000-0811','GCash',true,DOCS.minivan.map(n=>doc(n,exp(190)))),
+  // LUNAD-owned Moto Taxi fleet — in-house riders, always online, no public registration.
+  mkProv('p12','LUNAD Rider – Jun','moto','Virac',1,'approved','0917-000-0901','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+  mkProv('p13','LUNAD Rider – Ariel','moto','San Andres',1,'approved','0917-000-0902','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true})
+ ];
+ // synthetic history for analytics
+ const R=rng(7),pl=PLACES.map(p=>p.id),hist=[];
+ const tt=['tricycle','tricycle','tricycle','van','van','car'];
+ for(let i=0;i<46;i++){const d=new Date();d.setDate(d.getDate()-1-Math.floor(R()*7));const peak=[7,8,8,9,12,16,17,17,18][Math.floor(R()*9)];d.setHours(R()<.7?peak:6+Math.floor(R()*14),Math.floor(R()*60),0,0);
+  const from=R()<.6?['air','vport','cath','market','catsu'][Math.floor(R()*5)]:pl[Math.floor(R()*pl.length)];let to=pl[Math.floor(R()*pl.length)];if(to===from)to='twin';
+  const type=tt[Math.floor(R()*tt.length)];const nm=R()<.13;
+  hist.push({id:'H-'+(500+i),booker:'other',type,pid:nm?null:provs.find(p=>p.type===type).id,cands:[],offerIdx:0,declined:[],from,to,start:d.getTime(),end:d.getTime()+25*MIN,pax:1+Math.floor(R()*3),fare:0,fee:0,status:nm?'no_match':'completed',pay:nm?'unpaid':'paid',sync:'synced',createdAt:d.getTime()})}
+ hist.forEach(h=>h.fare=Math.round(fareCalc(h.type,routeKm(P(h.from),P(h.to)),FARES0)));
+ return {role:'booker',tab:'home',actingAs:'p1',
+  me:{name:'Juan (sample)',kind:'tourist',mobile:'0917-555-0101',channel:'app',lang:'en',msgr:false,otp:null,contacts:[{n:'Maria (sister)',m:'0917-555-0102'}],noShows:0,smsStop:false,pack:D(0)},
+  providers:provs,
+  rides:hist,notifs:[],reports:[],ratings:[],sos:[],signals:{Gigmoto:1},threads:{},
+  fares:{active:JSON.parse(JSON.stringify(FARES0))},
+  rideForm:{from:'air',to:'twin',type:'tricycle',pax:2,when:'now',date:D(0),time:'14:00',pin:'from'},
+  mapFilter:{spot:true,hub:true,stay:true,shop:true},custom:[],seq:1000};
+}
+const FARES0={tricycle:{base:30,km:15},moto:{base:25,km:12},car:{base:300,km:25},minivan:{base:400,km:28},van:{base:500,km:30},cancelFee:20,lateFee:30};
+let S;
+function P(id){return PLACES.find(p=>p.id===id)||(S&&S.custom.find(p=>p.id===id))}
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.me)S=seed();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function resetDemo(){S=seed();save();boot();toast('Demo data reset')}
+function nid(p){S.seq++;return p+'-'+S.seq}
+
+/* =================== HELPERS =================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const peso=n=>'₱'+Math.round(n).toLocaleString('en-PH');
+const prov=id=>S.providers.find(p=>p.id===id);
+const ride=id=>S.rides.find(r=>r.id===id);
+let NET=navigator.onLine!==false;
+function online(){return NET}
+function toggleNet(){NET=!NET;onNetChange()}
+function onNetChange(){
+ if(NET){
+  const q=S.rides.filter(r=>r.booker==='me'&&r.status==='queued');
+  let any=false;for(const r of q){dispatch(r);any=true}
+  save();render();
+  toast(any?'Back online — your queued request has been sent':'Back online');
+ } else {
+  save();render();
+  toast('No signal — new requests will be queued and sent automatically');
+ }
+}
+window.addEventListener('online',()=>{NET=true;onNetChange()});
+window.addEventListener('offline',()=>{NET=false;onNetChange()});
+function km(a,b){const R=6371,r=x=>x*Math.PI/180;const dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function routeKm(a,b){return km(a,b)*1.3}
+function fareCalc(type,d,m){m=m||S.fares.active;const f=m[type];return f?f.base+f.km*d:0}
+function dur(d,type){return Math.round(d/TYPES[type].kph*60)+5}
+function fmtT(ms){return new Date(ms).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+function fmtD(s){return new Date(s+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}
+function dirUrl(p){return `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
+function svUrl(p){return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lng}`}
+function toast(m){$('#toastRoot').innerHTML=`<div class="toast">${esc(m)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toastRoot').innerHTML='',2800)}
+function modal(h){$('#modalRoot').innerHTML=`<div class="modalbg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close" onclick="closeModal()">✕</button>${h}</div></div>`}
+// Forced variant: no ✕, no tap-outside-to-dismiss. Used for the post-ride review steps so every
+// completed ride actually produces a review — the user can't back out of it without rating.
+function modalForced(h){$('#modalRoot').innerHTML=`<div class="modalbg"><div class="modal">${h}</div></div>`}
+function closeModal(){$('#modalRoot').innerHTML=''}
+function readImg(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const s=Math.min(1,480/img.width);const c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7))};img.onerror=()=>cb(r.result);img.src=r.result};r.readAsDataURL(file)}
+function fakeQR(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;const R=rng(h||1),n=25,z=6;let o='';const F=(x,y)=>`<rect x="${x*z}" y="${y*z}" width="${7*z}" height="${7*z}"/><rect x="${(x+1)*z}" y="${(y+1)*z}" width="${5*z}" height="${5*z}" fill="#fff"/><rect x="${(x+2)*z}" y="${(y+2)*z}" width="${3*z}" height="${3*z}"/>`;
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){if((x<8&&y<8)||(x>16&&y<8)||(x<8&&y>16))continue;if(R()>.52)o+=`<rect x="${x*z}" y="${y*z}" width="${z}" height="${z}"/>`}
+ return `<svg class="qr" viewBox="0 0 ${n*z} ${n*z}"><rect width="100%" height="100%" fill="#fff"/><g fill="#000">${o}${F(0,0)}${F(18,0)}${F(0,18)}</g></svg>`}
+function tpl(key,v,lang){const t=(MSG[lang]&&MSG[lang][key])||MSG.en[key]||key;return t.replace(/\{(\w+)\}/g,(_,k)=>v[k]??'')}
+function townOf(p){return p.t}
+function paused(town){return (S.signals[town]||0)>0}
+function stChip(s){const m={queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to riders'],no_match:['bad','No rider found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
+function payChip(r){if(['cancelled','no_match','queued'].includes(r.status)&&!r.fee)return '';const m={unpaid:['wait','Unpaid'],proof:['info','Proof sent'],paid:['ok','Paid'],rejected:['bad','Proof rejected'],cash:['info','Cash — awaiting driver'],escalated:['bad','Escalated to support']}[r.pay]||['mut',r.pay];return `<span class="st ${m[0]}">${ic('card')} ${m[1]}</span>`}
+function amount(r){return r.fare+(r.fee||0)}
+
+/* =================== NOTIFICATIONS (Feature 1) =================== */
+function notify(to,key,v={},ref=''){
+ let ch,lang='en',status='delivered';
+ if(to==='me'){ch=S.me.channel;lang=S.me.lang;if(ch==='sms'&&S.me.smsStop)ch='app';
+  if(ch==='messenger'&&!S.me.msgr){status='failed → retried once → sent in app';ch='app'}}
+ else if(to==='contacts'||to==='lgu')ch='sms';
+ else ch='app + SMS';
+ const text=tpl(key,v,lang);
+ S.notifs.unshift({to,ch,text,ref,at:Date.now(),status});
+ return text}
+
+/* =================== AVAILABILITY & DISPATCH (Module 1) =================== */
+function busy(pid,start,end,ignore){const p=prov(pid);
+ for(const b of p.blocks){const bs=new Date(b.date+'T'+b.from).getTime(),be=new Date(b.date+'T'+b.to).getTime();if(start<be&&end>bs)return 'Off duty'}
+ for(const r of S.rides){if(r.id===ignore)continue;
+  const holds=(r.pid===pid&&['accepted','started'].includes(r.status))||(r.status==='pending'&&r.cands[r.offerIdx]===pid);
+  if(holds&&start<r.end+BUFFER&&end+BUFFER>r.start)return 'Booked '+hm(r.start)}
+ return null}
+function eligible(type,pax,start,end,ignore,exclude=[]){
+ return S.providers.filter(p=>p.status==='approved'&&p.online&&p.type===type&&p.seats>=pax&&!exclude.includes(p.id)&&!busy(p.id,start,end,ignore))}
+function rank(list,from){const a=P(from);return list.sort((x,y)=>km({lat:TOWNS[x.t][0],lng:TOWNS[x.t][1]},a)-km({lat:TOWNS[y.t][0],lng:TOWNS[y.t][1]},a))}
+function newRide(o){const a=P(o.from),b=P(o.to),d=routeKm(a,b);const start=o.start;const end=start+dur(d,o.type)*MIN;
+ return Object.assign({id:nid('LN'),booker:'me',type:o.type,pid:null,cands:[],offerIdx:0,offerAt:0,declined:[],from:o.from,to:o.to,start,end,pax:o.pax,fare:Math.round(fareCalc(o.type,d)),fee:0,status:'pending',pay:'unpaid',proof:null,proofAt:0,alt:[],share:null,rated:{b:false,p:false},createdAt:Date.now(),tripId:o.tripId||null},o.extra||{})}
+function dispatch(r,silent){
+ if(paused(P(r.from).t)){r.status='no_match';r.alt=[];r.why='Storm signal in '+P(r.from).t;notify('me','nomatch',{ref:r.id,alt:'a booking after the signal is lifted'},r.id);return}
+ const c=rank(eligible(r.type,r.pax,r.start,r.end,r.id,r.declined),r.from);
+ if(!c.length){noMatch(r);return}
+ r.cands=c.map(p=>p.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';
+ if(!silent)notify('me','request',{ref:r.id},r.id);
+ offerNotify(r)}
+function offerNotify(r){notify(r.cands[r.offerIdx],'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id)}
+function noMatch(r){r.status='no_match';r.alt=findAlt(r);r.why='No online rider free';
+ notify('me','nomatch',{ref:r.id,alt:r.alt[0]?altLabel(r.alt[0]):'another time'},r.id)}
+function findAlt(r){const out=[],len=r.end-r.start;
+ for(const m of [30,60,120]){const s=r.start+m*MIN;if(eligible(r.type,r.pax,s,s+len,r.id).length){out.push({k:'time',start:s});break}}
+ for(const t of ONDEMAND){if(t===r.type)continue;if(eligible(t,r.pax,r.start,r.end,r.id).length){out.push({k:'type',type:t});if(out.length>=3)break}}
+ return out}
+function altLabel(a){return a.k==='time'?'same vehicle at '+hm(a.start):TYPES[a.type].label+' now'}
+function advance(r,why){r.declined.push(r.cands[r.offerIdx]);r.offerIdx++;
+ while(r.offerIdx<r.cands.length){const pid=r.cands[r.offerIdx];const p=prov(pid);if(p.online&&p.status==='approved'&&!busy(pid,r.start,r.end,r.id))break;r.offerIdx++}
+ if(r.offerIdx>=r.cands.length){noMatch(r)}else{r.offerAt=Date.now();offerNotify(r)}}
+function bookAlt(id,i){const r=ride(id),a=r.alt[i];if(!a)return;const o={from:r.from,to:r.to,pax:r.pax,type:a.k==='type'?a.type:r.type,start:a.k==='time'?a.start:r.start};
+ const n=newRide(o);S.rides.push(n);dispatch(n);r.status='cancelled';r.why='Replaced by '+n.id;save();render();toast('Requested '+n.id)}
+function activeCount(){return S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started'].includes(r.status)).length}
+function bookingLimit(){return S.me.noShows>=2?1:5}
+
+/* =================== CHECKS (timers, expiry, fares) =================== */
+function tick(){let changed=false;const now=Date.now();
+ for(const r of S.rides)if(r.status==='pending'&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
+ if(changed){save();render()}
+ document.querySelectorAll('.cd').forEach(el=>{const r=ride(el.dataset.id);if(!r||r.status!=='pending'){el.textContent='';return}const s=Math.max(0,Math.ceil((OFFER_MS-(now-r.offerAt))/1000));el.textContent=` ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`})}
+function dailyChecks(){const today=D(0);
+ for(const p of S.providers){if(p.status!=='approved')continue;
+  const lapsed=p.docs.find(d=>d.exp&&d.exp<today);
+  if(lapsed){p.status='suspended';p.online=false;p.reason='Permit lapsed: '+lapsed.n;notify(p.id,'dispute',{ref:'',msg:''});S.notifs[0].text=`LUNAD: Account suspended — ${lapsed.n} expired ${fmtD(lapsed.exp)}. Upload a renewed copy.`;continue}
+  const soon=p.docs.find(d=>d.exp&&(new Date(d.exp)-new Date(today))/864e5<=30);
+  if(soon&&!p.reminded){p.reminded=true;notify(p.id,'dispute',{});S.notifs[0].text=`LUNAD: Reminder — your ${soon.n} expires ${fmtD(soon.exp)}. Renew to stay active.`}}}
+
+
+/* =================== RENDER =================== */
+const NAV={
+ booker:[['home','home','Home'],['ride','car','Ride'],['map','compass','Explore'],['mytrips','ticket','Bookings'],['me','user','Profile']],
+ provider:[['offers','file-text','Offers & jobs'],['status','dot-on','Status'],['payset','card','Payment'],['register','file-text','Register'],['pinbox','mail','Inbox']]
+};
+function navFor(){return NAV[S.role]}
+function render(){const nav=navFor();
+ if(!nav.some(n=>n[0]===S.tab))S.tab=nav[0][0];
+ $('#top').innerHTML=`<div class="row"><div class="logo">LUNAD<small>Book. Ride. Explore Catanduanes.</small></div>
+  <div class="mode" role="group" aria-label="Mode"><button class="${S.role==='booker'?'on':''}" onclick="setRole('booker')">Rider</button><button class="${S.role==='provider'?'on':''}" onclick="setRole('provider')">Driver</button></div>
+  <button class="iconbtn" aria-label="Menu" onclick="openAbout()">${ic('menu')}</button></div>
+  <div class="net">${online()?'':`<span class="pill off" style="cursor:pointer" onclick="toggleNet()" title="Tap to simulate signal returning (demo)">${ic('wifi-off')} No signal</span>`}
+  ${activeCount()&&S.rides.some(r=>r.booker==='me'&&r.status==='queued')?`<span class="pill off">${ic('clock')} Queued request pending signal</span>`:''}
+  ${Object.values(S.signals).some(v=>v>0)?`<span class="pill off">${ic('storm')} Storm signal active</span>`:''}</div>`;
+ $('#nav').innerHTML=nav.map(n=>`<button class="${S.tab===n[0]?'act':''}" onclick="go('${n[0]}')"><span class="i">${ic(n[1])}</span>${n[2]}</button>`).join('');
+ let b='';
+ const V={home:vHome,ride:vRide,map:vMap,mytrips:vMyTrips,me:vMe,offers:vOffers,status:vStatus,payset:vPaySet,register:vRegister,pinbox:vPInbox}[S.tab];
+ $('#main').innerHTML=b+V();tick();maybeAutoReview();initMaps()}
+function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
+ // Business/place review takes priority: it pops up right after ride completion,
+ // before the driver rating — not after it.
+ const dueBiz=S.rides.find(r=>r.booker==='me'&&r.status==='completed'&&r.bizId&&!r.bizReviewShown);
+ if(dueBiz){bizModal(dueBiz.id);return}
+ const due=S.rides.find(r=>r.booker==='me'&&r.status==='completed'&&!r.rated.b&&!r.reviewShown);
+ if(due){due.reviewShown=true;save();rateModal(due.id,'b')}}
+function setRole(r){S.role=r;S.tab=NAV[r][0][0];save();render()}
+function go(t){S.tab=t;save();render();$('#main').scrollTop=0}
+
+/* =================== MAP (Module 8) =================== */
+const MB={lat0:14.13,lat1:13.50,lng0:123.95,lng1:124.47,W:340,H:420};
+function xy(p){return [(p.lng-MB.lng0)/(MB.lng1-MB.lng0)*MB.W,(MB.lat0-p.lat)/(MB.lat0-MB.lat1)*MB.H]}
+function unxy(x,y){return {lng:x/MB.W*(MB.lng1-MB.lng0)+MB.lng0,lat:MB.lat0-y/MB.H*(MB.lat0-MB.lat1)}}
+const ISLAND=[[14.07,124.17],[14.02,124.26],[13.97,124.31],[13.88,124.35],[13.78,124.41],[13.70,124.42],[13.64,124.41],[13.58,124.33],[13.55,124.27],[13.53,124.21],[13.55,124.15],[13.59,124.09],[13.63,124.05],[13.71,124.04],[13.80,124.06],[13.90,124.09],[13.97,124.12],[14.03,124.13]];
+function mapPin(x,y,c,scale=1){return `<path d="M0,${-22*scale} C${7*scale},${-22*scale} ${12*scale},${-16*scale} ${12*scale},${-9*scale} C${12*scale},${-2*scale} 0,${10*scale} 0,${10*scale} C0,${10*scale} ${-12*scale},${-2*scale} ${-12*scale},${-9*scale} C${-12*scale},${-16*scale} ${-7*scale},${-22*scale} 0,${-22*scale} Z" fill="${c}" stroke="#fff" stroke-width="1.5" transform="translate(${x},${y})"/><circle cx="${x}" cy="${y-9*scale}" r="${4*scale}" fill="#fff"/>`}
+// Nested <svg> icon centered on a map pin's white cap circle — an SVG <text> can't host HTML,
+// so a real nested SVG viewport is the way to show one of our outline icons on the stylized map.
+function miniIcon(name,x,y,size,color){const s=ICONS[name];if(!s)return '';return `<svg x="${x-size/2}" y="${y-size/2}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none">${s}</svg>`}
+function mapCallout(x,y,label,c){if(!label)return'';const w=Math.min(132,Math.max(44,label.length*5.4+16)),cx=Math.max(w/2+2,Math.min(MB.W-w/2-2,x)),by=Math.max(14,y-30);
+ return `<g style="pointer-events:none"><rect x="${cx-w/2}" y="${by-11}" width="${w}" height="16" rx="7" fill="#fff" stroke="${c}" stroke-width="1.3"/><text x="${cx}" y="${by+0.5}" text-anchor="middle" font-size="7.6" font-weight="700" fill="#1e293b">${label.length>20?label.slice(0,19)+'…':label}</text></g>`}
+function mapSVG({pins,route,onclick,marks,h}){const poly=ISLAND.map(([a,b])=>xy({lat:a,lng:b}).join(',')).join(' ');
+ const roads=Object.entries(TOWNS).filter(([n])=>n!=='Virac').map(([n,[a,b]])=>{const [x1,y1]=xy({lat:TOWNS['Virac'][0],lng:TOWNS['Virac'][1]}),[x2,y2]=xy({lat:a,lng:b});return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="2" stroke-dasharray="1 3" opacity=".55"/>`}).join('');
+ const towns=Object.entries(TOWNS).map(([n,[a,b]])=>{const [x,y]=xy({lat:a,lng:b});return `<circle cx="${x}" cy="${y}" r="2.2" fill="#64748b"/><text x="${x}" y="${y-8}" text-anchor="middle" font-size="8.5" fill="#0b4a6f" font-weight="700" style="pointer-events:none">${n}</text>`}).join('');
+ const storm=Object.entries(S.signals).filter(([,v])=>v>0).map(([n])=>{const [x,y]=xy({lat:TOWNS[n][0],lng:TOWNS[n][1]});return `<circle cx="${x}" cy="${y}" r="26" fill="rgba(220,38,38,.15)" stroke="#dc2626" stroke-dasharray="3 3"/>`}).join('');
+ const pp=(pins||[]).map(p=>{const [x,y]=xy(p);const c=p.k==='hub'?'#0b2540':p.k==='stay'?'#D9922E':p.k==='shop'?'#8e44ad':'#0A84B8';return `<g class="pin" onclick="event.stopPropagation();openPlace('${p.id}')">${mapPin(x,y,c,.68)}${miniIcon(p.e,x,y-6.12,5.6,c)}</g>`}).join('');
+ const rt=route&&route.length>1?`<polyline points="${route.map(p=>xy(p).join(',')).join(' ')}" fill="none" stroke="#eab308" stroke-width="2.5" stroke-dasharray="6 4"/>`:'';
+ const mk=(marks||[]).map(([p,shape,c,label])=>{const [x,y]=xy(p);return `<g style="pointer-events:none">${mapPin(x,y,c)}${mapCallout(x,y,label,c)}</g>`}).join('');
+ return `<svg class="map" viewBox="0 0 ${MB.W} ${MB.H}" style="${h?'max-height:'+h+'px;':''}${onclick?'cursor:crosshair':''}" ${onclick?`onclick="${onclick}(event,this)"`:''} xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="seaGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#cfe9fb"/><stop offset="100%" stop-color="#eaf6ff"/></linearGradient>
+  <linearGradient id="landGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e3f0cf"/><stop offset="100%" stop-color="#cfe3b3"/></linearGradient></defs>
+  <rect x="0" y="0" width="${MB.W}" height="${MB.H}" fill="url(#seaGrad)"/>
+  <text x="10" y="16" font-size="9" fill="#5b7c99">Philippine Sea</text><text x="10" y="${MB.H-8}" font-size="9" fill="#5b7c99">Maqueda Channel</text>
+  <polygon points="${poly}" fill="url(#landGrad)" stroke="#8fb174" stroke-width="1.5"/>${roads}${storm}${towns}${rt}${pp}${mk}</svg>`}
+function svgPoint(ev,svg){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());return unxy(p.x,p.y)}
+function nearestTown(ll){let best=null,bd=1e9;for(const [n,[a,b]] of Object.entries(TOWNS)){const d=km(ll,{lat:a,lng:b});if(d<bd){bd=d;best=n}}return best}
+function dropPinAt(ll){const f=S.rideForm;const id='pin-'+(S.seq++);
+ S.custom=S.custom.filter(c=>c.id!==f[f.pin]).slice(-6);
+ S.custom.push({id,n:'Dropped pin near '+nearestTown(ll),t:nearestTown(ll),lat:ll.lat,lng:ll.lng,k:'pin',e:'pin'});
+ f[f.pin]=id;f.pin=f.pin==='from'?'to':'from';save();render()}
+function dropPin(ev,svg){dropPinAt(svgPoint(ev,svg))}
+
+/* ---- Leaflet (real zoom/pan) with offline/no-network fallback to the schematic SVG above ---- */
+let MAPQ=[],MAPVIEW={},MAPS={};
+function hasLeaflet(){return typeof L!=='undefined'}
+function mapView(id,{pins,route,marks,drop,h}){
+ if(!hasLeaflet())return mapSVG({pins,route,onclick:drop?'dropPin':null,marks,h:h||260});
+ MAPQ.push({id,pins,route,marks,drop});
+ return `<div id="${id}" class="leafmap" style="height:${h||260}px"></div>`}
+function initMaps(){if(!hasLeaflet()||!MAPQ.length){MAPQ=[];return}
+ const q=MAPQ;MAPQ=[];
+ q.forEach(({id,pins,route,marks,drop})=>{const el=document.getElementById(id);if(!el)return;
+  if(MAPS[id]){try{MAPS[id].remove()}catch(e){}delete MAPS[id]}
+  const firstTime=!MAPVIEW[id];
+  const view=MAPVIEW[id]||{center:[13.65,124.22],zoom:10};
+  const map=L.map(id,{attributionControl:false}).setView(view.center,view.zoom);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+  L.control.attribution({prefix:false}).addTo(map);
+  map.on('moveend zoomend',()=>{MAPVIEW[id]={center:[map.getCenter().lat,map.getCenter().lng],zoom:map.getZoom()}});
+  (marks||[]).forEach(([p,shape,c,label])=>{const icon=L.divIcon({className:'',html:`<div class="lpin" style="background:${c}"></div>`,iconSize:[22,22],iconAnchor:[11,22]});
+   const m=L.marker([p.lat,p.lng],{icon,zIndexOffset:500}).addTo(map);
+   if(label)m.bindTooltip(label,{permanent:true,direction:'top',offset:[0,-20],className:'lpin-label'});});
+  (pins||[]).forEach(p=>{const icon=L.divIcon({className:'',html:`<div class="lpin sm">${ic(p.e,'',' #066391')}</div>`,iconSize:[26,26],iconAnchor:[13,13]});
+   L.marker([p.lat,p.lng],{icon}).addTo(map).on('click',()=>openPlace(p.id));});
+  if(route&&route.length>1)L.polyline(route.map(p=>[p.lat,p.lng]),{color:'#F5B544',weight:3,dashArray:'6 4'}).addTo(map);
+  if(drop)map.on('click',e=>dropPinAt(e.latlng));
+  if(firstTime&&marks&&marks.length>1){try{map.fitBounds(marks.map(([p])=>[p.lat,p.lng]),{padding:[36,36],maxZoom:14})}catch(e){}}
+  MAPS[id]=map});}
+/* =================== WHERE TO? (Grab-style destination search) =================== */
+const WT_GROUPS=[['spot','Tourist spots'],['hub','Hubs & landmarks'],['stay','Stays'],['shop','Shops & food'],['town','Towns']];
+function openWhereTo(){const from=P(S.rideForm.from);
+ $('#modalRoot').innerHTML=`<div class="wt" role="dialog" aria-modal="true" aria-label="Where to?">
+ <div class="wt-head"><button class="wt-back" aria-label="Back" onclick="closeModal()">${ic('chevron')}</button>
+ <div class="wt-fields"><button class="wt-from" onclick="closeModal();S.rideForm.pin='from';save();go('ride')"><span class="wt-dot from"></span><span><small>Pickup</small>${esc(from?from.n.replace(' (sample)',''):'Choose pickup')}</span></button>
+ <label class="wt-to"><span class="wt-dot to"></span><input id="wtq" placeholder="Where to?" autocomplete="off" aria-label="Where to?" oninput="wtFilter(this.value)" onkeydown="if(event.key==='Enter')wtEnter(this.value)"></label></div></div>
+ <div class="wt-body"><button class="wt-map" onclick="wtOnMap()"><span class="tile">${ic('pin')}</span><span class="tx"><b>Choose on map</b><span>Tap the map to drop your pin</span></span></button>
+ <div id="wtList">${wtItems('')}</div></div></div>`;
+ setTimeout(()=>{const q=$('#wtq');if(q)q.focus()},60)}
+function wtItems(q){q=(q||'').trim().toLowerCase();let h='';
+ for(const [k,l] of WT_GROUPS){const items=PLACES.filter(p=>p.k===k&&(!q||(p.n+' '+p.t).toLowerCase().includes(q)));
+  if(items.length)h+=`<h3>${l}</h3>`+items.map(p=>`<button class="wt-item" onclick="wtPick('${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.t)}, Catanduanes</span></span></button>`).join('')}
+ if(!h&&q)h=`<button class="wt-item" onclick="wtEnter($('#wtq').value)"><span class="tile">${ic('search')}</span><span class="tx"><b>Use “${esc(q)}”</b><span>We'll place it near the matching town — adjust the pin on the map</span></span></button>`;
+ return h}
+function wtFilter(v){const el=$('#wtList');if(el)el.innerHTML=wtItems(v)}
+function wtPick(id){S.rideForm.to=id;S.rideForm.pin='to';save();closeModal();go('ride');toast('Drop-off set — choose your vehicle')}
+function wtEnter(v){if(!(v||'').trim())return;S.tab='ride';closeModal();pickByText('to',v);$('#main').scrollTop=0}
+function wtOnMap(){S.rideForm.pin='to';save();closeModal();go('ride');toast('Tap the map to place your drop-off')}
+
+/* =================== CURRENT LOCATION (real GPS, island-bounded) =================== */
+const GEO_BOUNDS={lat0:13.45,lat1:14.15,lng0:123.95,lng1:124.47};
+function nearestTown(lat,lng){let best='Virac',bd=1e9;for(const [n,c] of Object.entries(TOWNS)){const d=km({lat,lng},{lat:c[0],lng:c[1]});if(d<bd){bd=d;best=n}}return best}
+function setMyLocation(lat,lng,label,msg){const f=S.rideForm;S.custom=S.custom.filter(p=>!p.mine);const id='pin-'+(S.seq++);
+ S.custom.push({id,n:label,t:nearestTown(lat,lng),lat,lng,k:'pin',e:'target',mine:true});f.from=id;f.pin='to';
+ MAPVIEW['map-ride']={center:[lat,lng],zoom:15};save();render();toast(msg)}
+function useMyLocation(){const sample=()=>setMyLocation(13.588,124.226,'My location (sample, near Virac)','Sample location used near Virac');
+ if(!navigator.geolocation){sample();return}
+ toast('Finding your location…');
+ navigator.geolocation.getCurrentPosition(pos=>{const {latitude:lat,longitude:lng}=pos.coords;
+  if(lat>=GEO_BOUNDS.lat0&&lat<=GEO_BOUNDS.lat1&&lng>=GEO_BOUNDS.lng0&&lng<=GEO_BOUNDS.lng1)setMyLocation(lat,lng,'My location','Pickup set to your current location');
+  else setMyLocation(13.588,124.226,'My location (sample, near Virac)','You\'re outside Catanduanes — using a sample spot near Virac for the demo')},
+  ()=>sample(),{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
+function pickByText(which,text){text=(text||'').trim();if(!text)return;
+ const all=[...PLACES,...S.custom];const exact=all.find(p=>p.n.toLowerCase()===text.toLowerCase());
+ if(exact){S.rideForm[which]=exact.id;save();render();return}
+ const town=Object.keys(TOWNS).find(t=>text.toLowerCase().includes(t.toLowerCase()))||P(S.rideForm[which])?.t||'Virac';
+ const id='cu-'+(S.seq++);S.custom.push({id,n:text,t:town,lat:TOWNS[town][0],lng:TOWNS[town][1],k:'pin',e:'pin'});S.custom=S.custom.slice(-8);
+ S.rideForm[which]=id;save();render();toast(`Using "${text}" near ${town}`)}
+function openPlace(id){const p=P(id);
+ modal(`<div style="font-size:32px">${ic(p.e)}</div><h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>
+ ${p.k==='spot'?'<p class="muted">Full attraction details (fees, hours, photos) are on the roadmap.</p>':''}
+ <div class="btns"><button class="btn sm" onclick="S.rideForm.from='${id}';closeModal();go('ride')">Ride from here</button><button class="btn sm" onclick="S.rideForm.to='${id}';closeModal();go('ride')">Ride to here</button></div>
+ <div class="btns"><a class="btn ghost sm" style="text-decoration:none" href="${dirUrl(p)}" target="_blank" rel="noopener">${ic('nav')} Directions</a><a class="btn ghost sm" style="text-decoration:none" href="${svUrl(p)}" target="_blank" rel="noopener">${ic('eye')} Street View</a></div>
+ <p class="muted">Street View is embedded in production (Google Maps Platform). In this prototype it opens Google Maps.</p>`)}
+
+/* =================== BOOKER: RIDE =================== */
+function placeOpts(sel){const groups=[['hub','Hubs & landmarks'],['spot','Tourist spots'],['stay','Stays'],['shop','Shops'],['town','Towns']];
+ let o=S.custom.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('');
+ for(const [k,l] of groups)o+=`<optgroup label="${l}">${PLACES.filter(p=>p.k===k).map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('')}</optgroup>`;return o}
+function formStart(){const f=S.rideForm;if(f.when==='now')return Date.now()+5*MIN;return new Date(f.date+'T'+f.time).getTime()}
+function activeCard(){const a=S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((x,y)=>y.createdAt-x.createdAt)[0];
+ return a?rideCard(a,true):''}
+// ============ Home dashboard — hero, search, quick access, featured spots ============
+function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started'].includes(r.status)).length;
+ const recent=S.rides.filter(r=>r.booker==='me').sort((a,b)=>b.createdAt-a.createdAt)[0];
+ const featured=PLACES.filter(p=>exploreCat(p)).slice(0,3);
+ return `<div class="hero"><h2>Welcome to the<br>Happy Island, ${esc((m.name||'traveler').split(' ')[0])}</h2>
+ <button class="search-bar" style="width:100%;border:0;text-align:left" onclick="openWhereTo()">${ic('search')} Where to?</button></div>
+ ${activeCard()}
+ <div class="qa-list">
+ <button class="qa-row lead" onclick="go('ride')"><span class="tile">${ic('car')}</span><span class="tx"><b>Book a ride</b><span>Tricycle, moto, car or van</span></span>${ic('chevron','chev')}</button>
+ <button class="qa-row" onclick="go('map')"><span class="tile">${ic('compass')}</span><span class="tx"><b>Explore destinations</b><span>Beaches, falls &amp; landmarks</span></span>${ic('chevron','chev')}</button>
+ <button class="qa-row" onclick="S.me.pack=D(0);save();render();toast('Offline pack updated')"><span class="tile">${ic('pkg')}</span><span class="tx"><b>Offline maps</b><span>Updated ${fmtD(m.pack)}</span></span>${ic('chevron','chev')}</button>
+ <button class="qa-row" onclick="go('mytrips')"><span class="tile">${ic('clock')}</span><span class="tx"><b>Recent trips</b><span>${recent?fmtT(recent.createdAt):'No trips yet'}</span></span>${ic('chevron','chev')}</button>
+ </div>
+ <h3>Featured</h3>
+ ${featured.map(destCard).join('')}
+ ${active?`<p class="muted" style="text-align:center">${ic('clock','sm')} ${active} active booking${active>1?'s':''} — see Bookings for details.</p>`:''}`}
+function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a||!b){f.from='air';f.to='twin';return vRide()}
+ const d=routeKm(a,b),start=formStart(),end=start+dur(d,f.type)*MIN,storm=paused(a.t)||paused(b.t);
+ const lim=activeCount()>=bookingLimit();
+ const marks=[[a,'pickup','#0D1B2A',esc(a.n)],[b,'dropoff','#F5B544',esc(b.n)]];
+ let h=activeCard();
+ if(S.me.noShows>=2)h+=`<div class="banner bad">${ic('warn')} ${S.me.noShows} no-shows on record. You can hold only 1 active booking until reviewed.</div>`;
+ if(storm)h+=`<div class="banner bad">${ic('storm')} Storm signal in ${paused(a.t)?a.t:b.t}. New road bookings there are paused.</div>`;
+ h+=`<h2>Book a ride</h2>
+ <datalist id="placeList">${[...PLACES,...S.custom].map(p=>`<option value="${esc(p.n)}">`).join('')}${Object.keys(TOWNS).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+ <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('flag')} Drop-off</span></div>
+ ${mapView('map-ride',{route:[a,b],marks,drop:true,h:230})}
+ <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
+ <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('from',this.value);this.value=''">
+ <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()">${placeOpts(f.to)}</select>
+ <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('to',this.value);this.value=''">
+ ${attractionCard(b)}
+ <label class="f">Vehicle</label>${ONDEMAND.map(k=>`<div class="veh-card ${f.type===k?'on':''}" onclick="S.rideForm.type='${k}';save();render()">
+  <div class="ic-badge">${ic(TYPES[k].e)}</div>
+  <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
+  <div class="check">${f.type===k?ic('check'):''}</div>
+ </div>`).join('')}
+ <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
+ <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
+ ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
+ <div class="sep"></div>
+ <div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,f.type)} min</b></div>
+ <div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>
+ <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
+ ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
+ const online_=S.providers.filter(p=>p.status==='approved'&&p.type===f.type);
+ h+=`<h3>Riders for ${TYPES[f.type].label} <span class="muted">(${online_.filter(p=>p.online).length} online)</span></h3>`+(online_.map(p=>{const bz=busy(p.id,start,end);const st=!p.online?'<span class="st mut">Offline</span>':p.seats<f.pax?'<span class="st bad">Not enough seats</span>':bz?`<span class="st wait">${bz}</span>`:'<span class="st ok">Available</span>';
+  return `<div class="card" style="padding:10px"><div class="kv"><span><b>${ic(TYPES[p.type].e)} ${esc(p.n)}</b><br><span class="muted">${esc(p.t)} · ${p.seats} seats · ${avgRating(p.id)}</span></span><span>${st}<br>${verifBadge(p.type)}</span></div></div>`}).join('')||'<div class="card muted">No verified providers of this type yet.</div>');
+ h+=`<p class="muted">Your request goes to the nearest available rider first. If they don't accept within 3 minutes, it moves to the next one.</p>`;
+ if(f.type==='tricycle')h+=`<div class="banner info">${ic('tricycle')} TODA route: tricycles currently run between Virac and San Andres only. Outside that corridor, choose a car or van (Direct booking).</div>`;
+ if(f.type==='moto')h+=`<div class="banner info">${ic('moto')} Moto Taxi is LUNAD's own rider fleet — always online, 1 passenger only, no helmet-less pillion.</div>`;
+ return h}
+function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
+ modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
+ <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
+ <div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>
+ <div class="card" style="background:var(--sand);margin-top:8px"><b>Cancellation & no-show fees</b>
+ <div class="muted">• Free cancellation until 15 minutes before pickup.<br>• Inside 15 minutes: ${peso(F.cancelFee)} fee, which goes to the driver.<br>• No-show after a 10-minute wait: ${peso(F.lateFee)} late fee.</div></div>
+ <button class="btn block" onclick="requestRide()">Confirm & request</button>`)}
+function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});S.rides.push(r);
+ if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
+ dispatch(r);
+ closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No rider available — see options')}
+
+/* =================== RIDE CARD (booker) =================== */
+function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
+ let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
+ <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>
+ ${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
+ <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
+ if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
+ if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
+ if(r.status==='queued')h+=`<div class="banner info" style="margin:6px 0">${ic('wifi-off')} No signal — this request will send automatically once you're back online. <button class="btn sm sec" style="margin-top:6px" onclick="toggleNet()">Simulate: back online</button></div>`;
+ if(r.status==='accepted'&&r.arriving)h+=`<div class="banner info" style="margin:6px 0">${ic('tricycle')} Your rider is arriving.</div>`;
+ if(r.rated.b){const rv=S.ratings.find(x=>x.rideId===r.id&&x.from==='b');if(rv)h+=`<div class="muted" style="margin:4px 0">Your review: ${starRow(rv.stars,'sm')}${rv.tags&&rv.tags.length?' · '+rv.tags.map(esc).join(', '):''}${rv.comment?' — '+esc(rv.comment):''}</div>`}
+ const btn=[];
+ if(['accepted','started'].includes(r.status)&&['unpaid','rejected'].includes(r.pay))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">Pay / upload proof</button>`);
+ if(r.status==='completed'&&['unpaid','rejected'].includes(r.pay))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">Pay now</button>`);
+ if(r.pay==='proof'&&now-r.proofAt>PAY_MS)btn.push(`<button class="btn sm warn" onclick="reportModal('${r.id}','Payment not confirmed')">No response — report issue</button>`);
+ if(r.pay==='proof'&&now-r.proofAt<=PAY_MS)btn.push(`<button class="btn sm ghost" onclick="ride('${r.id}').proofAt-=${PAY_MS+1000};save();render()">Demo: 15 min pass</button>`);
+ if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
+ if(['accepted','started'].includes(r.status)&&r.type!=='agency')btn.push(`<button class="btn sm sec" onclick="shareTrip('${r.id}')">${r.share&&r.share.on?ic('link')+' Sharing':'Share trip'}</button>`);
+ if(r.status==='completed'&&!r.rated.b)btn.push(`<button class="btn sm" onclick="rateModal('${r.id}','b')">${ic('star-f')} Rate ride</button>`);
+ if(r.status==='completed'&&now-r.end<DISPUTE_MS&&!S.reports.find(x=>x.rideId===r.id))btn.push(`<button class="btn sm ghost" onclick="reportModal('${r.id}','Fare dispute')">Report an issue</button>`);
+ const rp=S.reports.find(x=>x.rideId===r.id);if(rp)h+=`<div class="muted">${ic('file-text')} Reported (${esc(rp.type)}) — thanks, our team will follow up</div>`;
+ if(btn.length)h+=`<div class="btns">${btn.join('')}</div>`;
+ if(r.status==='started')h+=`<div style="margin-top:8px"><button class="sos" onpointerdown="sosDown(this,'${r.id}')" onpointerup="sosUp()" onpointerleave="sosUp()"><span class="bar"></span>${ic('warn')} Press & hold 3s for SOS</button></div>`;
+ return h+'</div>'}
+
+/* =================== PAYMENT (Module 3) =================== */
+function payModal(id){const r=ride(id);const p=prov(r.pid);
+ modal(`<h2>${ic('card')} Pay ${esc(p.n)}</h2><div class="muted">Ref <b>${r.id}</b> · ${peso(amount(r))}</div>
+ <div class="card" style="text-align:center;margin-top:10px"><b>Scan to pay ${peso(amount(r))}</b>${p.pay.qr?`<img class="qr" src="${p.pay.qr}" alt="QR">`:fakeQR(p.pay.acct+p.id)}
+ <div class="muted">${esc(p.pay.m)} · ${esc(p.pay.name)} · ${esc(p.pay.acct)}</div>${p.pay.qr?'':'<span class="st wait">Sample QR — not payable</span>'}
+ <p class="muted">Pay in your GCash, Maya or bank app, and put <b>${r.id}</b> in the message.</p></div>
+ <label class="f">Upload payment screenshot</label><input class="inp" type="file" accept="image/*" onchange="if(this.files[0])readImg(this.files[0],d=>submitProof('${id}',d))">
+ ${r.proof?`<img class="proof" src="${r.proof}" alt="proof">`:''}
+ <div class="btns"><button class="btn sm ghost" onclick="payCash('${id}')">Pay cash to driver instead</button><button class="btn sm ghost" onclick="closeModal()">Later</button></div>`)}
+function submitProof(id,d){const r=ride(id);r.proof=d;r.pay='proof';r.proofAt=Date.now();notify(r.pid,'dispute',{});S.notifs[0].text=`LUNAD: Payment proof for ${r.id} uploaded. Confirm within 15 min.`;save();closeModal();render();toast('Proof sent — the provider has 15 minutes to confirm')}
+function payCash(id){const r=ride(id);r.pay='cash';r.proofAt=Date.now();save();closeModal();render();toast('Marked as cash — driver confirms on receipt')}
+
+/* =================== CANCEL / NO-SHOW (Feature 4) =================== */
+function cancelFee(r){if(!['accepted'].includes(r.status))return 0;return Date.now()<r.start-15*MIN?0:S.fares.active.cancelFee}
+function cancelModal(id){const r=ride(id);const fee=cancelFee(r);
+ modal(`<h2>Cancel ${r.id}?</h2>${fee?`<div class="banner bad">Pickup is within 15 minutes, so a <b>${peso(fee)}</b> fee applies. It goes to the driver.</div>`:'<div class="banner info">No fee — you are outside the 15-minute window.</div>'}
+ <button class="btn block warn" onclick="doCancel('${id}');closeModal()">Cancel booking${fee?' · pay '+peso(fee):''}</button>`)}
+function doCancel(id){const r=ride(id);const fee=cancelFee(r);const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';
+ if(fee){r.fee=fee;r.fare=0;r.pay='unpaid'}
+ notify('me','cancelled',{ref:r.id,fee:fee?` Fee ${peso(fee)}.`:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:fee?` Fee ${peso(fee)} to you.`:''},r.id);
+ save();render();toast('Cancelled'+(fee?' · '+peso(fee)+' fee':''))}
+
+/* =================== RATINGS & DISPUTES (Feature 2) =================== */
+function avgRating(pid){const rs=S.ratings.filter(x=>x.to===pid);const s=ic('star-f','',' #F5B544');return rs.length?s+' '+(rs.reduce((a,x)=>a+x.stars,0)/rs.length).toFixed(1)+` (${rs.length})`:s+' new'}
+let RT={stars:0};
+const REVIEW_TAGS=['Safe driving','Clean vehicle','On time','Fair fare'];
+function rateModal(id,side){RT={stars:0,id,side,tags:[],comment:''};drawRate()}
+function redrawRate(){RT.comment=($('#rc')||{}).value||'';drawRate()}
+function toggleTag(t){const i=RT.tags.indexOf(t);if(i>=0)RT.tags.splice(i,1);else RT.tags.push(t);redrawRate()}
+// Forced, like the business-review step: no ✕, no tap-outside. Submit stays disabled until a
+// star is picked, so every completed ride produces a rating — no way to dismiss without one.
+function drawRate(){const r=ride(RT.id);const who=RT.side==='b'?prov(r.pid).n:'Booker '+r.id;
+ const summary=RT.side==='b'?`<div class="card"><div class="kv"><span>Route</span><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></div><div class="kv"><span>Operator</span><b>${esc(who)}</b></div><div class="kv"><span></span>${verifBadge(r.type,'sm')}</div><div class="kv"><span>Fare</span><b>${peso(amount(r))}</b></div></div>`:'';
+ const dest=esc(P(r.to).n);
+ modalForced(`<h2>${RT.side==='b'?'Ride completed':'Rate your rider'}</h2>${summary}
+ <label class="f">${RT.side==='b'?`Tell us about your visit to ${dest}`:'Rate '+esc(who)}</label><div class="stars">${[1,2,3,4,5].map(i=>`<span class="${i<=RT.stars?'on':''}" onclick="RT.stars=${i};drawRate()">${ic('star-f')}</span>`).join('')}</div>
+ ${RT.side==='b'?`<div class="chips" style="margin:8px 0">${REVIEW_TAGS.map(t=>`<span class="chip ${RT.tags.includes(t)?'on':''}" onclick="toggleTag('${t}')">${t}</span>`).join('')}</div>`:''}
+ ${RT.stars&&RT.stars<=2?`<label class="f">What went wrong? (required)</label><select class="inp" id="rr"><option value="">Choose a reason</option>${(RT.side==='b'?['Late','Rude','Unsafe driving','Overcharged','Vehicle condition','Other']:['No-show / late','Rude','Wrong pickup','Did not pay','Other']).map(x=>`<option>${x}</option>`).join('')}</select>`:''}
+ <label class="f">Comment (optional)</label><textarea class="inp" id="rc" placeholder="${RT.side==='b'?`What did you enjoy about ${dest}?`:'Tell us more about your ride'}" oninput="RT.comment=this.value">${esc(RT.comment||'')}</textarea>
+ <button class="btn block" style="margin-top:10px" ${RT.stars?'':'disabled'} onclick="saveRate()">Submit review</button>
+ <p class="muted">A quick rating is required to continue. Ratings alone never suspend a provider.</p>`)}
+function saveRate(){const reason=$('#rr')?$('#rr').value:'';if(RT.stars<=2&&!reason){toast('Please pick a reason');return}
+ const r=ride(RT.id);const comment=$('#rc').value;
+ S.ratings.push({rideId:r.id,from:RT.side,to:RT.side==='b'?r.pid:'me',stars:RT.stars,reason,tags:RT.tags.slice(),comment,at:Date.now()});
+ r.rated[RT.side]=true;save();render();
+ // The business/place review already ran first (see bizModal, triggered by maybeAutoReview
+ // before this driver rating) — this step is just the driver/ride rating on its own.
+ modal(`<div style="text-align:center;padding:24px 4px"><div style="font-size:40px">${ic('check')}</div><h2 style="margin:10px 0 4px">Thanks for your review!</h2><p class="muted">${RT.side==='b'?'It helps other riders and keeps LUNAD trustworthy.':'Saved to your trip history.'}</p></div>`);
+ setTimeout(closeModal,1400)}
+const REPORT_TYPES=['Fare dispute','Payment not confirmed','Safety concern','Other'];
+function reportModal(id,defaultType){const r=ride(id);
+ modal(`<h2>${ic('file-text')} Report an issue · ${r.id}</h2><p class="muted">Our support team reviews every report — there's no in-app admin to resolve it live, so expect a follow-up by SMS or app message.</p>
+ <label class="f">Issue type</label><select class="inp" id="rpt">${REPORT_TYPES.map(t=>`<option ${t===defaultType?'selected':''}>${esc(t)}</option>`).join('')}</select>
+ <label class="f">Tell us what happened</label><textarea class="inp" id="rpn" placeholder="e.g. Driver asked for more at drop-off" style="min-height:80px"></textarea>
+ <button class="btn block" style="margin-top:10px" onclick="fileReport('${id}')">Submit report</button>`)}
+function fileReport(id){const r=ride(id);const type=$('#rpt').value,note=$('#rpn').value.trim();
+ S.reports.unshift({id:nid('RP'),rideId:id,pid:r.pid,type,note,at:Date.now()});
+ notify('me','dispute',{ref:r.id,msg:'report received — our team will follow up'},r.id);
+ save();closeModal();render();toast('Report submitted')}
+
+/* =================== TRIP SHARING & SOS (Feature 6) =================== */
+function shareTrip(id){const r=ride(id);if(!S.me.contacts.length){toast('Add an emergency contact in Me first');go('me');return}
+ if(!r.share)r.share={link:'lunad.ph/t/'+Math.random().toString(36).slice(2,8),on:true};r.share.on=true;const p=prov(r.pid);
+ notify('contacts','share',{name:S.me.name,link:r.share.link},r.id);
+ modal(`<h2>${ic('link')} Trip shared</h2><p>Sent to ${S.me.contacts.map(c=>esc(c.n)).join(', ')} by SMS.</p>
+ <div class="card"><div class="kv"><span>Link</span><b>${r.share.link} (sample)</b></div><div class="kv"><span>Driver</span><b>${esc(p.n)}</b></div><div class="kv"><span>Vehicle / plate</span><b>${TYPES[p.type].label} · ABC 1234 (sample)</b></div><div class="kv"><span>Live location</span><b>Updates during the trip</b></div></div>
+ <p class="muted">The link expires automatically when the trip ends.</p>`);save();render()}
+let sosT=null,sosA=null;
+function sosDown(btn,id){const bar=btn.querySelector('.bar');const t0=Date.now();
+ sosA=setInterval(()=>{bar.style.width=Math.min(100,(Date.now()-t0)/30)+'%'},50);
+ sosT=setTimeout(()=>{sosUp();fireSOS(id)},3000)}
+function sosUp(){clearTimeout(sosT);clearInterval(sosA);document.querySelectorAll('.sos .bar').forEach(b=>b.style.width='0')}
+function fireSOS(id){const r=ride(id);const loc=P(r.from).n+' → '+P(r.to).n+' route';const sms=!online();
+ S.sos.unshift({id:nid('SOS'),rideId:id,at:Date.now(),loc,sms,followed:false,driver:prov(r.pid).n});
+ notify('contacts','sos',{name:S.me.name,loc,ref:r.id},r.id);notify('lgu','sos',{name:S.me.name,loc,ref:r.id},r.id);
+ save();render();modal(`<h2>${ic('warn')} SOS sent</h2><p>Your location and trip details were sent to your emergency contacts and the LGU hotline${sms?' <b>by SMS</b> (no data connection)':''}.</p><p class="muted">LUNAD support will follow up on this trip. For immediate danger, call 911.</p>`)}
+
+/* =================== BOOKER: MAP, MY TRIPS, ME =================== */
+function trendingStrip(){const ids=[...new Set([...Object.keys(BIZ),...Object.keys(SPOT_REVIEWS)])];
+ const ranked=ids.map(id=>({p:P(id),b:revStats(id)})).filter(x=>x.p&&x.b).sort((a,b)=>b.b.avg-a.b.avg||b.b.count-a.b.count).slice(0,4);
+ if(!ranked.length)return'';
+ return `<h3>${ic('flame')} Trending nearby</h3>${ranked.map(({p,b})=>`<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:8px" onclick="openPlace('${p.id}')">
+ <span>${ic(p.e)} <b>${esc(p.n.replace(' (sample)',''))}</b><span class="muted" style="display:block;font-size:11px">${esc(p.t)}</span></span>
+ <span class="st gold sm">${ic('star-f','sm')} ${b.avg} (${b.count})</span></div>`).join('')}`}
+// Maps a destination's icon key to one of the brief's four Explore categories; places outside
+// these (hubs, stays, towns) aren't "destinations to browse" and are left out of the card grid —
+// they still appear on the interactive map below via the original hub/stay/shop/spot filters.
+function exploreCat(p){if(p.e==='waves')return 'beach';if(p.e==='droplet')return 'falls';if(p.e==='landmark'||p.e==='mountain')return 'landmark';if(p.e==='utensils'||p.e==='fish')return 'food';return null}
+const EXPLORE_CATS=[['all','compass','All'],['beach','waves','Beaches'],['falls','droplet','Waterfalls'],['landmark','landmark','Landmarks'],['food','utensils','Food']];
+function destCard(p){const rv=revStats(p.id);const name=esc(p.n.replace(' (sample)',''));
+ return `<div class="dest-card" onclick="openPlace('${p.id}')">
+ <div class="tag">${ic('pkg','sm')} Offline ready</div>
+ <div class="img">${ic(p.e,'xl')}</div>
+ <div class="body"><div class="row"><b>${name}</b>${rv?`<span class="st gold sm" style="white-space:nowrap">${ic('star-f','sm')} ${rv.avg} (${rv.count})</span>`:'<span class="st mut sm">New</span>'}</div>
+ <span class="muted" style="font-size:11.5px">${esc(p.t)}, Catanduanes</span></div></div>`}
+function vMap(){const f=S.mapFilter;const ec=S.exploreCat||'all';const cats=[['spot','pin','Spots'],['hub','send','Hubs'],['stay','building','Stays'],['shop','bag','Shops']];
+ const pool=PLACES.filter(p=>exploreCat(p));
+ const shown=ec==='all'?pool:pool.filter(p=>exploreCat(p)===ec);
+ const pins=PLACES.filter(p=>f[p.k]);
+ return `<h2>${ic('compass')} Explore Catanduanes</h2><p class="muted" style="margin-top:-6px">Discover beaches, waterfalls, landmarks and local food — all downloaded for offline use.</p>
+ <div class="cat-scroll">${EXPLORE_CATS.map(([k,i,l])=>`<span class="cat-chip ${ec===k?'on':''}" onclick="S.exploreCat='${k}';save();render()">${ic(i)} ${l}</span>`).join('')}</div>
+ ${shown.map(destCard).join('')||'<div class="card muted">No destinations in this category yet.</div>'}
+ ${trendingStrip()}
+ <h3>Interactive map</h3><div class="chips" style="margin-bottom:8px">${cats.map(([k,i,l])=>`<span class="chip ${f[k]?'on':''}" onclick="S.mapFilter.${k}=!S.mapFilter.${k};save();render()">${ic(i)} ${l}</span>`).join('')}</div>
+ ${mapView('map-tour',{pins,h:280})}<p class="muted">Loaded from the offline pack (updated ${fmtD(S.me.pack)}). Tap a pin for an info card, directions and ride buttons. Pinch/scroll to zoom, drag to pan.${hasLeaflet()?' Live OpenStreetMap tiles.':' Showing the stylized map — no internet connection to load real map tiles.'} Reviews on map pins are on the roadmap.</p>`}
+function vMyTrips(){const mine=S.rides.filter(r=>r.booker==='me').sort((a,b)=>b.createdAt-a.createdAt);
+ return `<h2>${ic('ticket')} Bookings</h2>`+(mine.length?mine.map(r=>rideCard(r,['pending','accepted','started'].includes(r.status))).join(''):'<div class="card muted">No bookings yet.</div>')}
+function vMe(){const m=S.me;const inbox=S.notifs.filter(n=>n.to==='me'||n.to==='contacts');
+ return `<h2>${ic('user')} ${esc(m.name)}</h2>
+ <div class="card"><div class="two"><div><label class="f">I am a</label><select class="inp" onchange="S.me.kind=this.value;save()"><option value="tourist" ${m.kind==='tourist'?'selected':''}>Local tourist</option><option value="resident" ${m.kind==='resident'?'selected':''}>Local resident</option></select></div>
+ <div><label class="f">Mobile</label><input class="inp" value="${esc(m.mobile)}" onchange="S.me.mobile=this.value;save()"></div></div>
+ <label class="f">Get notifications by</label><div class="chips">${[['app',`${ic('phone')} App`],['sms',`${ic('sms')} SMS`],['messenger',`${ic('send')} Messenger`]].map(([k,l])=>`<span class="chip ${m.channel===k?'on':''}" onclick="setChannel('${k}')">${l}</span>`).join('')}</div>
+ ${m.channel==='messenger'&&!m.msgr?`<div class="banner" style="margin-top:8px">Link Messenger: we texted a one-time code to ${esc(m.mobile)}. <div style="display:flex;gap:6px;margin-top:6px"><input class="inp" id="otp" placeholder="6-digit code"><button class="btn sm" onclick="linkMsgr()">Link</button></div></div>`:''}
+ ${m.channel==='messenger'&&m.msgr?`<div class="muted" style="margin-top:6px">${ic('check')} Messenger linked</div>`:''}
+ ${m.smsStop?'<div class="muted" style="margin-top:6px">SMS unsubscribed (STOP). Choose SMS again to resubscribe.</div>':''}
+ <label class="f">Message language</label><select class="inp" onchange="S.me.lang=this.value;save()"><option value="en" ${m.lang==='en'?'selected':''}>English</option><option value="fil" ${m.lang==='fil'?'selected':''}>Filipino</option></select>
+ <p class="muted">Bikol and a full app language switch are on the roadmap (feature 5).</p></div>
+ <h3>${ic('warn')} Emergency contacts (max 3)</h3><div class="card">${m.contacts.map((c,i)=>`<div class="kv"><span>${esc(c.n)}<br><span class="muted">${esc(c.m)}</span></span><button class="btn sm ghost" onclick="S.me.contacts.splice(${i},1);save();render()">Remove</button></div>`).join('')||'<p class="muted">None yet.</p>'}
+ ${m.contacts.length<3?`<div class="two" style="margin-top:6px"><input class="inp" id="cnm" placeholder="Name"><input class="inp" id="cmb" placeholder="Mobile"></div><button class="btn sm sec" style="margin-top:6px" onclick="addContact()">+ Add contact</button>`:''}</div>
+ <h3>${ic('pkg')} Offline pack</h3><div class="card"><div class="muted">Map, ${PLACES.length} places, ${S.providers.filter(p=>p.status==='approved').length} verified riders and saved trips. Updated ${fmtD(m.pack)}.</div><button class="btn sm sec" style="margin-top:6px" ${online()?'':'disabled'} onclick="S.me.pack=D(0);save();render();toast('Offline pack updated')">Update pack</button></div>
+ <h3>Account</h3><div class="card"><div class="kv"><span>No-shows on record</span><b>${m.noShows}</b></div><div class="kv"><span>Active booking limit</span><b>${bookingLimit()}</b></div></div>
+ <h3>${ic('mail')} Inbox (app / SMS / Messenger)</h3><div class="card"><label class="f">Reply by SMS keyword</label><div style="display:flex;gap:6px"><input class="inp" id="kw" placeholder="YES, CANCEL, HELP or STOP"><button class="btn sm" onclick="smsReply()">Send</button></div></div>
+ ${inbox.slice(0,25).map(n=>msgHTML(n)).join('')||'<p class="muted">No messages yet.</p>'}`}
+function msgHTML(n){return `<div class="msg"><div class="h"><span>${n.to==='contacts'?'To emergency contacts':n.to==='lgu'?'To LGU hotline':''} · ${esc(n.ch)}</span><span>${new Date(n.at).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'})} · ${esc(n.status)}</span></div>${esc(n.text)}</div>`}
+function messageModal(id){const r=ride(id);const th=S.threads[id]||[];const them=S.role==='booker'?'Operator':'Rider';
+ modal(`<h2>${ic('mail')} Message · ${r.id}</h2><p class="muted">No phone numbers are shared — all coordination happens here.</p>
+ <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${th.map(m=>`<div class="msg"><div class="h"><span>${m.from===S.role?'You':them}</span><span>${fmtT(m.at)}</span></div>${esc(m.text)}</div>`).join('')||'<p class="muted">No messages yet — say hello.</p>'}</div>
+ <div style="display:flex;gap:6px"><input class="inp" id="mtxt" placeholder="Type a message" onkeydown="if(event.key==='Enter'){sendMsg('${id}')}"><button class="btn sm" onclick="sendMsg('${id}')">Send</button></div>`)}
+function sendMsg(id){const el=$('#mtxt');if(!el)return;const txt=el.value.trim();if(!txt)return;S.threads[id]=S.threads[id]||[];
+ S.threads[id].push({from:S.role,text:txt,at:Date.now()});save();messageModal(id);render()}
+function setChannel(k){S.me.channel=k;if(k==='sms')S.me.smsStop=false;if(k==='messenger'&&!S.me.msgr){S.me.otp=String(100000+Math.floor(Math.random()*899999));S.notifs.unshift({to:'me',ch:'sms',text:tpl('otp',{code:S.me.otp}),at:Date.now(),status:'delivered'})}save();render()}
+function linkMsgr(){if($('#otp').value.trim()===S.me.otp){S.me.msgr=true;toast('Messenger linked')}else toast('Wrong code — check the SMS in your inbox below');save();render()}
+function addContact(){const n=$('#cnm').value.trim(),m=$('#cmb').value.trim();if(!n||!m){toast('Enter name and mobile');return}S.me.contacts.push({n,m});save();render()}
+function smsReply(){const k=$('#kw').value.trim().toUpperCase();S.notifs.unshift({to:'me',ch:'sms (you)',text:'You: '+k,at:Date.now(),status:'sent'});
+ const mine=S.rides.filter(r=>r.booker==='me').sort((a,b)=>b.createdAt-a.createdAt);
+ if(k==='YES'){const r=mine.find(r=>r.status==='no_match'&&r.alt.length);if(r){bookAlt(r.id,0);return}S.notifs.unshift({to:'me',ch:'sms',text:'LUNAD: No rebooking offer to accept.',at:Date.now(),status:'delivered'})}
+ else if(k==='CANCEL'){const r=mine.find(r=>['queued','pending','accepted'].includes(r.status));if(r){doCancel(r.id);return}S.notifs.unshift({to:'me',ch:'sms',text:'LUNAD: No active booking to cancel.',at:Date.now(),status:'delivered'})}
+ else if(k==='HELP')S.notifs.unshift({to:'me',ch:'sms',text:tpl('help',{}),at:Date.now(),status:'delivered'});
+ else if(k==='STOP'){S.me.smsStop=true;if(S.me.channel==='sms')S.me.channel='app';S.notifs.unshift({to:'me',ch:'sms',text:tpl('stop',{}),at:Date.now(),status:'delivered'})}
+ else S.notifs.unshift({to:'me',ch:'sms',text:'LUNAD: Unknown keyword. Reply HELP for support.',at:Date.now(),status:'delivered'});
+ save();render()}
+
+/* =================== PROVIDER =================== */
+function provPick(){return `<label class="f">Acting as (demo)</label><select class="inp" style="margin-bottom:10px" onchange="S.actingAs=this.value;save();render()">${S.providers.map(p=>`<option value="${p.id}" ${S.actingAs===p.id?'selected':''}>${esc(p.n)} — ${p.status}</option>`).join('')}</select>`}
+function provBanner(p){if(p.status==='approved')return '';const m={suspended:['bad',`${ic('ban')} Suspended: `+p.reason+'. You are hidden from search until your documents are renewed.']}[p.status]||['','Account under review.'];return `<div class="banner ${m[0]}">${esc(m[1])}</div>`}
+function vOffers(){const p=prov(S.actingAs);const now=Date.now();
+ const offers=S.rides.filter(r=>r.status==='pending'&&r.cands[r.offerIdx]===p.id);
+ const jobs=S.rides.filter(r=>r.pid===p.id&&['accepted','started'].includes(r.status)).sort((a,b)=>a.start-b.start);
+ const payq=S.rides.filter(r=>r.pid===p.id&&['proof','cash'].includes(r.pay));
+ const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
+ let h=`<h2>${ic('file-text')} Offers & jobs</h2>${provPick()}${provBanner(p)}
+ <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
+ h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div><div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>
+  <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
+  <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
+  <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
+ h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
+  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived at pickup':'Arrived at pickup'}</button>`:''}<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>
+   <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
+   <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
+   <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message rider${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
+ if(payq.length)h+=`<h3>Payments to confirm (15 min)</h3>`+payq.map(r=>`<div class="card"><b>${r.id} · ${peso(amount(r))}</b> ${r.pay==='cash'?'<span class="st info">Cash</span>':''}${r.proof&&r.pay==='proof'?`<img class="proof" src="${r.proof}" alt="proof">`:''}
+  <div class="btns"><button class="btn sm" onclick="confirmPay('${r.id}',true)">${ic('check')} ${r.pay==='cash'?'Cash received':'Payment received'}</button>${r.pay==='proof'?`<button class="btn sm warn" onclick="confirmPay('${r.id}',false)">✕ Not received</button>`:''}</div></div>`).join('');
+ const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your bookers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
+ return h}
+function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
+function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next rider')}
+function arriving(id){const r=ride(id);r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render()}
+function startTrip(id){const r=ride(id);r.status='started';r.start=Math.min(r.start,Date.now());notify('me','started',{ref:r.id},r.id);save();render()}
+function complete(id){const r=ride(id);r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
+ const {biz}=nearestBiz(r.to,P(r.to));if(biz)r.bizId=biz.id;
+ notify('me','completed',{ref:r.id},r.id);save();render();toast('Trip completed — rating and payment requests sent')}
+function noShow(id){const r=ride(id);r.status='noshow';r.fee=S.fares.active.lateFee;r.fare=0;r.pay='unpaid';S.me.noShows++;notify('me','noshow',{ref:r.id,fee:peso(r.fee)},r.id);save();render();toast('No-show recorded · late fee applies')}
+function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);
+ const c=rank(eligible(r.type,r.pax,r.start,r.end,r.id,r.declined),r.from);if(c.length){r.cands=c.map(x=>x.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';offerNotify(r)}else noMatch(r);
+ save();render();toast('Booker is being rematched · reliability note added')}
+function confirmPay(id,ok){const r=ride(id);if(ok){r.pay='paid';notify('me','paid',{ref:r.id},r.id)}else{r.pay='rejected';notify('me','payrej',{ref:r.id},r.id)}save();render()}
+function vStatus(){const p=prov(S.actingAs);
+ return `<h2>${ic('dot-on')} Status & availability</h2>${provPick()}
+ <div class="card"><div class="kv"><span><b>${ic(TYPES[p.type].e)} ${esc(p.n)}</b><br><span class="muted">${esc(p.t)} · ${p.seats} seats</span></span><span>${avgRating(p.id)}<br>${p.status==='approved'?verifBadge(p.type):''}</span></div></div>
+ ${provBanner(p)}
+ <div class="card"><div class="kv"><span>Go online to receive offers</span><button class="btn sm" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?ic('dot-on')+' Online — tap to go offline':ic('dot-off')+' Offline — tap to go online'}</button></div></div>
+ <div class="card"><b>Block time off</b><div class="muted">No offers are sent during blocked hours.</div><label class="f">Date</label><input class="inp" type="date" id="bd" value="${D(0)}">
+ <div class="two"><div><label class="f">From</label><input class="inp" type="time" id="bf" value="12:00"></div><div><label class="f">To</label><input class="inp" type="time" id="bt" value="13:00"></div></div>
+ <button class="btn block" style="margin-top:8px" onclick="addBlock()">Add block</button></div>
+ ${p.blocks.map((b,i)=>`<div class="card"><div class="kv"><span>${fmtD(b.date)} · ${b.from}–${b.to}</span><button class="btn sm ghost" onclick="prov(S.actingAs).blocks.splice(${i},1);save();render()">Remove</button></div></div>`).join('')}
+ <h3>My documents</h3><div class="card">${p.docs.map(d=>docRow(d)).join('')}</div>`}
+function docRow(d){const days=d.exp?Math.round((new Date(d.exp)-new Date(D(0)))/864e5):null;const st=!d.file?'<span class="st bad">Missing</span>':days<0?'<span class="st bad">Expired</span>':days<=30?`<span class="st wait">Expires in ${days}d</span>`:'<span class="st ok">Valid</span>';
+ return `<div class="kv"><span>${esc(d.n)}<br><span class="muted">${d.exp?'Expires '+fmtD(d.exp):'No expiry set'}</span></span><span>${st}</span></div>`}
+function addBlock(){const b={date:$('#bd').value,from:$('#bf').value,to:$('#bt').value};if(b.from>=b.to){toast('End must be after start');return}
+ const s=new Date(b.date+'T'+b.from).getTime(),e=new Date(b.date+'T'+b.to).getTime();if(busy(S.actingAs,s,e)){toast('You have a booking in that window');return}
+ prov(S.actingAs).blocks.push(b);save();render();toast('Blocked')}
+function vPaySet(){const p=prov(S.actingAs);
+ return `<h2>${ic('card')} Payment details</h2>${provPick()}<div class="card"><div class="muted">Bookers see this QR at booking and pay you directly.</div>
+ <label class="f">Method</label><select class="inp" id="pm">${['GCash','Maya','Bank (Landbank)','Bank (BDO)','Bank (BPI)'].map(m=>`<option ${p.pay.m===m?'selected':''}>${m}</option>`).join('')}</select>
+ <label class="f">Account name</label><input class="inp" id="pn" value="${esc(p.pay.name)}"><label class="f">Number</label><input class="inp" id="pa" value="${esc(p.pay.acct)}">
+ <label class="f">Upload your QR code</label><input class="inp" type="file" accept="image/*" onchange="if(this.files[0])readImg(this.files[0],d=>{prov(S.actingAs).pay.qr=d;save();render();toast('QR published')})">
+ ${p.pay.qr?`<img class="qr" src="${p.pay.qr}">`:'<p class="muted">No QR uploaded — bookers see a sample QR.</p>'}
+ <button class="btn block" style="margin-top:8px" onclick="const q=prov(S.actingAs).pay;q.m=$('#pm').value;q.name=$('#pn').value;q.acct=$('#pa').value;save();toast('Saved')">Save</button></div>`}
+let REG={type:'tricycle',docs:{}};
+function vRegister(){const req=DOCS[REG.type];const have=req.filter(n=>REG.docs[n]&&REG.docs[n].file&&REG.docs[n].exp).length;
+ return `<h2>${ic('file-text')} Become a LUNAD provider</h2><div class="banner info">Submit your documents to get your LGU-verified badge — checked automatically against your required permits.</div>
+ <div class="card"><label class="f">Name / business</label><input class="inp" id="rn" placeholder="e.g. Viga TODA – Unit 21">
+ <label class="f">Contact number</label><input class="inp" id="rp" placeholder="09xx-xxx-xxxx">
+ <label class="f">Vehicle / provider type</label><select class="inp" onchange="REG.type=this.value;REG.docs={};render()">${Object.entries(TYPES).filter(([k,T])=>!T.inhouse).map(([k,T])=>`<option value="${k}" ${REG.type===k?'selected':''}>${T.label}</option>`).join('')}</select>
+ <p class="muted" style="margin-top:2px">Moto Taxi isn't listed here — it's LUNAD's own in-house rider fleet, not a self-registered provider.</p>
+ <div class="two"><div><label class="f">Operating area</label><select class="inp" id="ra">${Object.keys(TOWNS).map(t=>`<option>${t}</option>`).join('')}</select></div><div><label class="f">Seats</label><input class="inp" id="rs" type="number" value="${TYPES[REG.type].seats}"></div></div>
+ <h3>Documents (${have}/${req.length})</h3>${req.map((n,i)=>`<div style="border-top:1px solid var(--line);padding:6px 0"><b style="font-size:12.5px">${esc(n)}</b> ${REG.docs[n]&&REG.docs[n].file?'<span class="st ok">Uploaded</span>':'<span class="st bad">Required</span>'}
+  <div class="two"><input class="inp" type="file" accept="image/*,.pdf" onchange="regDoc(${i},'file',!!this.files[0])"><input class="inp" type="date" value="${REG.docs[n]?.exp||''}" onchange="regDoc(${i},'exp',this.value)" title="Expiry date"></div></div>`).join('')}
+ <p class="muted">The system checks that every required document and expiry date is present before you can submit.</p>
+ <button class="btn block" ${have===req.length?'':'disabled'} onclick="submitReg()">Submit & get verified</button></div>`}
+function regDoc(i,k,v){const n=DOCS[REG.type][i];REG.docs[n]=REG.docs[n]||{n};REG.docs[n][k]=v;render()}
+function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a name');return}const ph=$('#rp').value||'—';
+ const p=mkProv(nid('p'),name,REG.type,$('#ra').value,+$('#rs').value||TYPES[REG.type].seats,'approved',ph,'GCash',false,DOCS[REG.type].map(n=>({n,file:true,exp:REG.docs[n].exp})));p.applied=D(0);
+ S.providers.push(p);S.actingAs=p.id;REG={type:'tricycle',docs:{}};save();go('offers');toast('Registered — you\'re verified and ready to go online')}
+function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
+
+/* =================== ABOUT / ROADMAP =================== */
+function openAbout(){modal(`<h2>LUNAD — concept</h2><p>Getting around Catanduanes means asking around and waiting. LUNAD puts every available ride in one app, so you can see who is online, book one, and pay the driver directly.</p>
+ <h3>In this MVP</h3><ul class="flow"><li>Direct booking (car or van, any town)</li><li>TODA route booking (tricycle, Virac–San Andres corridor)</li><li>Provider registration with automatic LGU-verified badge (documents, expiry, auto-suspend)</li><li>Proof of payment (QR, 15-min confirm, cash fallback)</li><li>Cancellation & no-show rules · Ratings & in-app issue reports</li><li>Tourism map with offline downloads · Weather & safety (auto storm-pause) · Trip sharing & SOS</li><li>In-app messaging between user and operator (no phone numbers shown) · SMS/Messenger notifications (simulated)</li></ul>
+ <h3>Roadmap (not in this MVP)</h3><ul class="flow"><li>Motorcycle (habal-habal) riders — pending LTFRB and provincial approval</li><li>Reviews on map pins and destination pages</li><li>Multi-day Trip Builder, stays, pasalubong & local shops</li><li>Online payment gateway to replace screenshots</li><li>Bikol and Filipino language switch</li></ul>
+ <h3>Open items to confirm</h3><ul class="flow"><li>Can tricycles run from every barangay to San Andres and Virac, or only from the town centers?</li><li>LGU fare matrix for the TODA corridor</li><li>Is a private motorcycle allowed to carry paying passengers in the province?</li><li>Who reviews in-app reports day-to-day: the LGU, an LUNAD support team, or both?</li><li>Cancellation fee amount and free window</li><li>Which hotline numbers should SOS use?</li></ul>`)}
+
+/* =================== BOOT =================== */
+function boot(){dailyChecks();save();render()}
+boot();setInterval(tick,1000);
+</script>
+</body>
+</html>
