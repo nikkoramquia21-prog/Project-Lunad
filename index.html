@@ -1859,11 +1859,11 @@ function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;con
   const was=rr.fare;rr.co=now;
   for(const c of left)rr.lunadCover=(rr.lunadCover||0)+(rr.seatFare||0)*c.pax;
   if(joined.length)rr.waitFrom=Date.now();applyShared(rr);
-  const full=sharedSeats(rr)>=SHARE.seats;if(full)liveStatus(rr,'full');else if(left.length)liveStatus(rr,'open');
+  const full=sharedSeats(rr)>=SHARE.seats;if(!full&&left.length)liveStatus(rr,'open');
   save();render();
   if(joined.length)toast(`${joined.map(m=>m.n).join(', ')} joined · ${sharedSeats(rr)} of ${SHARE.seats} seats · you pay ${peso(rr.fare)}${rr.fare<was?' (was '+peso(was)+')':''}${full?' · tricycle full, ready to leave':''}`);
   else if(left.length)toast(`${left.map(m=>m.n).join(', ')} left · your fare stays ${peso(rr.fare)} · LUNAD covers the gap for the driver`)})}
-function liveResub(){for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status))liveWatch(r)}
+function liveResub(){if(JOIN_ONLY)return;for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status))liveWatch(r)}
 function liveStatus(r,s){if(r&&r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/status').set(s).catch(()=>{})}
 function joinUrl(code){return location.origin+location.pathname+'#join-'+code}
 function liveQR(r){const url=joinUrl(r.liveCode);let svg='';try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({cellSize:4,margin:2,scalable:true})}catch(e){}
@@ -1897,7 +1897,7 @@ function drawJoin(box,head,code,d){
  <p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
 function joinRide(code){let key=null;
  LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;if(!(d.status==='open'))return;const used=(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0);if(used>=d.seats)return;
-  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Judge '+n,pax:1,joinedAt:Date.now()};return d},
+  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Judge '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
  (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined-'+code,key);localStorage.setItem('lunad-joined-'+code,key)}catch(e){}toast('You joined the shared ride')}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
 function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;toast('You left the ride')})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
