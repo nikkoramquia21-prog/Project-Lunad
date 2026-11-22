@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.20.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.20.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -952,7 +952,7 @@ textarea.inp{min-height:96px;font-weight:500}
 .live-code{width:132px;height:132px;flex:none}.big-qr{width:100%;max-width:300px;margin:0 auto}.big-qr svg{width:100%;height:auto;display:block}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
-.near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}.leafmap{isolation:isolate;position:relative;z-index:0}
 .hold-bn{display:flex;gap:10px;align-items:flex-start;background:var(--sun-tint);border:1px solid var(--sun-line);color:var(--navy);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:13.5px;line-height:1.45}
 .hold-bn>.ic{width:20px;height:20px;flex:none;margin-top:2px}.hold-bn span{flex:1}.hold-bn b{display:block;font-size:15px;margin-bottom:2px}
 .hold-bn.alt{flex-wrap:wrap}.hold-bn.alt .btn{flex:none}
@@ -967,7 +967,7 @@ textarea.inp{min-height:96px;font-weight:500}
 .drv-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.drv-tx b{font-size:15.5px;color:var(--navy)}.drv-tx span{font-size:12.5px;color:var(--mut)}.drv-tx .ic{width:13px;height:13px;vertical-align:-2px}
 .drv-plate{border:2px solid var(--navy);border-radius:8px;padding:3px 9px 4px;text-align:center;font-weight:800;font-size:16px;letter-spacing:.06em;background:#fff;color:var(--navy);flex:none;line-height:1.1}
 .drv-plate small{display:block;font-size:9.5px;letter-spacing:.12em;color:var(--mut);font-weight:700;text-transform:uppercase}
-.drv-map{height:150px;border-radius:10px;margin-top:10px;overflow:hidden;background:var(--alt)}
+.drv-map{isolation:isolate;position:relative;z-index:0;height:150px;border-radius:10px;margin-top:10px;overflow:hidden;background:var(--alt)}
 .drv-eta{margin:8px 0 0;font-size:13.5px;font-weight:600;color:var(--navy)}
 .drv-pin{width:32px;height:32px;border-radius:50%;background:#F5B544;border:2px solid #0D1B2A;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}.drv-pin .ic{width:17px;height:17px;color:#0D1B2A}
 
@@ -1779,7 +1779,7 @@ function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
  <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample riders':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
- ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
+ ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
  if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
