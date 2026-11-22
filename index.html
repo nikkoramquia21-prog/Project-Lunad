@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.10.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,17 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.trip-lock{z-index:15}
+.trip-steps{list-style:none;display:flex;gap:4px;padding:0;margin:4px 0 0}
+.trip-steps li{flex:1;display:flex;flex-direction:column;gap:6px;font-size:11.5px;font-weight:700;color:var(--sub)}
+.trip-steps li span{height:5px;border-radius:999px;background:var(--line)}
+.trip-steps li.done span{background:var(--navy)}.trip-steps li.done{color:var(--navy)}
+.trip-steps li.now span{background:var(--sunc)}.trip-steps li.now{color:var(--navy)}
+.trip-box{border:1px solid var(--line);border-radius:12px;padding:6px 14px;margin-top:16px}
+.trip-spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--sunc);margin:6px auto 4px;animation:tripspin 1s linear infinite}
+@keyframes tripspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.trip-spin{animation:none}}
+
 .stop-row{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:8px 0;border:0;border-bottom:1px solid var(--divider);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--navy)}
 .stop-row .tile{width:42px;height:42px;border-radius:10px;background:var(--sun-tint);color:var(--sun-text);display:flex;align-items:center;justify-content:center;flex:none}.stop-row .tile .ic{width:20px;height:20px}
 .stop-row .tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.stop-row .tx b{font-size:15.5px}.stop-row .tx span{font-size:12.5px;color:var(--mut)}.stop-row .chev{color:var(--mut)}
@@ -1646,7 +1657,7 @@ function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));
 function waitDue(r,now){return r.booker==='me'&&r.shared&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<SHARE.seats&&now-(r.waitFrom||r.createdAt)>(r.live?10*MIN:SHARE.wait)}
 function waitModal(id){const r=ride(id);const whole=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));modalForced(`<h2>Still ${sharedSeats(r)} of ${SHARE.seats} seats</h2><p class="muted" style="margin:0 0 12px">Your shared tricycle leaves only when all ${SHARE.seats} seats are filled. No one else has joined in the last 10 minutes.</p><button class="btn block" onclick="ride('${id}').waitFrom=Date.now();save();closeModal();toast('Still waiting for co-riders')">Keep waiting</button><button class="btn sec block" style="margin-top:8px" onclick="goSolo('${id}')">Go Solo · whole tricycle ${peso(whole)}</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="freeCancel('${id}')">Cancel for free</button>`)}
 function goSolo(id){const r=ride(id);liveStatus(r,'closed');r.shared=false;r.co=[];r.coDone=true;r.fare=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));r.seatFare=null;r.tripTotal=null;r.lunadCover=0;save();closeModal();render();toast('Switched to Solo · whole tricycle '+peso(r.fare))}
-function freeCancel(id){const r=ride(id);liveStatus(r,'closed');const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';r.fee=0;notify('me','cancelled',{ref:r.id,fee:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:''},r.id);save();closeModal();render();toast('Cancelled for free')}
+function freeCancel(id){const r=ride(id);liveStatus(r,'closed');if(r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/cancelled').set(true).catch(()=>{});const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';r.fee=0;notify('me','cancelled',{ref:r.id,fee:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:''},r.id);save();closeModal();render();toast('Cancelled for free')}
 function coCancel(){const r=S.rides.filter(x=>x.booker==='me'&&x.shared&&['pending','accepted'].includes(x.status)&&x.co&&x.co.length).sort((a,b)=>b.createdAt-a.createdAt)[0];if(!r){toast('Book a shared ride with co-riders first');return}r.protect=Math.max(r.protect||0,r.tripTotal||0);const c=r.co.pop();r.coDone=true;r.waitFrom=Date.now();applyShared(r);save();render();toast(`${c.n} cancelled · your fare stays ${peso(r.fare)} · LUNAD covers ${peso(r.lunadCover)} for the driver`)}
 function shareRange(d,pax,mult){const hi=sharedQuote('tricycle',d,pax,pax).per*mult,lo=sharedQuote('tricycle',d,pax,SHARE.seats).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
 function shareOn(f){return f.type==='tricycle'&&!!f.shared&&mySeats(f)<SHARE.seats}
@@ -1694,7 +1705,7 @@ function cancelFee(r){if(!['accepted'].includes(r.status))return 0;return Date.n
 function cancelModal(id){const r=ride(id);const fee=cancelFee(r);
  modal(`<h2>Cancel ${r.id}?</h2>${fee?`<div class="banner bad">Pickup is within 15 minutes, so a <b>${peso(fee)}</b> fee applies. It goes to the driver.</div>`:'<div class="banner info">No fee — you are outside the 15-minute window.</div>'}
  <button class="btn block warn" onclick="doCancel('${id}');closeModal()">Cancel booking${fee?' · pay '+peso(fee):''}</button>`)}
-function doCancel(id){const r=ride(id);liveStatus(r,'closed');const fee=cancelFee(r);const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';
+function doCancel(id){const r=ride(id);liveStatus(r,'closed');if(r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/cancelled').set(true).catch(()=>{});const fee=cancelFee(r);const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';
  if(fee){r.fee=fee;r.fare=0;r.pay='unpaid'}
  notify('me','cancelled',{ref:r.id,fee:fee?` Fee ${peso(fee)}.`:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:fee?` Fee ${peso(fee)} to you.`:''},r.id);
  save();render();toast('Cancelled'+(fee?' · '+peso(fee)+' fee':''))}
@@ -1909,7 +1920,7 @@ async function liveInit(){
  try{await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js')}catch(e){}
  try{await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
   firebase.initializeApp(FB_CONFIG);LIVE.db=firebase.database();if(!JOIN_ONLY){let n=0;for(const r of S.rides)if(r.livePending&&['pending','accepted'].includes(r.status)){livePublish(r);n++}if(n)save()}
-  LIVE.db.ref('.info/connected').on('value',s=>{LIVE.on=!!s.val();if(LIVE.on)liveResub()})}catch(e){LIVE.db=null}
+  LIVE.off=0;LIVE.db.ref('.info/serverTimeOffset').on('value',s=>{LIVE.off=s.val()||0});LIVE.db.ref('.info/connected').on('value',s=>{LIVE.on=!!s.val();if(LIVE.on)liveResub()})}catch(e){LIVE.db=null}
  LIVE.ready=true;if(JOIN_ONLY)joinScreen(joinCodeFromUrl());else render()}
 function liveCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function livePublish(r){if(!LIVE.db)return false;const code=liveCode();const d=routeKm(P(r.from),P(r.to));r.liveCode=code;r.live=true;delete r.livePending;
@@ -1922,7 +1933,7 @@ function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;con
   const was=rr.fare;rr.co=now;
   if(left.length)rr.protect=Math.max(rr.protect||0,rr.tripTotal||0);
   if(joined.length)rr.waitFrom=Date.now();applyShared(rr);
-  const full=sharedSeats(rr)>=SHARE.seats;if(!full&&left.length)liveStatus(rr,'open');openIndex(rr);
+  const full=sharedSeats(rr)>=SHARE.seats;if(full)markFull(rr);if(!full&&left.length)liveStatus(rr,'open');openIndex(rr);
   save();render();
   if(joined.length)toast(`${joined.map(m=>m.n).join(', ')} joined · ${sharedSeats(rr)} of ${SHARE.seats} seats · you pay ${peso(rr.fare)}${rr.fare<was?' (was '+peso(was)+')':''}${full?' · tricycle full, ready to leave':''}`);
   else if(left.length)toast(`${left.map(m=>m.n).join(', ')} left · your fare stays ${peso(rr.fare)} · LUNAD covers the gap for the driver`)})}
@@ -1992,7 +2003,7 @@ function setJoins(a){try{localStorage.setItem('lunad-joins',JSON.stringify(a))}c
 function addJoin(code,key){const a=myJoins().filter(j=>j.code!==code);a.unshift({code,key,at:Date.now()});setJoins(a)}
 function joinedSub(){if(!LIVE.db)return;for(const j of myJoins()){if(JOINED.subs[j.code])continue;JOINED.subs[j.code]=true;
  LIVE.db.ref('rides/'+j.code).on('value',s=>{JOINED.data[j.code]=s.val();if(S.role==='booker'&&['ride','mytrips'].includes(S.tab)&&!($('#modalRoot')||{}).innerHTML&&!document.getElementById('joinScreen'))render()},()=>{})}}
-function goJoined(){if(JOIN_ONLY){location.replace(location.pathname+'#joined');return}const bx=document.getElementById('joinScreen');if(bx)bx.remove();S.role='booker';S.tab='ride';save();render();window.scrollTo(0,0)}
+function goJoined(){if(JOIN_ONLY){location.replace(location.pathname+'#joined');return}const bx=document.getElementById('joinScreen');if(bx)bx.remove();S.role='booker';S.tab='home';save();render();tripTick()}
 function leaveJoined(code){const j=myJoins().find(x=>x.code===code);if(!j)return;JOINKEY=j.key;leaveRide(code)}
 function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const js=myJoins();if(!js.length)return '';
  const out=js.map(j=>{const d=JOINED.data[j.code];if(d===undefined)return `<div class="card muted">Loading your shared ride ${esc(j.code)}…</div>`;
@@ -2013,14 +2024,71 @@ function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const
   ${d.status==='started'?'':`<button class="btn sec block" onclick="leaveJoined('${j.code}')">Leave ride</button>`}</section>`}).join('');
  return out?`<h3>Your shared ride</h3>`+out:''}
 
+
+/* ---- Shared trip flow (synced): Waiting for riders → Finding a driver → Driver on the way → On the trip → Arrived.
+   When the last seat fills, /rides/{code}/fullAt is set once; every phone derives the stage from that time,
+   so all screens move together. Phone 1 picks the sample TODA driver and writes it to /driver. ---- */
+const TRIP_T={find:6000,come:18000,ride:33000};
+const HOSTD={};
+function nowS(){return Date.now()+(LIVE.off||0)}
+function tripStage(d){if(!d)return 'gone';if(d.cancelled)return 'cancelled';if(!d.fullAt)return ['closed'].includes(d.status)?'cancelled':'waiting';const t=nowS()-d.fullAt;
+ return t<TRIP_T.find?'finding':t<TRIP_T.come?'coming':t<TRIP_T.ride?'riding':'arrived'}
+function hostSub(code){if(!LIVE.db||HOSTD['s'+code])return;HOSTD['s'+code]=1;LIVE.db.ref('rides/'+code).on('value',s=>{HOSTD[code]=s.val()},()=>{})}
+function markFull(r){if(!LIVE.db||!r.liveCode)return;const ref=LIVE.db.ref('rides/'+r.liveCode);ref.child('fullAt').transaction(x=>x||nowS()).catch(()=>{});
+ const p=prov(r.pid||(r.cands||[])[0])||S.providers.find(x=>x.type===r.type)||{n:'Virac TODA driver'};ref.child('driver').transaction(x=>x||{n:p.n}).catch(()=>{})}
+function activeTrip(){if(S.role!=='booker'||document.getElementById('joinScreen'))return null;
+ const h=S.rides.filter(r=>r.booker==='me'&&r.live&&r.liveCode&&r.shared&&!r.tripDone&&['pending','accepted','started','completed'].includes(r.status)).sort((a,b)=>b.createdAt-a.createdAt)[0];
+ if(h){hostSub(h.liveCode);return {host:true,r:h,code:h.liveCode,d:HOSTD[h.liveCode]}}
+ if(LIVE.db){joinedSub();for(const j of myJoins()){const d=JOINED.data[j.code];if(d===undefined)continue;if(d&&d.members&&d.members[j.key])return {host:false,j,code:j.code,d}
+  if(d&&(d.cancelled||d.status==='closed')&&!d.fullAt)return {host:false,j,code:j.code,d}}}
+ return null}
+function tripSteps(st){const L=[['waiting','Riders'],['finding','Driver'],['coming','Pickup'],['riding','Trip'],['arrived','Arrived']];const i=L.findIndex(x=>x[0]===st);
+ return `<ol class="trip-steps">${L.map((x,k)=>`<li class="${k<i?'done':k===i?'now':''}"><span></span>${x[1]}</li>`).join('')}</ol>`}
+function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);const r=a.r;
+ const from=d?d.fromName:P(r.from).n,to=d?d.toName:P(r.to).n,seats=d?d.seats:SHARE.seats;
+ const mem=Object.entries((d&&d.members)||{});const used=d?(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0):sharedSeats(r);
+ let pay;if(a.host){pay=r.fare}else{pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best}
+ const drv=(d&&d.driver&&d.driver.n)||'Virac TODA driver';
+ const riders=[`<li><b>${esc((d&&d.hostName)||'Rider')}</b>${a.host?' <span class="st ok sm">You</span>':''} <span class="muted">· booked the ride</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${!a.host&&k===a.j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
+ const dots=Array.from({length:seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
+ const T={waiting:['Waiting for riders',`Leaves when all ${seats} seats are filled. ${seats-used} seat${seats-used===1?'':'s'} left.`],
+  finding:['Finding a driver…','The tricycle is full. Asking TODA drivers near '+esc(from)+'.'],
+  coming:['Driver on the way',`<b>${esc(drv)}</b> accepted · arriving at ${esc(from)} in about 2 min.`],
+  riding:['On the way to '+esc(to),`With ${esc(drv)} · ${used} riders on board.`],
+  arrived:['You’ve arrived','At '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
+  cancelled:['Ride cancelled','The rider who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
+ let act='';
+ if(st==='waiting')act=a.host?`${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
+ else if(st==='finding')act=`<div class="trip-spin" aria-hidden="true"></div>`;
+ else if(st==='arrived')act=`<button class="btn block" onclick="tripDone()">Done</button>`;
+ else if(st==='cancelled'||st==='gone')act=`<button class="btn block" onclick="tripDone()">Back to home</button>`;
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle${a.host?' · you booked':''}</span></div>
+ <div class="join-body">${tripSteps(st==='gone'?'cancelled':st)}<h2 style="margin:16px 0 4px">${T[0]}</h2><p class="muted" style="margin:0 0 14px">${T[1]}</p>${act}
+ <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(from)} → ${esc(to)}</b></div>
+ <div class="kv"><span>Seats</span><b class="seats">${dots} ${used} of ${seats}</b></div>
+ <div class="kv"><span>${st==='arrived'?'You pay':'Your fare'}</span><b>${peso(pay)}</b></div>${['coming','riding','arrived'].includes(st)?`<div class="kv"><span>Driver</span><b>${esc(drv)}</b></div>`:''}
+ <h3>Riders</h3><ul class="join-riders">${riders}</ul></div>
+ <p class="muted" style="margin-top:14px">Demo · a sample TODA driver accepts automatically. Ride code ${esc(a.code)}.</p></div>`}
+function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
+ else setJoins(myJoins().filter(j=>j.code!==a.code));const el=document.getElementById('tripLock');if(el)el.remove();S.tab='home';render()}
+function tripTick(){const a=activeTrip();let el=document.getElementById('tripLock');
+ if(!a){if(el)el.remove();return}
+ if(a.host&&a.d){const st=tripStage(a.d),r=a.r;
+  if(st==='waiting'&&sharedSeats(r)>=SHARE.seats)markFull(r);
+  if(['coming','riding','arrived'].includes(st)&&r.status==='pending'){r.pid=(r.cands||[])[0];r.status='accepted';save()}
+  if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';save()}}
+ if(!el){el=document.createElement('div');el.id='tripLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
+ const h=tripHTML(a);if(el._h!==h){el.innerHTML=h;el._h=h}}
+setInterval(tripTick,1000);
+
 function joinRide(code){let key=null;
  LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;if(!(d.status==='open'))return;const used=(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0);if(used>=d.seats)return;
-  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Test user '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
+  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Test user '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats){d.status='full';d.fullAt=nowS()}return d},
  (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined-'+code,key);localStorage.setItem('lunad-joined-'+code,key)}catch(e){}addJoin(code,key);toast('You joined the shared ride');setTimeout(goJoined,600);return}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
 function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;setJoins(myJoins().filter(j=>j.code!==code));toast('You left the ride');if(!document.getElementById('joinScreen'))render()})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
 /* =================== BOOT =================== */
-function boot(){if(!JOIN_ONLY&&location.hash==='#joined'){S.role='booker';S.tab='ride';try{history.replaceState(null,'',location.pathname)}catch(e){}setTimeout(()=>toast('You joined the shared ride'),300)}loadMyBiz();dailyChecks();save();render()}
+function boot(){if(!JOIN_ONLY&&location.hash==='#joined'){S.role='booker';S.tab='home';try{history.replaceState(null,'',location.pathname)}catch(e){}setTimeout(()=>toast('You joined the shared ride'),300)}loadMyBiz();dailyChecks();save();render()}
 boot();setInterval(tick,1000);liveInit();
 setTimeout(flashStorm,400);
 </script>
