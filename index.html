@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.10.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.10.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1983,7 +1983,7 @@ function drawJoin(box,head,code,d){
  <div class="kv"><span>${mine?'You pay':'Your fare if you join'}</span><b>${peso(per)}</b></div>
  <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
  <h3>Riders</h3><ul class="join-riders">${riders}</ul>${action}
- ${JOIN_ONLY?'':`<button class="btn ghost block" style="margin-top:12px" onclick="document.getElementById('joinScreen').remove()">Back</button>`}<p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
+ ${JOIN_ONLY?'':`<button class="btn ghost block" style="margin-top:12px" onclick="document.getElementById('joinScreen').remove()">Back</button>`}<p class="muted" style="margin-top:18px">Demo · names are generated (Test user 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
 
 /* ---- rides this phone joined (kept in localStorage 'lunad-joins', separate from demo state) ---- */
 const JOINED={data:{},subs:{}};
@@ -2015,7 +2015,7 @@ function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const
 
 function joinRide(code){let key=null;
  LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;if(!(d.status==='open'))return;const used=(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0);if(used>=d.seats)return;
-  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Judge '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
+  const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Test user '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
  (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined-'+code,key);localStorage.setItem('lunad-joined-'+code,key)}catch(e){}addJoin(code,key);toast('You joined the shared ride');setTimeout(goJoined,600);return}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
 function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;setJoins(myJoins().filter(j=>j.code!==code));toast('You left the ride');if(!document.getElementById('joinScreen'))render()})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
