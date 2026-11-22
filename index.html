@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.5 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.6 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,10 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.stop-row{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:8px 0;border:0;border-bottom:1px solid var(--divider);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--navy)}
+.stop-row .tile{width:42px;height:42px;border-radius:10px;background:var(--sun-tint);color:var(--sun-text);display:flex;align-items:center;justify-content:center;flex:none}.stop-row .tile .ic{width:20px;height:20px}
+.stop-row .tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.stop-row .tx b{font-size:15.5px}.stop-row .tx span{font-size:12.5px;color:var(--mut)}.stop-row .chev{color:var(--mut)}
+
 .live-code svg{width:100%;height:100%;display:block}
 .join{position:absolute;inset:0;z-index:40;background:#fff;display:flex;flex-direction:column;overflow-y:auto}
 .join-head{background:var(--navy);color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
@@ -1126,6 +1130,18 @@ const PLACES=[
  {id:'stay2',n:'Virac Town Inn (sample)',t:'Virac',lat:13.5850,lng:124.2280,k:'stay',e:'building'},
  {id:'shop1',n:'Abaca Weavers Coop (sample)',t:'Virac',lat:13.6100,lng:124.2500,k:'shop',e:'bag'},
  {id:'eat1',n:'Nanay Rosa\'s Carinderia (sample)',t:'San Andres',lat:13.6570,lng:124.0770,k:'shop',e:'utensils'},
+ {id:'b01',n:'Kusina ni Lola Carinderia (sample)',t:'Virac',lat:13.577,lng:124.2072,k:'shop',e:'utensils',cat:'Eatery'},
+ {id:'b02',n:'Airport Pasalubong Stall (sample)',t:'Virac',lat:13.5758,lng:124.205,k:'shop',e:'bag',cat:'Pasalubong & souvenirs'},
+ {id:'b03',n:'Kape Isla Coffee Stall (sample)',t:'Virac',lat:13.5822,lng:124.2312,k:'shop',e:'utensils',cat:'Coffee'},
+ {id:'b04',n:'Pantalan Barbecue (sample)',t:'Virac',lat:13.5805,lng:124.234,k:'shop',e:'utensils',cat:'Eatery'},
+ {id:'b05',n:'Igang Beach Cottages (sample)',t:'Virac',lat:13.5448,lng:124.2178,k:'stay',e:'building',cat:'Homestay'},
+ {id:'b06',n:'Twin Rock Halo-halo Hut (sample)',t:'Virac',lat:13.5435,lng:124.2163,k:'shop',e:'utensils',cat:'Snacks & desserts'},
+ {id:'b07',n:'San Andres Port Eatery (sample)',t:'San Andres',lat:13.6025,lng:124.0958,k:'shop',e:'utensils',cat:'Eatery'},
+ {id:'b08',n:'Pandan Weaves Souvenirs (sample)',t:'San Andres',lat:13.6015,lng:124.0942,k:'shop',e:'bag',cat:'Pasalubong & souvenirs'},
+ {id:'b09',n:'Bato Pan de Sal Bakery (sample)',t:'Bato',lat:13.608,lng:124.2995,k:'shop',e:'utensils',cat:'Bakery'},
+ {id:'b10',n:'Puraran Surf Café (sample)',t:'Baras',lat:13.6955,lng:124.4043,k:'shop',e:'utensils',cat:'Coffee'},
+ {id:'b11',n:'Majestic Waves Homestay (sample)',t:'Baras',lat:13.6966,lng:124.4057,k:'stay',e:'building',cat:'Homestay'},
+ {id:'b12',n:'Gigmoto Fish Grill (sample)',t:'Gigmoto',lat:13.7795,lng:124.3895,k:'shop',e:'fish',cat:'Eatery'},
  ...Object.entries(TOWNS).filter(([n])=>n!=='Virac').map(([n,[la,ln]])=>({id:'town-'+n.replace(/\s/g,''),n:n+' town proper',t:n,lat:la,lng:ln,k:'town',e:'building'}))
 ];
 const SPOT_REVIEWS={
@@ -1153,12 +1169,53 @@ const BIZ={
  stay1:{avg:4.6,count:38,offer:'10% off your next stay',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_STAY1'},
  stay2:{avg:4.3,count:22,offer:null,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_STAY2'},
  shop1:{avg:4.7,count:51,offer:'Free keychain with any purchase',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_SHOP1'},
- eat1:{avg:4.8,count:64,offer:'Free iced tea with any meal',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_EAT1'}
+ eat1:{avg:4.8,count:64,offer:'Free iced tea with any meal',googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_EAT1'},
+ b01:{avg:4.4,count:15,offer:'Free rice refill with any ulam',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B01'},
+ b02:{avg:4.5,count:9,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B02'},
+ b03:{avg:4.3,count:40,offer:'₱10 off any brewed coffee',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B03'},
+ b04:{avg:4.3,count:43,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B04'},
+ b05:{avg:4.2,count:38,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B05'},
+ b06:{avg:4.4,count:11,offer:'Free extra leche flan on halo-halo',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B06'},
+ b07:{avg:4.5,count:10,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B07'},
+ b08:{avg:4.4,count:41,offer:'5% off woven bags',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B08'},
+ b09:{avg:4.5,count:42,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B09'},
+ b10:{avg:4.3,count:20,offer:'Free banana bread with any drink',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B10'},
+ b11:{avg:4.6,count:43,offer:null,verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B11'},
+ b12:{avg:4.9,count:42,offer:'Free soup with any grilled fish',verified:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_B12'}
 };
 // Unified review stats lookup: a destination is reviewable if it has either a business-partner
 // micro-offer record (BIZ) or a tourism sample-review record (SPOT_REVIEWS) — covers every
 // drop-off, not just the registered Partner Spots with a micro-offer attached.
 function revStats(id){return BIZ[id]||SPOT_REVIEWS[id]||null}
+function nearbyReviewables(placeId){const a=P(placeId);if(!a)return [];return PLACES.filter(p=>revStats(p.id)).map(p=>({p,d:km(a,p)})).filter(x=>x.d<=0.5).sort((x,y)=>x.d-y.d).slice(0,3)}
+function stopByModal(id){const r=ride(id);BZ={stars:0,id,tags:[],comment:''};const a=P(r.from);const list=(r.bizList||[r.bizId]).map(P).filter(Boolean);
+ modalForced(`<h2>Did you stop by any of these?</h2><p class="muted" style="margin:0 0 10px">You were picked up near ${esc(a.n.replace(' (sample)',''))}. Tap a place to review it — it helps small local businesses get found.</p>`+
+ list.map(p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}${rv&&rv.offer?' · offer':''}</span></span>${ic('chevron','chev')}</button>`}).join('')+
+ `<button class="btn ghost block" style="margin-top:8px;border:0" onclick="bizLater()">No, just passing by</button>`)}
+function stopPick(rid,pid){const r=ride(rid);r.bizId=pid;save();bizModal(rid)}
+/* ---- List your business (demo: instant sample approval) ---- */
+const BIZ_CATS=[['Eatery','utensils','shop'],['Coffee','utensils','shop'],['Bakery','utensils','shop'],['Snacks & desserts','utensils','shop'],['Pasalubong & souvenirs','bag','shop'],['Homestay','building','stay'],['Tours & activities','compass','shop']];
+function loadMyBiz(){for(let i=PLACES.length-1;i>=0;i--)if(PLACES[i].id.indexOf('mb-')===0&&!(S.myBiz||[]).find(b=>b.place.id===PLACES[i].id))PLACES.splice(i,1);
+ for(const b of S.myBiz||[]){if(!PLACES.find(p=>p.id===b.place.id))PLACES.push(b.place);BIZ[b.place.id]=b.stats}}
+let BIZLOC=null;
+function bizForm(){BIZLOC=null;modal(`<h2>List your business</h2><p class="muted" style="margin:0 0 6px">Get on the LUNAD map, in search, and in “Did you stop by?” prompts for riders picked up nearby.</p>
+ <label class="f">Business name</label><input class="inp" id="bzName" maxlength="40" placeholder="e.g. Aling Nena's Carinderia">
+ <label class="f">Category</label><select class="inp" id="bzCat">${BIZ_CATS.map(c=>`<option>${c[0]}</option>`).join('')}</select>
+ <label class="f">Location</label><div style="display:flex;gap:6px"><select class="inp" id="bzNear">${placeOpts(S.rideForm.from)}</select><button class="btn sm ghost" aria-label="Use my location" onclick="bizUseGPS()">${ic('target')}</button></div>
+ <p class="muted" id="bzLocNote" style="margin:4px 0 0">Pinned next to the place you choose, or at your current location.</p>
+ <label class="f">Opening hours</label><input class="inp" id="bzHours" maxlength="40" placeholder="e.g. 7 AM – 8 PM daily">
+ <label class="f">Rider offer (optional)</label><input class="inp" id="bzOffer" maxlength="60" placeholder="e.g. Free iced tea with any meal">
+ <label class="f">Business permit (DTI / Mayor’s / barangay)</label><input class="inp" type="file" accept="image/*,.pdf" id="bzPermit">
+ <button class="btn block" style="margin-top:14px" onclick="bizSubmit()">Submit listing</button>`)}
+function bizUseGPS(){if(!navigator.geolocation){toast('Location not available');return}navigator.geolocation.getCurrentPosition(g=>{BIZLOC={lat:g.coords.latitude,lng:g.coords.longitude};const n=$('#bzLocNote');if(n)n.textContent='Pinned at your current location.'},()=>toast('Could not get your location — choose a place instead'),{enableHighAccuracy:true,timeout:8000})}
+function bizSubmit(){const name=($('#bzName').value||'').trim();if(name.length<3){toast('Enter your business name');return}
+ const cat=BIZ_CATS.find(c=>c[0]===$('#bzCat').value)||BIZ_CATS[0];const near=P($('#bzNear').value);const lat=BIZLOC?BIZLOC.lat:near.lat+0.0004,lng=BIZLOC?BIZLOC.lng:near.lng+0.0003;
+ const id='mb-'+(S.seq++);const place={id,n:name,t:nearestTown(lat,lng),lat,lng,k:cat[2],e:cat[1],cat:cat[0],hours:($('#bzHours').value||'').trim()};
+ const offer=($('#bzOffer').value||'').trim()||null;S.myBiz=S.myBiz||[];S.myBiz.push({place,stats:{avg:0,count:0,offer,verified:true,mine:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_NEW'}});
+ loadMyBiz();save();modal(`<div style="text-align:center;padding:8px 4px"><div style="font-size:34px">${ic('shield')}</div><h2 style="margin:8px 0 4px">${esc(name)} is live</h2><span class="st ok">Verified local business · sample approval</span>
+ <p class="muted" style="margin:12px 0 0">It now appears on the Explore map and in “Where to?” search, and riders picked up within 500 m will be asked if they stopped by.${offer?' Your offer: '+esc(offer)+'.':''}</p>
+ <p class="muted">In the real app, LUNAD or the LGU tourism office checks your permit first.</p><button class="btn block" style="margin-top:10px" onclick="closeModal();openPlace('${id}')">View listing</button></div>`)}
+function stopByModalPlaceholder(){}
 function nearPickupSpot(placeId){const place=P(placeId);if(!place)return {biz:null};if(revStats(placeId))return {biz:place,dist:0};if(place.k!=='pin')return {biz:null};let best=null,bd=Infinity;for(const p of PLACES){if(!revStats(p.id))continue;const d=km(place,p);if(d<bd){bd=d;best=p}}return bd<=0.5?{biz:best,dist:bd}:{biz:null}}
 function nearestBiz(dropoffPlaceId,dropoffCoord){
  // 1) exact match: the rider's chosen drop-off IS itself a reviewable place
@@ -1397,8 +1454,8 @@ function render(){const nav=navFor();
 function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
  // Business/place review takes priority: it pops up right after ride completion,
  // before the driver rating — not after it.
- const dueBiz=S.rides.find(r=>r.booker==='me'&&['started','completed'].includes(r.status)&&r.bizId&&r.bizAt==='pickup'&&!r.bizReviewShown);
- if(dueBiz){bizModal(dueBiz.id);return}
+ const dueBiz=S.rides.find(r=>r.booker==='me'&&['started','completed'].includes(r.status)&&(r.bizList||r.bizId)&&r.bizAt==='pickup'&&!r.bizReviewShown);
+ if(dueBiz){stopByModal(dueBiz.id);return}
  const due=S.rides.find(r=>r.booker==='me'&&r.status==='completed'&&!r.rated.b&&!r.reviewShown);
  if(due){due.reviewShown=true;save();rateModal(due.id,'b')}}
 let STORM_UNTIL=0,STORM_T=null,STORM_KEY='';function stormTowns(){return Object.entries(S.signals).filter(([k,v])=>v>0).map(([k])=>k)}function stormBar(){const towns=stormTowns();if(!towns.length)return '';const on=Date.now()<STORM_UNTIL;return `<div class="storm-bar${on?' show':''}" role="status" aria-live="polite" aria-hidden="${on?'false':'true'}">${ic('storm')}<span><b>Storm signal in ${esc(towns.join(', '))}</b> · road bookings paused</span></div>`}function flashStorm(){if(!stormTowns().length)return;STORM_UNTIL=Date.now()+3000;const el=document.querySelector('.storm-bar');if(el){el.classList.add('show');el.setAttribute('aria-hidden','false')}clearTimeout(STORM_T);STORM_T=setTimeout(()=>{const b=document.querySelector('.storm-bar');if(b){b.classList.remove('show');b.setAttribute('aria-hidden','true')}},3000)}function stormCheck(){if(S.role!=='booker'||S.tab!=='ride')return;const f=S.rideForm;const a=P(f.from),b=P(f.to);const hit=(a&&paused(a.t))||(b&&paused(b.t));const key=f.from+'|'+f.to;if(hit&&key!==STORM_KEY){STORM_KEY=key;flashStorm()}if(!hit)STORM_KEY=''}
@@ -1503,7 +1560,7 @@ function pickByText(which,text){text=(text||'').trim();if(!text)return;
  const id='cu-'+(S.seq++);S.custom.push({id,n:text,t:town,lat:TOWNS[town][0],lng:TOWNS[town][1],k:'pin',e:'pin'});S.custom=S.custom.slice(-8);
  S.rideForm[which]=id;save();render();toast(`Using "${text}" near ${town}`)}
 function openPlace(id){const p=P(id);
- modal(`<div style="font-size:32px">${ic(p.e)}</div><h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>
+ modal(`<div style="font-size:32px">${ic(p.e)}</div><h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${p.cat?esc(p.cat):({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>${BIZ[id]?`<div class="banner" style="margin-top:10px"><b>${ic('shield')} Verified local business</b>${p.hours?'<br>Open '+esc(p.hours):''}${BIZ[id].offer?'<br>'+ic('gift')+' Rider offer: '+esc(BIZ[id].offer):''}</div>`:''}
  ${p.k==='spot'?'<p class="muted">Full attraction details (fees, hours, photos) are on the roadmap.</p>':''}
  <div class="btns"><button class="btn sm" onclick="S.rideForm.from='${id}';closeModal();go('ride')">Ride from here</button><button class="btn sm" onclick="S.rideForm.to='${id}';closeModal();go('ride')">Ride to here</button></div>
  <div class="btns"><a class="btn ghost sm" style="text-decoration:none" href="${dirUrl(p)}" target="_blank" rel="noopener">${ic('nav')} Directions</a><a class="btn ghost sm" style="text-decoration:none" href="${svUrl(p)}" target="_blank" rel="noopener">${ic('eye')} Street View</a></div>
@@ -1707,19 +1764,19 @@ function trendingStrip(){const ids=[...new Set([...Object.keys(BIZ),...Object.ke
 // Maps a destination's icon key to one of the brief's four Explore categories; places outside
 // these (hubs, stays, towns) aren't "destinations to browse" and are left out of the card grid —
 // they still appear on the interactive map below via the original hub/stay/shop/spot filters.
-function exploreCat(p){if(p.e==='waves')return 'beach';if(p.e==='droplet')return 'falls';if(p.e==='landmark'||p.e==='mountain')return 'landmark';if(p.e==='utensils'||p.e==='fish')return 'food';return null}
-const EXPLORE_CATS=[['all','compass','All'],['beach','waves','Beaches'],['falls','droplet','Waterfalls'],['landmark','landmark','Landmarks'],['food','utensils','Food']];
+function exploreCat(p){if(p.k==='stay')return 'stays';if(p.e==='bag')return 'shops';if(p.e==='waves')return 'beach';if(p.e==='droplet')return 'falls';if(p.e==='landmark'||p.e==='mountain')return 'landmark';if(p.e==='utensils'||p.e==='fish')return 'food';return null}
+const EXPLORE_CATS=[['all','compass','All'],['beach','waves','Beaches'],['falls','droplet','Waterfalls'],['landmark','landmark','Landmarks'],['food','utensils','Food'],['shops','bag','Local shops'],['stays','building','Stays']];
 function destCard(p){const rv=revStats(p.id);const name=esc(p.n.replace(' (sample)',''));
  return `<div class="dest-card" onclick="openPlace('${p.id}')">
  <div class="tag">${ic('pkg','sm')} Offline ready</div>
  <div class="img">${ic(p.e,'xl')}</div>
- <div class="body"><div class="row"><b>${name}</b>${rv?`<span class="st gold sm" style="white-space:nowrap">${ic('star-f','sm')} ${rv.avg} (${rv.count})</span>`:'<span class="st mut sm">New</span>'}</div>
+ <div class="body"><div class="row"><b>${name}</b>${rv&&rv.count?`<span class="st gold sm" style="white-space:nowrap">${ic('star-f','sm')} ${rv.avg} (${rv.count})</span>`:'<span class="st mut sm">New</span>'}</div>
  <span class="muted" style="font-size:11.5px">${esc(p.t)}, Catanduanes</span></div></div>`}
 function vMap(){const f=S.mapFilter;const ec=S.exploreCat||'all';const cats=[['spot','pin','Spots'],['hub','send','Hubs'],['stay','building','Stays'],['shop','bag','Shops']];
  const pool=PLACES.filter(p=>exploreCat(p));
  const shown=ec==='all'?pool:pool.filter(p=>exploreCat(p)===ec);
  const pins=PLACES.filter(p=>f[p.k]);
- return `<h2>${ic('compass')} Explore Catanduanes</h2><p class="muted" style="margin-top:-6px">Discover beaches, waterfalls, landmarks and local food — all downloaded for offline use.</p>
+ return `<h2>${ic('compass')} Explore Catanduanes</h2><button class="btn sec sm" style="margin:-6px 0 10px" onclick="bizForm()">${ic('bag')} List your business</button><p class="muted" style="margin-top:-6px">Discover beaches, waterfalls, landmarks and local food — all downloaded for offline use.</p>
  <div class="cat-scroll">${EXPLORE_CATS.map(([k,i,l])=>`<span class="cat-chip ${ec===k?'on':''}" onclick="S.exploreCat='${k}';save();render()">${ic(i)} ${l}</span>`).join('')}</div>
  ${shown.map(destCard).join('')||'<div class="card muted">No destinations in this category yet.</div>'}
  ${trendingStrip()}
@@ -1788,7 +1845,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
 function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next rider')}
 function arriving(id){const r=ride(id);r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render()}
-function startTrip(id){const r=ride(id);liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{const {biz}=nearPickupSpot(r.from);if(biz){r.bizId=biz.id;r.bizAt='pickup'}}notify('me','started',{ref:r.id},r.id);save();render()}
+function startTrip(id){const r=ride(id);liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}}notify('me','started',{ref:r.id},r.id);save();render()}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
  
  notify('me','completed',{ref:r.id},r.id);save();render();toast('Trip completed — rating and payment requests sent')}
@@ -1838,7 +1895,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAll===true?'checked':''} onchange="S.shareAll=this.checked;save()"> Show all shared rides (demo, ignores distance)</label><label class="lug"><input type="checkbox" ${S.shareAuto===false?'':'checked'} onchange="S.shareAuto=this.checked;save()"> Sample co-riders join shared rides</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-rider cancelling</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Join a shared ride</b><p class="muted" style="margin:4px 0 10px">Type the 6-character code shown on the rider’s booking.</p><div style="display:flex;gap:8px"><input id="joinCode" class="inp" maxlength="6" autocapitalize="characters" placeholder="e.g. KHPHJ2" aria-label="Ride code" style="text-transform:uppercase;letter-spacing:.15em"><button class="btn" onclick="joinByCode()">Join</button></div></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-riders are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Live shared rides need internet:</b> other phones see open shared rides within 500 m on Home, or join by scanning the ride’s QR. Without a connection, sample co-riders join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAll===true?'checked':''} onchange="S.shareAll=this.checked;save()"> Show all shared rides (demo, ignores distance)</label><label class="lug"><input type="checkbox" ${S.shareAuto===false?'':'checked'} onchange="S.shareAuto=this.checked;save()"> Sample co-riders join shared rides</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-rider cancelling</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Own a small business?</b><p class="muted" style="margin:4px 0 10px">Eatery, coffee stall, pasalubong shop or homestay — get found by LUNAD riders.</p><button class="btn sec block" onclick="bizForm()">List your business</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Join a shared ride</b><p class="muted" style="margin:4px 0 10px">Type the 6-character code shown on the rider’s booking.</p><div style="display:flex;gap:8px"><input id="joinCode" class="inp" maxlength="6" autocapitalize="characters" placeholder="e.g. KHPHJ2" aria-label="Ride code" style="text-transform:uppercase;letter-spacing:.15em"><button class="btn" onclick="joinByCode()">Join</button></div></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-riders are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Business listings are approved instantly:</b> in the real app, LUNAD or the LGU tourism office checks the permit first. Listings stay on this phone only.</li><li><b>Live shared rides need internet:</b> other phones see open shared rides within 500 m on Home, or join by scanning the ride’s QR. Without a connection, sample co-riders join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
 
 /* =================== LIVE SHARED RIDES (Firebase Realtime Database) ===================
    The host's shared ride is published under /rides/{CODE}. Other phones scan the QR (#join-CODE),
@@ -1931,7 +1988,7 @@ function joinRide(code){let key=null;
 function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined-'+code);localStorage.removeItem('lunad-joined-'+code)}catch(e){}JOINKEY=null;toast('You left the ride')})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
 /* =================== BOOT =================== */
-function boot(){dailyChecks();save();render()}
+function boot(){loadMyBiz();dailyChecks();save();render()}
 boot();setInterval(tick,1000);liveInit();
 setTimeout(flashStorm,400);
 </script>
