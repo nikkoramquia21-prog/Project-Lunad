@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.5 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.6 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1543,9 +1543,7 @@ function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
  <div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>
- <div class="card" style="background:var(--sand);margin-top:8px"><b>Cancellation & no-show fees</b>
- <div class="muted">• Free cancellation until 15 minutes before pickup.<br>• Inside 15 minutes: ${peso(F.cancelFee)} fee, which goes to the driver.<br>• No-show after a 10-minute wait: ${peso(F.lateFee)} late fee.</div></div>
- <button class="btn block" onclick="requestRide()">Confirm & request</button>`)}
+ <button class="btn block" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
 function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
  dispatch(r);
