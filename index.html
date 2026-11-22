@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.16.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.16.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,14 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.sb-h{font-size:19px;line-height:1.25;margin:2px 0 2px}
+.sb-p{font-size:13px;color:var(--mut);margin:0 0 4px}
+.sb-ic .ic{width:26px;height:26px}
+.stop-row{min-height:50px;padding:6px 0;gap:10px}.stop-row .tile{width:34px;height:34px;border-radius:8px}.stop-row .tile .ic{width:17px;height:17px}.stop-row .tx b{font-size:14.5px}.stop-row .tx span{font-size:12px}
+.sb-offer{margin:8px 0 0;padding:8px 10px;border-radius:10px;background:var(--sun-tint);color:var(--sun-text);font-size:12.5px;line-height:1.4;text-align:left}.sb-offer .ic{width:14px;height:14px;vertical-align:-2px}
+body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
+.sb-skip{display:block;width:100%;min-height:44px;margin-top:4px;border:0;background:none;font:inherit;font-size:14.5px;font-weight:700;color:var(--navy);cursor:pointer}
+
 .ac{position:relative}
 .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(13,27,42,.16);z-index:12;max-height:320px;overflow-y:auto}
 .ac-item{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 12px;border:0;border-bottom:1px solid var(--divider);background:#fff;text-align:left;font:inherit;color:var(--navy);cursor:pointer}
@@ -1225,9 +1233,9 @@ function osmRev(id){if(OSMREV[id])return OSMREV[id];if(String(id)[0]!=='o')retur
 function revStats(id){return BIZ[id]||SPOT_REVIEWS[id]||osmRev(id)||null}
 function nearbyReviewables(placeId){const a=P(placeId);if(!a)return [];return PLACES.filter(p=>revStats(p.id)).map(p=>({p,d:km(a,p)})).filter(x=>x.d<=0.5).sort((x,y)=>x.d-y.d).slice(0,3)}
 function stopByModal(id){const r=ride(id);BZ={stars:0,id,tags:[],comment:''};const a=P(r.from);const list=(r.bizList||[r.bizId]).map(P).filter(Boolean);
- modalForced(`<h2>Did you stop by any of these?</h2><p class="muted" style="margin:0 0 10px">You were picked up near ${esc(a.n.replace(' (sample)',''))}. Tap a place to review it — it helps small local businesses get found.</p>`+
+ modalForced(`<h2 class="sb-h">Did you stop by any of these?</h2><p class="sb-p">Picked up near ${esc(a.n.replace(' (sample)',''))} · tap one to review it</p>`+
  list.map(p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}${rv&&rv.offer?' · offer':''}</span></span>${ic('chevron','chev')}</button>`}).join('')+
- `<button class="btn ghost block" style="margin-top:8px;border:0" onclick="bizLater()">No, just passing by</button>`)}
+ `<button class="sb-skip" onclick="bizLater()">No, just passing by</button>`)}
 function stopPick(rid,pid){const r=ride(rid);r.bizId=pid;save();bizModal(rid)}
 /* ---- List your business (demo: instant sample approval) ---- */
 const BIZ_CATS=[['Eatery','utensils','shop'],['Coffee','utensils','shop'],['Bakery','utensils','shop'],['Snacks & desserts','utensils','shop'],['Pasalubong & souvenirs','bag','shop'],['Homestay','building','stay'],['Tours & activities','compass','shop']];
@@ -1271,13 +1279,11 @@ let BZ={stars:0};
 // in-app rating.
 function bizModal(id){BZ={stars:0,id,tags:[],comment:''};drawBizGoogle()}
 function drawBizGoogle(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revStats(spot.id);const name=esc(spot.n.replace(' (sample)',''));
- modalForced(`<div style="text-align:center;padding:14px 4px">
- <div style="font-size:36px">${ic(spot.e)}</div><h2 style="margin:8px 0 2px">How was your visit to ${name}?</h2>
- <p class="muted">Help other travelers find ${name} on Google — it takes a few seconds.</p>
- <a class="btn block" style="margin-top:12px;text-decoration:none" href="${rv.googleUrl}" target="_blank" rel="noopener">${ic('star-f')} Review ${name} on Google →</a>
- ${rv.offer?`<div class="card" style="margin-top:10px;text-align:left"><b>${ic('gift')} ${esc(rv.offer)}</b><p class="muted" style="margin:3px 0 0">at ${name} — unlocks with a quick rating in LUNAD (sample offer).</p></div>`:''}
- <button class="btn sec block" style="margin-top:10px" onclick="drawBiz()">Rate it in LUNAD</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="bizLater()">Later</button>
- </div>`)}
+ modalForced(`<div style="text-align:center;padding:2px 2px 0"><div class="sb-ic">${ic(spot.e)}</div><h2 class="sb-h" style="margin:6px 0 2px">How was your visit to ${name}?</h2>
+ <p class="sb-p">Help other travelers find it on Google — it takes a few seconds.</p>
+ <a class="btn block" style="margin-top:10px;text-decoration:none" href="${rv.googleUrl}" target="_blank" rel="noopener">${ic('star-f')} Review on Google →</a>
+ ${rv.offer?`<p class="sb-offer">${ic('gift')} ${esc(rv.offer)} · unlocks with a quick LUNAD rating (sample offer)</p>`:''}
+ <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sec" style="flex:1" onclick="drawBiz()">Rate in LUNAD</button><button class="btn ghost" style="flex:1" onclick="bizLater()">Later</button></div></div>`)}
 function bizLater(){const r=ride(BZ.id);if(r){r.bizReviewShown=true;save()}closeModal();render()}
 function redrawBiz(){BZ.comment=($('#bc')||{}).value||'';drawBiz()}
 function toggleBizTag(t){const i=BZ.tags.indexOf(t);if(i>=0)BZ.tags.splice(i,1);else BZ.tags.push(t);redrawBiz()}
@@ -1458,7 +1464,7 @@ function bookingLimit(){return S.me.noShows>=2?1:5}
 
 /* =================== CHECKS (timers, expiry, fares) =================== */
 function tick(){let changed=false;const now=Date.now();
- for(const r of S.rides)if(r.status==='pending'&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
+ for(const r of S.rides)if(r.status==='pending'&&!(r.live&&r.shared)&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
  for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-(r.lastJoin||r.createdAt)>SHARE.gap&&coJoin(r))changed=true;
  if(S.role==='booker'&&!($('#modalRoot')||{}).innerHTML){const w=S.rides.find(r=>waitDue(r,now));if(w){if(changed){save();render()}waitModal(w.id);return}}
  if(changed){save();render()}
@@ -1900,18 +1906,20 @@ function smsReply(){const k=$('#kw').value.trim().toUpperCase();S.notifs.unshift
 function provPick(){return `<label class="f">Acting as (demo)</label><select class="inp" style="margin-bottom:10px" onchange="S.actingAs=this.value;save();render()">${S.providers.map(p=>`<option value="${p.id}" ${S.actingAs===p.id?'selected':''}>${esc(p.n)} — ${p.status}</option>`).join('')}</select>`}
 function provBanner(p){if(p.status==='approved')return '';const m={suspended:['bad',`${ic('ban')} Suspended: `+p.reason+'. You are hidden from search until your documents are renewed.']}[p.status]||['','Account under review.'];return `<div class="banner ${m[0]}">${esc(m[1])}</div>`}
 function vOffers(){const p=prov(S.actingAs);const now=Date.now();
- const offers=S.rides.filter(r=>r.status==='pending'&&r.cands[r.offerIdx]===p.id);
- const jobs=S.rides.filter(r=>r.pid===p.id&&['accepted','started'].includes(r.status)).sort((a,b)=>a.start-b.start);
+ const offers=S.rides.filter(r=>r.status==='pending'&&!(r.live&&r.shared)&&r.cands[r.offerIdx]===p.id);
+ const jobs=S.rides.filter(r=>r.pid===p.id&&!(r.live&&r.shared)&&['accepted','started'].includes(r.status)).sort((a,b)=>a.start-b.start);
+ const autoShared=S.rides.filter(r=>r.booker==='me'&&r.live&&r.shared&&!r.tripDone&&['pending','accepted','started'].includes(r.status));
  const payq=S.rides.filter(r=>r.pid===p.id&&['proof','cash'].includes(r.pay));
  const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
  let h=`<h2>${ic('file-text')} Offers & jobs</h2>${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
+ if(autoShared.length)h+=autoShared.map(r=>{const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const L={waiting:'Waiting for riders · '+sharedSeats(r)+' of '+SHARE.seats,finding:'Finding a driver…',coming:'Driver on the way',riding:'On the trip',arrived:'Arrived',cancelled:'Cancelled'}[st]||st;return `<div class="card"><div class="share-line">${ic('tricycle')} Live shared ride · ${esc(L)}</div><b style="display:block;margin-top:8px">${esc(P(r.from).n.replace(' (sample)',''))} → ${esc(P(r.to).n.replace(' (sample)',''))}</b><p class="muted" style="margin:6px 0 10px">In this demo a sample TODA driver runs shared rides automatically, in sync on every phone. Switch to Rider to follow the trip.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button></div>`}).join('');
  h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${SHARE.seats} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
  h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+SHARE.seats+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
-  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived at pickup':'Arrived at pickup'}</button>`:''}${r.shared&&sharedSeats(r)<SHARE.seats?`<button class="btn sm" disabled>Waiting for riders · ${sharedSeats(r)} of ${SHARE.seats}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
+  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · rider notified':'Arrived at pickup'}</button>`:''}${r.shared&&sharedSeats(r)<SHARE.seats?`<button class="btn sm" disabled>Waiting for riders · ${sharedSeats(r)} of ${SHARE.seats}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
    <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
    <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
    <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message rider${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
@@ -1921,7 +1929,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  return h}
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
 function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next rider')}
-function arriving(id){const r=ride(id);r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render()}
+function arriving(id){const r=ride(id);if(r.arriving){toast('Rider already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Rider notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
 function startTrip(id){const r=ride(id);liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}}notify('me','started',{ref:r.id},r.id);save();render()}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
  
