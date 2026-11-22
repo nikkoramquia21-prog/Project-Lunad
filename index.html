@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1334,7 +1334,7 @@ function P(id){return PLACES.find(p=>p.id===id)||(S&&S.custom.find(p=>p.id===id)
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.me)S=seed();
 function save(){if(JOIN_ONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-function resetDemo(){S=seed();save();boot();toast('Demo data reset')}
+function resetDemo(){try{for(const r of S.rides)if(r.liveCode&&LIVE.db&&['pending','accepted','started'].includes(r.status)){LIVE.db.ref('rides/'+r.liveCode+'/cancelled').set(true).catch(()=>{});liveStatus(r,'closed')}}catch(e){}S=seed();save();boot();toast('Demo data reset')}
 function nid(p){S.seq++;return p+'-'+S.seq}
 
 /* =================== HELPERS =================== */
@@ -1938,7 +1938,7 @@ function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;con
   save();render();
   if(joined.length)toast(`${joined.map(m=>m.n).join(', ')} joined · ${sharedSeats(rr)} of ${SHARE.seats} seats · you pay ${peso(rr.fare)}${rr.fare<was?' (was '+peso(was)+')':''}${full?' · tricycle full, ready to leave':''}`);
   else if(left.length)toast(`${left.map(m=>m.n).join(', ')} left · your fare stays ${peso(rr.fare)} · LUNAD covers the gap for the driver`)})}
-function liveResub(){if(JOIN_ONLY)return;for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status))liveWatch(r)}
+function liveResub(){if(JOIN_ONLY)return;for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status)){liveWatch(r);openIndex(r)}}
 /* ---- nearby open shared rides: public index /open/{CODE} (pickup lat/lng, route, seats) ---- */
 const NEAR={asked:false,pos:null,posLabel:'',items:[],sub:false};
 function nearbySub(){if(NEAR.sub||!LIVE.db)return;NEAR.sub=true;LIVE.db.ref('open').on('value',s=>{NEAR.items=Object.entries(s.val()||{}).map(([code,o])=>Object.assign({code},o));if(S.role==='booker'&&S.tab==='home'&&!($('#modalRoot')||{}).innerHTML)render()},()=>{})}
@@ -1948,17 +1948,17 @@ function nearbyStart(){NEAR.asked=true;nearbySub();NEAR.posLabel='';render();
  navigator.geolocation.getCurrentPosition(g=>{const la=g.coords.latitude,ln=g.coords.longitude;if(!(la>=GEO_BOUNDS.lat0&&la<=GEO_BOUNDS.lat1&&ln>=GEO_BOUNDS.lng0&&ln<=GEO_BOUNDS.lng1)){fallback();return}NEAR.pos={lat:la,lng:ln};NEAR.posLabel='you';render()},fallback,{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
 function openIndex(r){if(!LIVE.db||!r||!r.liveCode)return;const ref=LIVE.db.ref('open/'+r.liveCode);const used=sharedSeats(r);
  if(!r.live||!r.shared||!['pending','accepted'].includes(r.status)||used>=SHARE.seats){ref.remove().catch(()=>{});return}
- const p=P(r.from),d=routeKm(P(r.from),P(r.to));ref.set({lat:p.lat,lng:p.lng,fromName:p.n.replace(' (sample)',''),toName:P(r.to).n.replace(' (sample)',''),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),seats:SHARE.seats,used,createdAt:r.createdAt}).catch(()=>{})}
+ const p=P(r.from),d=routeKm(P(r.from),P(r.to));ref.set({lat:p.lat,lng:p.lng,fromName:p.n.replace(' (sample)',''),toName:P(r.to).n.replace(' (sample)',''),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),seats:SHARE.seats,used,createdAt:r.createdAt}).then(()=>{try{ref.onDisconnect().remove()}catch(e){}}).catch(()=>{})}
 function nearCard(o){const left=o.seats-o.used;const per=Math.round(Math.min(o.reg,o.whole/Math.min(o.used+1,o.seats)));
  return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>Goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}
 function nearbyHTML(){if(!LIVE.db)return '';const all=S.shareAll===true;nearbySub();
  if(!NEAR.asked){const p=P(S.rideForm.from);NEAR.pos=p?{lat:p.lat,lng:p.lng}:null;NEAR.posLabel=p?p.n.replace(' (sample)',''):''}
  const mine=S.rides.map(r=>r.liveCode).filter(Boolean).concat(myJoins().map(j=>j.code));
- const open=NEAR.items.filter(o=>!mine.includes(o.code)&&o.used<o.seats&&Date.now()-o.createdAt<30*MIN)
+ const open=NEAR.items.filter(o=>!mine.includes(o.code)&&o.used<o.seats&&Date.now()-o.createdAt<15*MIN)
   .map(o=>Object.assign({},o,{dist:NEAR.pos?km(NEAR.pos,o)*1000:null})).sort((a,b)=>(a.dist==null?1e9:a.dist)-(b.dist==null?1e9:b.dist)||b.createdAt-a.createdAt);
- const near=all?open:open.filter(o=>o.dist!=null&&o.dist<=500),far=all?[]:open.filter(o=>!(o.dist!=null&&o.dist<=500));
- const where=all?'Showing all open shared rides (demo)':NEAR.posLabel?`Pickups within 500 m of ${esc(NEAR.posLabel)}`:'Finding your location…';
- return `<h3>Shared rides near you</h3><p class="muted" style="margin:-4px 0 8px">${where} · updates live</p>`+(near.length?near.map(nearCard).join(''):`<div class="card muted">No open shared rides within 500 m right now. They appear here the moment someone books one.</div>`)
+ const gps=NEAR.posLabel==='you';const near=(all||!gps)?open:open.filter(o=>o.dist!=null&&o.dist<=500),far=all?[]:open.filter(o=>!(o.dist!=null&&o.dist<=500));
+ const where=all?'Showing all open shared rides (demo)':gps?'Pickups within 500 m of you':NEAR.posLabel?`All open shared rides · nearest to ${esc(NEAR.posLabel)} first`:'Finding your location…';
+ return `<h3>Shared rides near you</h3><p class="muted" style="margin:-4px 0 8px">${where} · updates live</p>`+(near.length?near.map(nearCard).join(''):`<div class="card muted">No open shared rides right now. They appear here the moment someone books one.</div>`)
   +(!NEAR.asked&&!all?`<button class="btn sec block" style="margin-top:10px" onclick="nearbyStart()">${ic('target')} Use my location</button>`:'')}
 function openJoin(code){joinScreen(code)}
 function sampleRiders(id){const r=ride(id);if(!r)return;if(r.liveCode)liveStatus(r,'closed');r.live=false;delete r.livePending;r.sampleCo=true;r.coDone=false;r.co=[];coJoin(r);save();render()}
