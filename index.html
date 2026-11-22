@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.4 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.5 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -938,6 +938,7 @@ textarea.inp{min-height:96px;font-weight:500}
 .stars span{color:var(--ctrl);font-size:32px}
 .stars span.on{color:var(--sunc)}
 .bars .b i{background:var(--navy)}
+.lim{padding-left:18px;margin:0}.lim li{font-size:14.5px;line-height:1.5;margin-bottom:8px}.lim b{color:var(--navy)}
 /* storm notice: one compact amber line inside the navy header; flashes for 3 s */
 .storm-bar{display:flex;gap:8px;align-items:center;color:#F7C873;font-size:13px;font-weight:600;line-height:1.3;max-height:0;opacity:0;overflow:hidden;margin-top:0;padding:0 12px;border-radius:10px;background:rgba(245,181,68,.12);border:1px solid transparent;transition:max-height .35s var(--ease),opacity .35s var(--ease),margin-top .35s var(--ease),padding .35s var(--ease),border-color .35s var(--ease)}
 .storm-bar.show{max-height:60px;opacity:1;margin-top:12px;padding:8px 12px;border-color:rgba(245,181,68,.35)}
@@ -987,7 +988,7 @@ textarea.inp{min-height:96px;font-weight:500}
     </div>
     <div class="box"><b>Prototype notes</b>
       <p>All names, fares, permits and numbers are sample data. The map is stylized. SMS and Messenger are simulated in the Inbox. Data stays in this browser only.</p>
-      <div class="btns"><button class="btn sec sm" onclick="toggleNet()">Toggle signal (offline demo)</button><button class="btn sec sm" onclick="openAbout()">Concept & roadmap</button><button class="btn ghost sm" onclick="resetDemo()">Reset demo data</button></div>
+      <div class="btns"><button class="btn sec sm" onclick="toggleNet()">Toggle signal (offline demo)</button><button class="btn sec sm" onclick="openAbout()">About this demo</button><button class="btn ghost sm" onclick="resetDemo()">Reset demo data</button></div>
     </div>
   </div>
   <div class="phone" id="phone">
@@ -1056,7 +1057,7 @@ function ic(name,cls,color){const s=ICONS[name];if(!s)return '';return `<svg cla
 function starRow(n,cls){n=Math.round(n||0);let h='';for(let i=1;i<=5;i++)h+=ic(i<=n?'star-f':'star-o',cls,i<=n?'#F5B544':'#cfd8d7'); return h}
 
 /* =================== STATIC DATA =================== */
-const KEY='lunad-v2', MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
+const KEY='lunad-v3', MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
 const TYPES={
  tricycle:{label:'Tricycle (TODA route)',e:'tricycle',kph:25,seats:3},
  moto:{label:'Moto Taxi (LUNAD rider)',e:'moto',kph:35,seats:1,inhouse:true},
@@ -1203,7 +1204,19 @@ function seed(){
   mkProv('p11','Elmer – 8-seater Van','minivan','Virac',8,'approved','0917-000-0811','GCash',true,DOCS.minivan.map(n=>doc(n,exp(190)))),
   // LUNAD-owned Moto Taxi fleet — in-house riders, always online, no public registration.
   mkProv('p12','LUNAD Rider – Jun','moto','Virac',1,'approved','0917-000-0901','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
-  mkProv('p13','LUNAD Rider – Ariel','moto','San Andres',1,'approved','0917-000-0902','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true})
+  mkProv('p13','LUNAD Rider – Ariel','moto','San Andres',1,'approved','0917-000-0902','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p14','LUNAD Rider – Paolo','moto','Bato',1,'approved','0917-000-0903','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p15','LUNAD Rider – Kiko','moto','Baras',1,'approved','0917-000-0904','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p16','LUNAD Rider – Nonoy','moto','Gigmoto',1,'approved','0917-000-0905','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p17','LUNAD Rider – Rey','moto','Viga',1,'approved','0917-000-0906','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p18','LUNAD Rider – Jomar','moto','Panganiban',1,'approved','0917-000-0907','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p19','LUNAD Rider – Elvin','moto','Bagamanoc',1,'approved','0917-000-0908','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p20','LUNAD Rider – Carlo','moto','Pandan',1,'approved','0917-000-0909','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p21','LUNAD Rider – Nestor','moto','Caramoran',1,'approved','0917-000-0910','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p22','LUNAD Rider – Arvin','moto','San Miguel',1,'approved','0917-000-0911','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p23','Nelia – Private Car (4 seats)','car','Bato',4,'approved','0917-000-0412','GCash',true,DOCS.car.map(n=>doc(n,exp(240)))),
+ mkProv('p24','Ramon – 8-seater Van','minivan','San Andres',8,'approved','0917-000-0813','Maya',true,DOCS.minivan.map(n=>doc(n,exp(210)))),
+ mkProv('p25','Baras Shuttle (12 seats)','van','Baras',12,'approved','0917-000-0314','GCash',true,DOCS.van.map(n=>doc(n,exp(200))))
  ];
  // synthetic history for analytics
  const R=rng(7),pl=PLACES.map(p=>p.id),hist=[];
@@ -1781,10 +1794,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button></div><h2>LUNAD — concept</h2><p>Getting around Catanduanes means asking around and waiting. LUNAD puts every available ride in one app, so you can see who is online, book one, and pay the driver directly.</p>
- <h3>In this MVP</h3><ul class="flow"><li>Direct booking (car or van, any town)</li><li>TODA route booking (tricycle, Virac–San Andres corridor)</li><li>Provider registration with automatic LGU-verified badge (documents, expiry, auto-suspend)</li><li>Proof of payment (QR, 15-min confirm, cash fallback)</li><li>Cancellation & no-show rules · Ratings & in-app issue reports</li><li>Tourism map with offline downloads · Weather & safety (auto storm-pause) · Trip sharing & SOS</li><li>In-app messaging between user and operator (no phone numbers shown) · SMS/Messenger notifications (simulated)</li></ul>
- <h3>Roadmap (not in this MVP)</h3><ul class="flow"><li>Motorcycle (habal-habal) riders — pending LTFRB and provincial approval</li><li>Reviews on map pins and destination pages</li><li>Multi-day Trip Builder, stays, pasalubong & local shops</li><li>Online payment gateway to replace screenshots</li><li>Bikol and Filipino language switch</li></ul>
- <h3>Open items to confirm</h3><ul class="flow"><li>Can tricycles run from every barangay to San Andres and Virac, or only from the town centers?</li><li>LGU fare matrix for the TODA corridor</li><li>Is a private motorcycle allowed to carry paying passengers in the province?</li><li>Who reviews in-app reports day-to-day: the LGU, an LUNAD support team, or both?</li><li>Cancellation fee amount and free window</li><li>Which hotline numbers should SOS use?</li></ul>`)}
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
 
 /* =================== BOOT =================== */
 function boot(){dailyChecks();save();render()}
