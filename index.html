@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.3 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.4 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1368,10 +1368,12 @@ function fmtD(s){return new Date(s+'T00:00').toLocaleDateString('en-PH',{month:'
 function dirUrl(p){return `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`}
 function svUrl(p){return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lng}`}
 function toast(m){$('#toastRoot').innerHTML=`<div class="toast">${esc(m)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toastRoot').innerHTML='',2800)}
-function modal(h){$('#modalRoot').innerHTML=`<div class="modalbg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close" onclick="closeModal()">✕</button>${h}</div></div>`}
+function modal(h){const bg=$('#modalRoot .modalbg');if(bg&&!bg.dataset.forced){bg.querySelector('.modal').innerHTML=`<button class="close" onclick="closeModal()">✕</button>${h}`;return}
+ $('#modalRoot').innerHTML=`<div class="modalbg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="close" onclick="closeModal()">✕</button>${h}</div></div>`}
 // Forced variant: no ✕, no tap-outside-to-dismiss. Used for the post-ride review steps so every
 // completed ride actually produces a review — the user can't back out of it without rating.
-function modalForced(h){$('#modalRoot').innerHTML=`<div class="modalbg"><div class="modal">${h}</div></div>`}
+function modalForced(h){const bg=$('#modalRoot .modalbg');if(bg&&bg.dataset.forced){bg.querySelector('.modal').innerHTML=h;return}
+ $('#modalRoot').innerHTML=`<div class="modalbg" data-forced="1"><div class="modal">${h}</div></div>`}
 function closeModal(){$('#modalRoot').innerHTML=''}
 function readImg(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const s=Math.min(1,480/img.width);const c=document.createElement('canvas');c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7))};img.onerror=()=>cb(r.result);img.src=r.result};r.readAsDataURL(file)}
 function fakeQR(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;const R=rng(h||1),n=25,z=6;let o='';const F=(x,y)=>`<rect x="${x*z}" y="${y*z}" width="${7*z}" height="${7*z}"/><rect x="${(x+1)*z}" y="${(y+1)*z}" width="${5*z}" height="${5*z}" fill="#fff"/><rect x="${(x+2)*z}" y="${(y+2)*z}" width="${3*z}" height="${3*z}"/>`;
@@ -1462,7 +1464,7 @@ function render(){const nav=navFor();
  $('#nav').innerHTML=nav.map(n=>`<button class="${S.tab===n[0]?'act':''}" onclick="go('${n[0]}')"><span class="i">${ic(n[1])}</span>${n[2]}</button>`).join('');
  let b='';
  const V={home:vHome,ride:vRide,map:vMap,mytrips:vMyTrips,me:vMe,offers:vOffers,status:vStatus,payset:vPaySet,register:vRegister,pinbox:vPInbox}[S.tab];
- $('#main').innerHTML=b+(S.role==='booker'&&['ride','mytrips'].includes(S.tab)?joinedHTML():'')+V();tick();maybeAutoReview();initMaps();stormCheck()}
+ $('#main').innerHTML=b+(S.role==='booker'&&['ride','mytrips'].includes(S.tab)?joinedHTML():'')+V();try{tripTick()}catch(e){}tick();maybeAutoReview();initMaps();stormCheck()}
 function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
  // Business/place review takes priority: it pops up right after ride completion,
  // before the driver rating — not after it.
