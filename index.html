@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.3 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.4 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -949,7 +949,7 @@ textarea.inp{min-height:96px;font-weight:500}
 .lug input{width:22px;height:22px;accent-color:var(--navy);flex:none}
 .live-qr{display:flex;align-items:center;gap:12px;margin-top:10px;padding:12px;border:1px dashed var(--ctrl);border-radius:10px;background:#fff}
 .live-tx{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}.live-tx b{font-size:15px}.live-tx span{font-size:12.5px;color:var(--mut);line-height:1.4}
-.live-code{width:112px;height:112px;flex:none}.live-code svg{width:100%;height:100%;display:block}
+.live-code{width:132px;height:132px;flex:none}.big-qr{width:100%;max-width:300px;margin:0 auto}.big-qr svg{width:100%;height:auto;display:block}.live-code svg{width:100%;height:100%;display:block}
 .join{position:absolute;inset:0;z-index:40;background:#fff;display:flex;flex-direction:column;overflow-y:auto}
 .join-head{background:var(--navy);color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
 .join-head .logo{font-size:20px;font-weight:800;letter-spacing:.12em}.join-tag{font-size:13px;font-weight:700;color:#F7C873}
@@ -1077,7 +1077,8 @@ function ic(name,cls,color){const s=ICONS[name];if(!s)return '';return `<svg cla
 function starRow(n,cls){n=Math.round(n||0);let h='';for(let i=1;i<=5;i++)h+=ic(i<=n?'star-f':'star-o',cls,i<=n?'#F5B544':'#cfd8d7'); return h}
 
 /* =================== STATIC DATA =================== */
-const JOIN_ONLY=location.hash.indexOf('#join-')===0;const KEY='lunad-v3', MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
+function joinCodeFromUrl(){const q=new URLSearchParams(location.search).get('join');if(q)return q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(location.hash.indexOf('#join-')===0)return location.hash.slice(6).toUpperCase();return ''}
+const JOIN_ONLY=!!joinCodeFromUrl();const KEY='lunad-v3', MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
 const TYPES={
  tricycle:{label:'Tricycle (TODA route)',e:'tricycle',kph:25,seats:3},
  moto:{label:'Moto Taxi (LUNAD rider)',e:'moto',kph:35,seats:1,inhouse:true},
@@ -1832,7 +1833,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAuto===false?'':'checked'} onchange="S.shareAuto=this.checked;save()"> Sample co-riders join shared rides</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-rider cancelling</button></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-riders are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Live shared rides need internet:</b> other phones can join by scanning the ride’s QR. Without a connection, sample co-riders join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAuto===false?'':'checked'} onchange="S.shareAuto=this.checked;save()"> Sample co-riders join shared rides</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-rider cancelling</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Join a shared ride</b><p class="muted" style="margin:4px 0 10px">Type the 6-character code shown on the rider’s booking.</p><div style="display:flex;gap:8px"><input id="joinCode" class="inp" maxlength="6" autocapitalize="characters" placeholder="e.g. KHPHJ2" aria-label="Ride code" style="text-transform:uppercase;letter-spacing:.15em"><button class="btn" onclick="joinByCode()">Join</button></div></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-riders are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Live shared rides need internet:</b> other phones can join by scanning the ride’s QR. Without a connection, sample co-riders join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
 
 /* =================== LIVE SHARED RIDES (Firebase Realtime Database) ===================
    The host's shared ride is published under /rides/{CODE}. Other phones scan the QR (#join-CODE),
@@ -1847,7 +1848,7 @@ async function liveInit(){
  try{await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js');
   firebase.initializeApp(FB_CONFIG);LIVE.db=firebase.database();
   LIVE.db.ref('.info/connected').on('value',s=>{LIVE.on=!!s.val();if(LIVE.on)liveResub()})}catch(e){LIVE.db=null}
- LIVE.ready=true;if(JOIN_ONLY)joinScreen(location.hash.slice(6).toUpperCase());else render()}
+ LIVE.ready=true;if(JOIN_ONLY)joinScreen(joinCodeFromUrl());else render()}
 function liveCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function livePublish(r){if(!LIVE.db||!LIVE.on)return false;const code=liveCode();const d=routeKm(P(r.from),P(r.to));r.liveCode=code;r.live=true;
  LIVE.db.ref('rides/'+code).set({from:r.from,to:r.to,fromName:P(r.from).n,toName:P(r.to).n,seats:SHARE.seats,createdAt:Date.now(),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),hostName:String(S.me.name||'Rider').split(' ')[0],hostSeats:mySeats(r),judgeCount:0,status:'open'}).catch(()=>{});
@@ -1865,9 +1866,12 @@ function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;con
   else if(left.length)toast(`${left.map(m=>m.n).join(', ')} left · your fare stays ${peso(rr.fare)} · LUNAD covers the gap for the driver`)})}
 function liveResub(){if(JOIN_ONLY)return;for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status))liveWatch(r)}
 function liveStatus(r,s){if(r&&r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/status').set(s).catch(()=>{})}
-function joinUrl(code){return location.origin+location.pathname+'#join-'+code}
-function liveQR(r){const url=joinUrl(r.liveCode);let svg='';try{const q=qrcode(0,'M');q.addData(url);q.make();svg=q.createSvgTag({cellSize:4,margin:2,scalable:true})}catch(e){}
- return `<div class="live-qr"><div class="live-tx"><b>Join my shared ride</b><span>Scan with another phone to join live · code <b>${r.liveCode}</b></span></div>${svg?`<div class="live-code" role="img" aria-label="QR code to join ride ${r.liveCode}">${svg}</div>`:`<span class="muted">${esc(url)}</span>`}</div>`}
+function joinUrl(code){return location.origin+location.pathname+'?join='+code}
+function liveQR(r){const url=joinUrl(r.liveCode);let svg='';try{const q=qrcode(0,'L');q.addData(url);q.make();svg=q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){}
+ return `<div class="live-qr"><div class="live-tx"><b>Join my shared ride</b><span>Scan with another phone to join live · code <b>${r.liveCode}</b>${sharedSeats(r)<SHARE.seats?' · '+(SHARE.seats-sharedSeats(r))+' seat'+(SHARE.seats-sharedSeats(r)>1?'s':'')+' free':''}</span><button class="btn sec sm" style="margin-top:6px;align-self:flex-start" onclick="bigQR('${r.liveCode}')">Show big QR</button></div>${svg?`<div class="live-code" role="img" aria-label="QR code to join ride ${r.liveCode}">${svg}</div>`:`<span class="muted">${esc(url)}</span>`}</div>`}
+function bigQR(code){const url=joinUrl(code);let svg='';try{const q=qrcode(0,'L');q.addData(url);q.make();svg=q.createSvgTag({cellSize:10,margin:3,scalable:true})}catch(e){}
+ modal(`<h2>Join my shared ride</h2><p class="muted" style="margin:0 0 12px">Point another phone’s camera here. Or open LUNAD → ☰ → Join with code.</p><div class="big-qr" role="img" aria-label="QR code to join ride ${code}">${svg}</div><p style="text-align:center;font-size:28px;font-weight:800;letter-spacing:.2em;margin:12px 0 0">${code}</p>`)}
+function joinByCode(){const el=document.getElementById('joinCode');const c=(el&&el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==6){toast('Enter the 6-character ride code');return}location.href=location.pathname+'?join='+c}
 /* ---- joiner's phone ---- */
 let JOINKEY=null;
 function joinScreen(code){let box=document.getElementById('joinScreen');if(!box){box=document.createElement('div');box.id='joinScreen';box.className='join';document.getElementById('phone').appendChild(box)}
@@ -1894,7 +1898,7 @@ function drawJoin(box,head,code,d){
  <div class="kv"><span>${mine?'You pay':'Your fare if you join'}</span><b>${peso(per)}</b></div>
  <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
  <h3>Riders</h3><ul class="join-riders">${riders}</ul>${action}
- <p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
+ <a class="btn ghost block" style="margin-top:12px;text-decoration:none" href="${location.pathname}">Open the LUNAD app</a><p class="muted" style="margin-top:18px">Demo · names are generated (Judge 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
 function joinRide(code){let key=null;
  LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;if(!(d.status==='open'))return;const used=(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0);if(used>=d.seats)return;
   const n=(d.judgeCount||0)+1;d.judgeCount=n;d.members=d.members||{};key='m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);JOINKEY=key;d.members[key]={name:'Judge '+n,pax:1,joinedAt:Date.now()};if(used+1>=d.seats)d.status='full';return d},
