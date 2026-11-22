@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.2 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.11.3 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1471,7 +1471,7 @@ function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).
  const due=S.rides.find(r=>r.booker==='me'&&r.status==='completed'&&!r.rated.b&&!r.reviewShown);
  if(due){due.reviewShown=true;save();rateModal(due.id,'b')}}
 let STORM_UNTIL=0,STORM_T=null,STORM_KEY='';function stormTowns(){return Object.entries(S.signals).filter(([k,v])=>v>0).map(([k])=>k)}function stormBar(){const towns=stormTowns();if(!towns.length)return '';const on=Date.now()<STORM_UNTIL;return `<div class="storm-bar${on?' show':''}" role="status" aria-live="polite" aria-hidden="${on?'false':'true'}">${ic('storm')}<span><b>Storm signal in ${esc(towns.join(', '))}</b> · road bookings paused</span></div>`}function flashStorm(){if(!stormTowns().length)return;STORM_UNTIL=Date.now()+3000;const el=document.querySelector('.storm-bar');if(el){el.classList.add('show');el.setAttribute('aria-hidden','false')}clearTimeout(STORM_T);STORM_T=setTimeout(()=>{const b=document.querySelector('.storm-bar');if(b){b.classList.remove('show');b.setAttribute('aria-hidden','true')}},3000)}function stormCheck(){if(S.role!=='booker'||S.tab!=='ride')return;const f=S.rideForm;const a=P(f.from),b=P(f.to);const hit=(a&&paused(a.t))||(b&&paused(b.t));const key=f.from+'|'+f.to;if(hit&&key!==STORM_KEY){STORM_KEY=key;flashStorm()}if(!hit)STORM_KEY=''}
-function setRole(r){S.role=r;S.tab=NAV[r][0][0];save();render()}
+function setRole(r){if(r!==S.role&&$('#modalRoot').innerHTML){const t=$('#modalRoot').innerText;if(typeof RT!=='undefined'&&RT&&RT.side==='b'&&/Ride completed/.test(t)){const x=ride(RT.id);if(x&&!x.rated.b)x.reviewShown=false}if(typeof BZ!=='undefined'&&BZ&&/stop by|How was your visit/i.test(t)){const x=ride(BZ.id);if(x)x.bizReviewShown=false}closeModal()}S.role=r;S.tab=NAV[r][0][0];save();render()}
 function go(t){S.tab=t;save();render();$('#main').scrollTop=0}
 
 /* =================== MAP (Module 8) =================== */
@@ -2056,12 +2056,12 @@ function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);cons
   finding:['Finding a driver…','The tricycle is full. Asking TODA drivers near '+esc(from)+'.'],
   coming:['Driver on the way',`<b>${esc(drv)}</b> accepted · arriving at ${esc(from)} in about 2 min.`],
   riding:['On the way to '+esc(to),`With ${esc(drv)} · ${used} riders on board.`],
-  arrived:['You’ve arrived','At '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
+  arrived:['You’ve arrived','At '+esc(to)+'. Pay your driver '+peso(pay)+' and rate your ride.'],
   cancelled:['Ride cancelled','The rider who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
  let act='';
  if(st==='waiting')act=a.host?`${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
  else if(st==='finding')act=`<div class="trip-spin" aria-hidden="true"></div>`;
- else if(st==='arrived')act=`<button class="btn block" onclick="tripDone()">Done</button>`;
+ else if(st==='arrived'){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Rider'):((d.members||{})[k]||{}).name||'Rider')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
  else if(st==='cancelled'||st==='gone')act=`<button class="btn block" onclick="tripDone()">Back to home</button>`;
  return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle${a.host?' · you booked':''}</span></div>
  <div class="join-body">${tripSteps(st==='gone'?'cancelled':st)}<h2 style="margin:16px 0 4px">${T[0]}</h2><p class="muted" style="margin:0 0 14px">${T[1]}</p>${act}
@@ -2081,6 +2081,22 @@ function tripDemo(a,st){const b=[];
  b.push(`<div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" onclick="setRole('provider');tripTick()">Switch to Driver</button><button class="btn ghost" style="flex:1" onclick="openAbout()">Menu</button></div>`);
  return `<div class="trip-demo"><b>Demo controls</b>${b.join('')}</div>`}
 
+
+/* At 'arrived' each phone completes its own copy of the trip and opens the normal review form (Rider side only). */
+function tripArrive(a){if($('#modalRoot').innerHTML)return;const d=a.d||{};
+ if(a.host){const r=a.r;if(r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];const pay=r.fare;complete(r.id);r.fare=pay;save();render()}return}
+ let r=S.rides.find(x=>x.joinCode===a.code);
+ if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type==='tricycle');
+  const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0);
+  let pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best;
+  r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:'tricycle',pax:1,start:Date.now()-((TRIP_T.ride-TRIP_T.come)||0)});
+  Object.assign(r,{pid:p?p.id:null,status:'completed',end:Date.now(),fare:pay,shared:true,joinCode:a.code,joinKey:a.j.key,co:[]});S.rides.push(r);save()}
+ render()}
+function tripRated(r,stars){const code=r.liveCode||r.joinCode;if(!code||!LIVE.db)return;const who=r.joinCode?r.joinKey:'host';
+ LIVE.db.ref('rides/'+code+'/ratings/'+who).set({s:stars,at:Date.now()}).catch(()=>{});
+ if(r.joinCode)setJoins(myJoins().filter(j=>j.code!==r.joinCode));else r.tripDone=true;save();const el=document.getElementById('tripLock');if(el)el.remove()}
+(function(){const o=saveRate;saveRate=function(){const id=RT.id,side=RT.side,stars=RT.stars;o();const r=ride(id);if(r&&side==='b'&&r.rated&&r.rated.b&&(r.liveCode||r.joinCode))tripRated(r,stars)}})();
+
 function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
  else setJoins(myJoins().filter(j=>j.code!==a.code));const el=document.getElementById('tripLock');if(el)el.remove();S.tab='home';render()}
 function tripTick(){const a=activeTrip();let el=document.getElementById('tripLock');
@@ -2089,6 +2105,7 @@ function tripTick(){const a=activeTrip();let el=document.getElementById('tripLoc
   if(st==='waiting'&&sharedSeats(r)>=SHARE.seats)markFull(r);
   if(['coming','riding','arrived'].includes(st)&&r.status==='pending'){r.pid=(r.cands||[])[0];r.status='accepted';save()}
   if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';save()}}
+ if(a.d&&tripStage(a.d)==='arrived')setTimeout(()=>tripArrive(a),0);
  if(!el){el=document.createElement('div');el.id='tripLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
  const h=tripHTML(a);if(el._h!==h){el.innerHTML=h;el._h=h}}
 setInterval(tripTick,1000);
