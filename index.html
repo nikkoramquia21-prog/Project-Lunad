@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.14.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.15.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -953,6 +953,14 @@ textarea.inp{min-height:96px;font-weight:500}
 .near-card{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;margin-bottom:8px;padding:10px 14px;border:2px solid var(--sun-line);border-radius:10px;background:var(--sun-tint);color:var(--navy);text-align:left;cursor:pointer;font:inherit}
 .near-tx{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.near-tx b{font-size:15px}.near-tx span{font-size:12.5px;color:var(--sun-text);font-weight:600}
 .near-fare{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:800;background:var(--sunc);border-radius:8px;padding:6px 10px;flex:none}.near-fare small{font-size:11px;font-weight:700}
+.ac{position:relative}
+.ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(13,27,42,.16);z-index:12;max-height:320px;overflow-y:auto}
+.ac-item{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:8px 12px;border:0;border-bottom:1px solid var(--divider);background:#fff;text-align:left;font:inherit;color:var(--navy);cursor:pointer}
+.ac-item:last-child{border-bottom:0}.ac-item:hover,.ac-item:focus-visible{background:var(--alt)}
+.ac-item .tile{width:34px;height:34px;border-radius:8px;background:var(--alt);display:flex;align-items:center;justify-content:center;flex:none}.ac-item .tile .ic{width:18px;height:18px}
+.ac-item .tx{display:flex;flex-direction:column;gap:2px;min-width:0}.ac-item b{font-size:15px;font-weight:600}.ac-item .tx span{font-size:12.5px;color:var(--mut)}
+.ac-item mark,.wt-item mark{background:var(--sun-tint);color:inherit;font-weight:800;padding:0 1px;border-radius:3px}
+
 #tripLock.trip-lock{z-index:15}
 .trip-steps{list-style:none;display:flex;gap:4px;padding:0;margin:4px 0 0}
 .trip-steps li{flex:1;display:flex;flex-direction:column;gap:6px;font-size:11.5px;font-weight:700;color:var(--sub)}
@@ -1549,7 +1557,8 @@ function openWhereTo(){const from=P(S.rideForm.from);
  <div class="wt-body"><button class="wt-map" onclick="wtOnMap()"><span class="tile">${ic('pin')}</span><span class="tx"><b>Choose on map</b><span>Tap the map to drop your pin</span></span></button>
  <div id="wtList">${wtItems('')}</div></div></div>`;
  setTimeout(()=>{const q=$('#wtq');if(q)q.focus()},60)}
-function wtItems(q){q=(q||'').trim().toLowerCase();let h='';
+function wtItems(q){const raw=q||'';q=raw.trim().toLowerCase();let h='';
+ if(q){const l=acMatch(raw,8);h=(l.length?`<h3>Suggestions</h3>`+l.map(p=>acRow(p,raw,`wtPick('${p.id}')`).replace('ac-item','wt-item')).join(''):'')+`<button class="wt-item" onclick="wtEnter($('#wtq').value)"><span class="tile">${ic('search')}</span><span class="tx"><b>Use “${esc(raw.trim())}”</b><span>${l.length?'Not listed? We':'No match — we'}'ll place it near the matching town; adjust the pin on the map</span></span></button>`;return h}
  for(const [k,l] of WT_GROUPS){const items=PLACES.filter(p=>p.k===k&&(!q||(p.n+' '+p.t).toLowerCase().includes(q)));
   if(items.length)h+=`<h3>${l}</h3>`+items.map(p=>`<button class="wt-item" onclick="wtPick('${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.t)}, Catanduanes</span></span></button>`).join('')}
  if(!h&&q)h=`<button class="wt-item" onclick="wtEnter($('#wtq').value)"><span class="tile">${ic('search')}</span><span class="tx"><b>Use “${esc(q)}”</b><span>We'll place it near the matching town — adjust the pin on the map</span></span></button>`;
@@ -1610,15 +1619,35 @@ function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['
  ${featured.map(destCard).join('')}
  ${active?`<p class="muted" style="text-align:center">${ic('clock','sm')} ${active} active booking${active>1?'s':''} — see Bookings for details.</p>`:''}`}
 
+
+/* ---- Autofill: ranked suggestions from LUNAD's own places (landmarks, spots, businesses, stays, towns) ---- */
+function acNorm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(sample\)/g,'').replace(/\s+/g,' ').trim()}
+function acKind(p){return p.cat||({hub:'Landmark',spot:'Tourist spot',stay:'Stay',shop:'Shop',town:'Town',pin:'Pinned place'})[p.k]||'Place'}
+function acMatch(q,limit){q=acNorm(q);if(!q)return [];const out=[];const seen=new Set();
+ for(const p of [...S.custom.filter(x=>x.mine),...PLACES]){if(seen.has(p.id))continue;seen.add(p.id);const n=acNorm(p.n),t=acNorm(p.t),c=acNorm(acKind(p));let sc=-1;
+  if(n.startsWith(q))sc=0;else if(n.split(/[\s\-–(’']+/).some(w=>w&&w.startsWith(q)))sc=1;else if(n.includes(q))sc=2;else if(c.includes(q))sc=3;else if(t.startsWith(q))sc=4;
+  if(sc>=0)out.push({p,sc})}
+ return out.sort((a,b)=>a.sc-b.sc||a.p.n.length-b.p.n.length).slice(0,limit||6).map(x=>x.p)}
+function acHi(name,q){const n=String(name).replace(' (sample)','');const i=acNorm(n).indexOf(acNorm(q));const L=acNorm(q).length;
+ return i<0||L===0?esc(n):esc(n.slice(0,i))+'<mark>'+esc(n.slice(i,i+L))+'</mark>'+esc(n.slice(i+L))}
+function acRow(p,q,onclick){return `<button type="button" class="ac-item" onmousedown="event.preventDefault()" onclick="${onclick}"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${acHi(p.n,q)}</b><span>${esc(acKind(p))} · ${esc(p.t)}</span></span></button>`}
+function acInput(which,el){const box=el.nextElementSibling;const q=el.value;if(!box)return;
+ if(!q.trim()){box.innerHTML='';box.hidden=true;return}
+ const l=acMatch(q,6);box.hidden=false;
+ box.innerHTML=l.map(p=>acRow(p,q,`acPick('${which}','${p.id}')`)).join('')+`<button type="button" class="ac-item" onmousedown="event.preventDefault()" data-q="${esc(q)}" onclick="pickByText('${which}',this.dataset.q)"><span class="tile">${ic('search')}</span><span class="tx"><b>Use “${esc(q)}”</b><span>${l.length?'Not listed? Pin it near the matching town':'No match — pin it near the matching town'}, then adjust on the map</span></span></button>`}
+function acPick(which,id){S.rideForm[which]=id;if(which==='from')S.rideForm.pin='to';save();render();toast((which==='from'?'Pickup':'Drop-off')+' set to '+P(id).n.replace(' (sample)',''))}
+function acKey(which,el,e){if(e.key==='Enter'){e.preventDefault();const l=acMatch(el.value,1);if(l.length)acPick(which,l[0].id);else pickByText(which,el.value)}else if(e.key==='Escape'){el.value='';acInput(which,el)}}
+function acField(which){return `<div class="ac"><input class="inp" style="margin-top:6px" placeholder="${which==='from'?'Search pickup — landmark, place or town':'Search drop-off — landmark, place or town'}" autocomplete="off" autocapitalize="words" aria-label="${which==='from'?'Search pickup':'Search drop-off'}" oninput="acInput('${which}',this)" onkeydown="acKey('${which}',this,event)" onblur="setTimeout(()=>{const b=this.nextElementSibling;if(b)b.hidden=true},180)" onfocus="const m=$('#main'),r=this.getBoundingClientRect(),mr=m.getBoundingClientRect();m.scrollTop+=r.top-mr.top-12;if(this.value)acInput('${which}',this)"><div class="ac-list" role="listbox" hidden></div></div>`}
+
 function vRideNoDrop(a){const f=S.rideForm;if(f.pin!=='from')f.pin='to';let h=activeCard();
  h+=`<h2>Book a ride</h2>
  <datalist id="placeList">${[...PLACES,...S.custom].map(p=>`<option value="${esc(p.n)}">`).join('')}${Object.keys(TOWNS).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
  <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('pin')} Drop-off</span></div>
  ${mapView('map-ride',{route:[a,a],marks:[[a,'pickup','#0D1B2A',esc(a.n)]],drop:true,h:230})}
  <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
- <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('from',this.value);this.value=''">
+ ${acField('from')}
  <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()"><option value="" selected disabled>Where are you going?</option>${placeOpts('')}</select>
- <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('to',this.value);this.value=''">
+ ${acField('to')}
  <p class="muted" style="margin:12px 0 8px">Choose a drop-off to see vehicles and fares.</p>
  <button class="btn block" disabled>Request ride</button></div>`;return h}
 function autoGPS(){if(JOIN_ONLY||!navigator.geolocation)return;
@@ -1638,9 +1667,9 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='c
  <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('flag')} Drop-off</span></div>
  ${mapView('map-ride',{route:[a,b],marks,drop:true,h:230})}
  <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
- <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('from',this.value);this.value=''">
+ ${acField('from')}
  <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()">${placeOpts(f.to)}</select>
- <input class="inp" list="placeList" placeholder="Or type a barangay, street or landmark" style="margin-top:6px" onchange="pickByText('to',this.value);this.value=''">
+ ${acField('to')}
  ${attractionCard(b)}
  <label class="f">Vehicle</label>${ONDEMAND.map(k=>`<div class="veh-card ${f.type===k?'on':''}" onclick="S.rideForm.type='${k}';save();render()">
   <div class="ic-badge">${ic(TYPES[k].e)}</div>
