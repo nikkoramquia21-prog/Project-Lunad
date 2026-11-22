@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.22.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.22.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1099,6 +1099,10 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 #lunadSplash{border-radius:0}
 }
 @media(min-width:821px) and (max-height:940px){.iph{transform:scale(calc((100vh - 40px) / 898px));transform-origin:top center;margin-bottom:calc(898px * ((100vh - 40px) / 898px) - 898px)}}
+
+#doneLock.trip-lock,#tripLock.trip-lock{z-index:15}
+
+@media(min-width:821px){.iph>.phone .join,.iph>.phone .wt{top:54px}}
 </style>
 </head>
 <body>
