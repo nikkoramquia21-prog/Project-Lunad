@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.8 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.9 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1947,7 +1947,7 @@ function nearbyHTML(){if(!LIVE.db)return '';const all=S.shareAll===true;nearbySu
  const near=all?open:open.filter(o=>o.dist!=null&&o.dist<=500),far=all?[]:open.filter(o=>!(o.dist!=null&&o.dist<=500));
  const where=all?'Showing all open shared rides (demo)':NEAR.posLabel?`Pickups within 500 m of ${esc(NEAR.posLabel)}`:'Finding your location…';
  return `<h3>Shared rides near you</h3><p class="muted" style="margin:-4px 0 8px">${where} · updates live</p>`+(near.length?near.map(nearCard).join(''):`<div class="card muted">No open shared rides within 500 m right now. They appear here the moment someone books one.</div>`)
-  +(far.length?`<h3 style="margin-top:14px">Elsewhere on the island</h3>`+far.slice(0,5).map(nearCard).join(''):'')+(!NEAR.asked&&!all?`<button class="btn sec block" style="margin-top:10px" onclick="nearbyStart()">${ic('target')} Use my location</button>`:'')}
+  +(!NEAR.asked&&!all?`<button class="btn sec block" style="margin-top:10px" onclick="nearbyStart()">${ic('target')} Use my location</button>`:'')}
 function openJoin(code){joinScreen(code)}
 function sampleRiders(id){const r=ride(id);if(!r)return;if(r.liveCode)liveStatus(r,'closed');r.live=false;delete r.livePending;r.sampleCo=true;r.coDone=false;r.co=[];coJoin(r);save();render()}
 function liveStatus(r,s){if(r&&r.liveCode&&LIVE.db){LIVE.db.ref('rides/'+r.liveCode+'/status').set(s).catch(()=>{});if(s!=='open')LIVE.db.ref('open/'+r.liveCode).remove().catch(()=>{})}}
