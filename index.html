@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.6 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.9.7 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1933,19 +1933,21 @@ function nearbySub(){if(NEAR.sub||!LIVE.db)return;NEAR.sub=true;LIVE.db.ref('ope
 function nearbyStart(){NEAR.asked=true;nearbySub();NEAR.posLabel='';render();
  const fallback=()=>{const p=P(S.rideForm.from);NEAR.pos=p?{lat:p.lat,lng:p.lng}:null;NEAR.posLabel=p?p.n.replace(' (sample)',''):'';render()};
  if(!navigator.geolocation){fallback();return}
- navigator.geolocation.getCurrentPosition(g=>{NEAR.pos={lat:g.coords.latitude,lng:g.coords.longitude};NEAR.posLabel='you';render()},fallback,{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
+ navigator.geolocation.getCurrentPosition(g=>{const la=g.coords.latitude,ln=g.coords.longitude;if(!(la>=GEO_BOUNDS.lat0&&la<=GEO_BOUNDS.lat1&&ln>=GEO_BOUNDS.lng0&&ln<=GEO_BOUNDS.lng1)){fallback();return}NEAR.pos={lat:la,lng:ln};NEAR.posLabel='you';render()},fallback,{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
 function openIndex(r){if(!LIVE.db||!r||!r.liveCode)return;const ref=LIVE.db.ref('open/'+r.liveCode);const used=sharedSeats(r);
  if(!r.live||!r.shared||!['pending','accepted'].includes(r.status)||used>=SHARE.seats){ref.remove().catch(()=>{});return}
  const p=P(r.from),d=routeKm(P(r.from),P(r.to));ref.set({lat:p.lat,lng:p.lng,fromName:p.n.replace(' (sample)',''),toName:P(r.to).n.replace(' (sample)',''),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),seats:SHARE.seats,used,createdAt:r.createdAt}).catch(()=>{})}
+function nearCard(o){const left=o.seats-o.used;const per=Math.round(Math.min(o.reg,o.whole/Math.min(o.used+1,o.seats)));
+ return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>Goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}
 function nearbyHTML(){if(!LIVE.db)return '';const all=S.shareAll===true;if(all)nearbySub();
  if(!NEAR.asked&&!all)return `<h3>Shared rides near you</h3><button class="btn sec block" onclick="nearbyStart()">${ic('target')} Find shared rides near me</button>`;
  const mine=S.rides.map(r=>r.liveCode).filter(Boolean);
- const list=NEAR.items.filter(o=>!mine.includes(o.code)&&o.used<o.seats&&Date.now()-o.createdAt<3*60*MIN)
-  .map(o=>Object.assign({},o,{dist:NEAR.pos?km(NEAR.pos,o)*1000:null})).filter(o=>all||(o.dist!=null&&o.dist<=500)).sort((a,b)=>(a.dist||0)-(b.dist||0));
+ const open=NEAR.items.filter(o=>!mine.includes(o.code)&&o.used<o.seats&&Date.now()-o.createdAt<3*60*MIN)
+  .map(o=>Object.assign({},o,{dist:NEAR.pos?km(NEAR.pos,o)*1000:null})).sort((a,b)=>(a.dist==null?1e9:a.dist)-(b.dist==null?1e9:b.dist)||b.createdAt-a.createdAt);
+ const near=all?open:open.filter(o=>o.dist!=null&&o.dist<=500),far=all?[]:open.filter(o=>!(o.dist!=null&&o.dist<=500));
  const where=all?'Showing all open shared rides (demo)':NEAR.posLabel?`Pickups within 500 m of ${esc(NEAR.posLabel)}`:'Finding your location…';
- return `<h3>Shared rides near you</h3><p class="muted" style="margin:-4px 0 8px">${where}</p>`+(list.length?list.map(o=>{const left=o.seats-o.used;const per=Math.round(Math.min(o.reg,o.whole/Math.min(o.used+1,o.seats)));
-  return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>Goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}).join('')
-  :`<div class="card muted">No open shared rides nearby right now.</div>`)}
+ return `<h3>Shared rides near you</h3><p class="muted" style="margin:-4px 0 8px">${where} · updates live</p>`+(near.length?near.map(nearCard).join(''):`<div class="card muted">No open shared rides within 500 m right now.</div>`)
+  +(far.length?`<h3 style="margin-top:14px">Elsewhere on the island</h3>`+far.slice(0,5).map(nearCard).join(''):'')}
 function openJoin(code){joinScreen(code)}
 function liveStatus(r,s){if(r&&r.liveCode&&LIVE.db){LIVE.db.ref('rides/'+r.liveCode+'/status').set(s).catch(()=>{});if(s!=='open')LIVE.db.ref('open/'+r.liveCode).remove().catch(()=>{})}}
 function joinUrl(code){return location.origin+location.pathname+'?join='+code}
