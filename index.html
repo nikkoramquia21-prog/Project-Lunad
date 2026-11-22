@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.19.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.20.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1523,10 +1523,11 @@ function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).
 const RIDE_REVIEW=false; // ride/driver review switched off for now
 let STORM_UNTIL=0,STORM_T=null,STORM_KEY='';function stormTowns(){return Object.entries(S.signals).filter(([k,v])=>v>0).map(([k])=>k)}function stormBar(){const towns=stormTowns();if(!towns.length)return '';const on=Date.now()<STORM_UNTIL;return `<div class="storm-bar${on?' show':''}" role="status" aria-live="polite" aria-hidden="${on?'false':'true'}">${ic('storm')}<span><b>Storm signal in ${esc(towns.join(', '))}</b> · road bookings paused</span></div>`}function flashStorm(){if(!stormTowns().length)return;STORM_UNTIL=Date.now()+3000;const el=document.querySelector('.storm-bar');if(el){el.classList.add('show');el.setAttribute('aria-hidden','false')}clearTimeout(STORM_T);STORM_T=setTimeout(()=>{const b=document.querySelector('.storm-bar');if(b){b.classList.remove('show');b.setAttribute('aria-hidden','true')}},3000)}function stormCheck(){if(S.role!=='booker'||S.tab!=='ride')return;const f=S.rideForm;const a=P(f.from),b=P(f.to);const hit=(a&&paused(a.t))||(b&&paused(b.t));const key=f.from+'|'+f.to;if(hit&&key!==STORM_KEY){STORM_KEY=key;flashStorm()}if(!hit)STORM_KEY=''}
 
-function myHeld(){return S.rides.filter(r=>r.booker==='me'&&!(r.live&&r.shared)&&(r.status==='pending'||['accepted','started'].includes(r.status))).sort((a,b)=>b.createdAt-a.createdAt)[0]}
+function myHeld(){return S.rides.filter(r=>r.booker==='me'&&!r.tripDone&&(r.status==='pending'||['accepted','started'].includes(r.status))).sort((a,b)=>b.createdAt-a.createdAt)[0]}
 function holderOf(r){return r?(r.status==='pending'?r.cands[r.offerIdx]:r.pid):null}
 function holdBanner(){const r=myHeld();const hid=holderOf(r);const h=hid&&prov(hid);if(!h)return '';const di=drvInfo(h);const route=esc(P(r.from).n.replace(' (sample)',''))+' → '+esc(P(r.to).n.replace(' (sample)',''));
- const what=r.status==='pending'?'Accept it below.':r.status==='accepted'?'Tap Arrived at pickup, then Start trip.':'Tap Complete ride at the drop-off.';
+ const sst=r.live&&r.shared&&HOSTD[r.liveCode]?tripStage(HOSTD[r.liveCode]):'';
+ const what=sst==='waiting'?'The request appears below when the seats fill.':sst==='finding'?'Accept it below.':sst==='coming'?'Tap Arrived at pickup, then Start trip.':sst==='riding'?'Tap Complete ride at the drop-off.':r.status==='pending'?'Accept it below.':r.status==='accepted'?'Tap Arrived at pickup, then Start trip.':'Tap Complete ride at the drop-off.';
  if(S.actingAs===hid)return `<div class="hold-bn">${ic('user')}<span><b>Your booking ${r.id} is with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)} · ${route}. ${what}</span></div>`;
  return `<div class="hold-bn alt">${ic('user')}<span><b>Your booking ${r.id} is now with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)}</span><button class="btn sm" onclick="S.actingAs='${hid}';save();render()">Switch to ${esc(di.name)}</button></div>`}
 
@@ -1952,7 +1953,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
  let h=`<h2>${ic('file-text')} Offers & jobs</h2>${holdBanner()}${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
- if(autoShared.length)h+=autoShared.map(r=>{const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const L={waiting:'Waiting for riders · '+sharedSeats(r)+' of '+seatsOf(r),finding:'Finding a driver…',coming:'Driver on the way',riding:'On the trip',arrived:'Arrived',cancelled:'Cancelled'}[st]||st;return `<div class="card"><div class="share-line">${ic('tricycle')} Live shared ride · ${esc(L)}</div><b style="display:block;margin-top:8px">${esc(P(r.from).n.replace(' (sample)',''))} → ${esc(P(r.to).n.replace(' (sample)',''))}</b><p class="muted" style="margin:6px 0 10px">In this demo a sample TODA driver runs shared rides automatically, in sync on every phone. Switch to Rider to follow the trip.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button></div>`}).join('');
+ if(autoShared.length)h+=autoShared.map(shDrvCard).join('');
  h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
@@ -2144,9 +2145,15 @@ function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const
 const TRIP_T={find:6000,come:18000,ride:33000};
 const HOSTD={};
 function nowS(){return Date.now()+(LIVE.off||0)}
-function tripStage(d){if(!d)return 'gone';if(d.cancelled)return 'cancelled';if(!d.fullAt)return ['closed'].includes(d.status)?'cancelled':'waiting';const t=nowS()-d.fullAt;
- return t<TRIP_T.find?'finding':t<TRIP_T.come?'coming':t<TRIP_T.ride?'riding':'arrived'}
-function hostSub(code){if(!LIVE.db||HOSTD['s'+code])return;HOSTD['s'+code]=1;LIVE.db.ref('rides/'+code).on('value',s=>{HOSTD[code]=s.val()},()=>{})}
+const TRIP_AUTO=30000;
+function tripStage(d){if(!d)return 'gone';if(d.cancelled)return 'cancelled';if(!d.fullAt)return ['closed'].includes(d.status)?'cancelled':'waiting';
+ if(d.drvAt){if(d.doneAt)return 'arrived';if(d.startAt)return 'riding';return 'coming'}
+ const el=nowS()-d.fullAt;if(el<TRIP_AUTO)return 'finding';const t=el-TRIP_AUTO+TRIP_T.find;return t<TRIP_T.come?'coming':t<TRIP_T.ride?'riding':'arrived'}
+function tripProg(d){const st=tripStage(d);const n=nowS();let tc=0,tr=0;
+ if(d&&d.drvAt){tc=d.pickAt?1:Math.min(0.97,(n-d.drvAt)/45000);tr=d.doneAt?1:d.startAt?Math.min(0.97,(n-d.startAt)/90000):0}
+ else if(d&&d.fullAt){const t=n-d.fullAt-TRIP_AUTO+TRIP_T.find;tc=Math.max(0,Math.min(1,(t-TRIP_T.find)/(TRIP_T.come-TRIP_T.find)));tr=Math.max(0,Math.min(1,(t-TRIP_T.come)/(TRIP_T.ride-TRIP_T.come)))}
+ return {st,tc,tr}}
+function hostSub(code){if(!LIVE.db||HOSTD['s'+code])return;HOSTD['s'+code]=1;LIVE.db.ref('rides/'+code).on('value',s=>{const was=HOSTD[code]?tripStage(HOSTD[code]):'';HOSTD[code]=s.val();if(S.role==='provider'&&S.tab==='offers'&&!($('#modalRoot')||{}).innerHTML&&tripStage(HOSTD[code])!==was)render()},()=>{})}
 function markFull(r){if(!LIVE.db||!r.liveCode)return;const ref=LIVE.db.ref('rides/'+r.liveCode);ref.child('fullAt').transaction(x=>x||nowS()).catch(()=>{});
  const p=prov(r.pid||(r.cands||[])[0])||S.providers.find(x=>x.type===r.type)||{n:'Virac TODA driver'};{const di=drvInfo(p.id?p:null);ref.child('driver').transaction(x=>x&&x.plate?x:Object.assign({n:p.n},di?{name:di.name,op:di.op,plate:di.plate,type:di.type,rv:di.rv,rc:di.rc}:{})).catch(()=>{})}}
 function activeTrip(){if(S.role!=='booker'||document.getElementById('joinScreen'))return null;
@@ -2165,7 +2172,7 @@ function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);cons
  const riders=[`<li><b>${esc((d&&d.hostName)||'Rider')}</b>${a.host?' <span class="st ok sm">You</span>':''} <span class="muted">· booked the ride</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${!a.host&&k===a.j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
  const dots=Array.from({length:seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
  const T={waiting:['Waiting for riders',`Leaves when all ${seats} seats are filled${MIN_GO[tripType(a)]?`, or from ${MIN_GO[tripType(a)]} riders`:''}. ${seats-used} seat${seats-used===1?'':'s'} left.`],
-  finding:['Finding a driver…','Your '+vehW(tripType(a))+' is ready to go. Asking '+(tripType(a)==='tricycle'?'TODA ':'')+'drivers near '+esc(from)+'.'],
+  finding:['Finding a driver…','Your '+vehW(tripType(a))+' is ready to go. Asking '+(tripType(a)==='tricycle'?'TODA ':'')+'drivers near '+esc(from)+'. A sample driver steps in after 30 s if no one accepts.'],
   coming:['Driver on the way',`Your ${vehW(tripType(a))} is heading to ${esc(from)}. Check the plate before you get on.`],
   riding:['On the way to '+esc(to),`${used} riders on board.`],
   arrived:['Trip completed','You’ve arrived at '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
@@ -2186,7 +2193,10 @@ function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);cons
 function fillSample(code){if(!LIVE.db)return;LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;d.members=d.members||{};let used=(d.hostSeats||1)+Object.values(d.members).reduce((s,m)=>s+(m.pax||1),0);let i=1;
   while(used<d.seats){d.members['s'+Date.now().toString(36)+i]={name:'Sample rider '+i,pax:1,joinedAt:Date.now()};used++;i++}d.status='full';d.fullAt=d.fullAt||nowS();return d},
  (e,ok)=>{toast(ok?'Sample riders filled the empty seats':'Could not add sample riders — check your connection')})}
-function skipStep(code){if(!LIVE.db)return;LIVE.db.ref('rides/'+code+'/fullAt').transaction(x=>{const t=nowS();if(!x)return t;const el=t-x;const next=el<TRIP_T.find?TRIP_T.find:el<TRIP_T.come?TRIP_T.come:TRIP_T.ride;return t-next-200})}
+function skipStep(code){if(!LIVE.db)return;const n=nowS();LIVE.db.ref('rides/'+code).transaction(d=>{if(!d||!d.fullAt)return d;
+ if(d.drvAt){if(!d.pickAt)d.pickAt=n;else if(!d.startAt)d.startAt=n;else if(!d.doneAt)d.doneAt=n;return d}
+ const el=n-d.fullAt;if(el<TRIP_AUTO){d.fullAt=n-TRIP_AUTO-50;return d}
+ const t=el-TRIP_AUTO+TRIP_T.find;const next=t<TRIP_T.come?TRIP_T.come:TRIP_T.ride;d.fullAt=n-(next-TRIP_T.find+TRIP_AUTO)-200;return d}).catch(()=>{})}
 function tripDemo(a,st){const b=[];
  if(a.host&&st==='waiting')b.push(`<button class="btn sec block" onclick="fillSample('${a.code}')">Fill empty seats with sample riders</button>`);
  if(['finding','coming','riding'].includes(st))b.push(`<button class="btn sec block" onclick="skipStep('${a.code}')">Skip to next step</button>`);
@@ -2243,16 +2253,18 @@ function lerpP(a,b,t){t=Math.max(0,Math.min(1,t));return {lat:a.lat+(b.lat-a.lat
 function fmtKm(k){return k<1?Math.max(10,Math.round(k*1000/10)*10)+' m':k.toFixed(1)+' km'}
 function drvState(key,plate){const now=Date.now();
  if(key==='trip'){const a=activeTrip();if(!a||!a.d)return null;const d=a.d;const A=P(d.from)||P(a.r&&a.r.from),B=P(d.to)||P(a.r&&a.r.to);if(!A||!B)return null;
-  const s=startPt(A,a.code);const st=tripStage(d);const el=nowS()-(d.fullAt||nowS());
-  if(st==='coming'){const t=(el-TRIP_T.find)/(TRIP_T.come-TRIP_T.find);const pos=lerpP(s,A,t);const k=km(pos,A);return {A,B,s,pos,text:t>=0.97?`Your driver is at ${A.n.replace(' (sample)','')} — look for plate ${plate}`:`${fmtKm(k)} away · arriving in ~${Math.max(1,Math.round(k/0.35))} min · look for plate ${plate}`}}
-  if(st==='riding'){const t=(el-TRIP_T.come)/(TRIP_T.ride-TRIP_T.come);const pos=lerpP(A,B,t);return {A,B,s,pos,text:`On the way · ${fmtKm(km(pos,B))} to ${B.n.replace(' (sample)','')}`}}
-  if(st==='arrived')return {A,B,s,pos:B,text:`Arrived at ${B.n.replace(' (sample)','')}`};return null}
+  const s=startPt(A,a.code);const g=tripProg(d);
+  if(g.st==='coming'){const pos=lerpP(s,A,g.tc);const k=km(pos,A);return {A,B,s,pos,text:g.tc>=0.97?`Your driver is at ${A.n.replace(' (sample)','')} — look for plate ${plate}`:`${fmtKm(k)} away · arriving in ~${Math.max(1,Math.round(k/0.35))} min · look for plate ${plate}`}}
+  if(g.st==='riding'){const pos=lerpP(A,B,g.tr);return {A,B,s,pos,text:`On the way · ${fmtKm(km(pos,B))} to ${B.n.replace(' (sample)','')}`}}
+  if(g.st==='arrived')return {A,B,s,pos:B,text:`Arrived at ${B.n.replace(' (sample)','')}`};return null}
  const r=ride(key.slice(2));if(!r||!r.pid)return null;const A=P(r.from),B=P(r.to);if(!A||!B)return null;const s=startPt(A,r.id);
  if(r.status==='accepted'){if(r.arriving)return {A,B,s,pos:A,text:`Your driver is at your pickup — look for plate ${plate}`};
   const t=(now-(r.acceptedAt||now))/60000;const pos=lerpP(s,A,t);const k=km(pos,A);return {A,B,s,pos,text:t>=1?`Arriving now — look for plate ${plate}`:`${fmtKm(k)} away · arriving in ~${Math.max(1,Math.round(k/0.35))} min · look for plate ${plate}`}}
  if(r.status==='started'){const t=(now-(r.startedAt||now))/90000;const pos=lerpP(A,B,t);return {A,B,s,pos,text:t>=1?`Almost at ${B.n.replace(' (sample)','')}`:`On the way · ${fmtKm(km(pos,B))} to ${B.n.replace(' (sample)','')}`}}
  return null}
-function drvTick(){document.querySelectorAll('.drv-live').forEach(el=>{const st=drvState(el.dataset.key,el.dataset.plate);const eta=el.querySelector('.drv-eta'),mp=el.querySelector('.drv-map');
+let SHSIG='';function drvTick(){document.querySelectorAll('.cd2').forEach(el=>{const s=Math.max(0,Math.ceil((+el.dataset.until-nowS())/1000));el.textContent=' '+s+' s'});
+ if(S.role==='provider'&&S.tab==='offers'&&!($('#modalRoot')||{}).innerHTML){const sig=S.rides.filter(r=>r.live&&r.shared&&HOSTD[r.liveCode]).map(r=>tripStage(HOSTD[r.liveCode])).join();if(sig!==SHSIG){const first=!SHSIG;SHSIG=sig;if(!first)render()}}
+document.querySelectorAll('.drv-live').forEach(el=>{const st=drvState(el.dataset.key,el.dataset.plate);const eta=el.querySelector('.drv-eta'),mp=el.querySelector('.drv-map');
  if(!st){if(eta)eta.textContent='Waiting for your driver…';return}if(eta&&eta.textContent!==st.text)eta.textContent=st.text;{const e2=el.querySelector('.drv-eta2');const tx=dropEta(el.dataset.key);if(e2&&e2.textContent!==tx)e2.textContent=tx}
  if(!hasLeaflet()||!mp){if(mp)mp.style.display='none';return}
  try{if(!el._m){const m=L.map(mp,{zoomControl:false,attributionControl:true,dragging:true,scrollWheelZoom:false});
@@ -2270,9 +2282,9 @@ function tripDrv(a){const dd=(a.d&&a.d.driver)||{};if(dd.plate)return {name:dd.n
 
 function clock(ms){const d=new Date(ms);let h=d.getHours(),m=d.getMinutes();const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap}
 function dropEta(key){const now=Date.now();
- if(key==='trip'){const a=activeTrip();if(!a||!a.d)return '';const d=a.d;const A=P(d.from),B=P(d.to);if(!A||!B)return '';const st=tripStage(d);const rideMin=dur(routeKm(A,B),tripType(a));const el=nowS()-(d.fullAt||nowS());
-  if(st==='coming'){const t=Math.max(0,Math.min(1,(el-TRIP_T.find)/(TRIP_T.come-TRIP_T.find)));const pm=Math.max(0,Math.round(km(lerpP(startPt(A,a.code),A,t),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
-  if(st==='riding'){const t=Math.max(0,Math.min(1,(el-TRIP_T.come)/(TRIP_T.ride-TRIP_T.come)));const m=Math.max(1,Math.round(rideMin*(1-t)));return `Drop-off ETA ${clock(now+m*MIN)} · ${m} min left`}
+ if(key==='trip'){const a=activeTrip();if(!a||!a.d)return '';const d=a.d;const A=P(d.from),B=P(d.to);if(!A||!B)return '';const g=tripProg(d);const rideMin=dur(routeKm(A,B),tripType(a));
+  if(g.st==='coming'){const pm=Math.max(0,Math.round(km(lerpP(startPt(A,a.code),A,g.tc),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
+  if(g.st==='riding'){const m=Math.max(1,Math.round(rideMin*(1-g.tr)));return `Drop-off ETA ${clock(now+m*MIN)} · ${m} min left`}
   return ''}
  const r=ride(key.slice(2));if(!r)return '';const A=P(r.from),B=P(r.to);if(!A||!B)return '';const rideMin=dur(routeKm(A,B),r.type);
  if(r.status==='accepted'){const t=Math.max(0,Math.min(1,(now-(r.acceptedAt||now))/60000));const pm=r.arriving?0:Math.max(0,Math.round(km(lerpP(startPt(A,r.id),A,t),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
@@ -2300,6 +2312,35 @@ function doneTick(){let el=document.getElementById('doneLock');
  if(!el){el=document.createElement('div');el.id='doneLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
  const h=doneHTML(r);if(el._h!==h){el.innerHTML=h;el._h=h}}
 setInterval(doneTick,1000);
+
+
+/* ---- Driver screen: shared ride request + controls (synced to every rider phone) ---- */
+function shDrvCard(r){hostSub(r.liveCode);const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const n=d?(d.hostSeats||1)+Object.values(d.members||{}).reduce((a,m)=>a+(m.pax||1),0):sharedSeats(r),N=d&&d.seats||seatsOf(r);
+ const route=esc(P(r.from).n.replace(' (sample)',''))+' → '+esc(P(r.to).n.replace(' (sample)',''));
+ const per=d?Math.round(Math.min(d.reg||1e9,d.whole/Math.max(1,Math.min(n,N)))):0;const total=d?Math.min(d.whole,per*n):0;
+ let body='',hl=false;
+ if(st==='waiting')body=`<p class="muted" style="margin:6px 0 0">Waiting for riders (${n} of ${N}). The request comes here when the seats fill${MIN_GO[r.type]?' or the booker taps Leave now':''}.</p>`;
+ else if(st==='finding'){const hid=r.cands[r.offerIdx];if(hid===S.actingAs){hl=true;body=`<div class="kv"><span>Pickup</span><b>${esc(P(r.from).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Riders</span><b>${n} of ${N}</b></div><div class="kv"><span>Fare (all riders)</span><b>${peso(total)}</b></div>
+  <div style="margin:4px 0"><span class="st info">Sample driver takes it in<span class="cd2" data-until="${(d.fullAt||0)+TRIP_AUTO}"></span></span></div>
+  <div class="btns"><button class="btn sm" onclick="shAccept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="shDecline('${r.id}')">Decline</button></div>`}
+  else body=`<p class="muted" style="margin:6px 0 0">Offered to ${esc((drvInfo(prov(hid))||{}).name||'another driver')}.</p>`}
+ else if(d&&d.drvAt){const mine=d.driver&&d.driver.pid===S.actingAs;
+  if(!mine)body=`<p class="muted" style="margin:6px 0 0">Accepted by ${esc((d.driver&&d.driver.name)||'another driver')}.</p>`;
+  else if(st==='coming')body=`<p class="muted" style="margin:6px 0 8px">${n} riders waiting at the pickup.</p><div class="btns">${d.pickAt?`<button class="btn sm sec" disabled>${ic('check')} Arrived · riders notified</button>`:`<button class="btn sm sec" onclick="shStep('${r.id}','pickAt')">Arrived at pickup</button>`}<button class="btn sm" onclick="shStep('${r.id}','startAt')">Start trip</button></div>`;
+  else if(st==='riding')body=`<p class="muted" style="margin:6px 0 8px">On the trip with ${n} riders.</p><div class="btns"><button class="btn sm" onclick="shStep('${r.id}','doneAt')">Complete ride</button></div>`;
+  else body=`<p class="muted" style="margin:6px 0 0">Trip completed.</p>`}
+ else body=`<p class="muted" style="margin:6px 0 8px">No driver accepted within 30 s, so a sample driver took this ride.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button>`;
+ return `<div class="card ${hl?'hl':''}"><div class="share-line">${ic((TYPES[r.type]||{}).e||'tricycle')} Shared ${vehW(r.type)} request · ${n} of ${N} riders</div><b style="display:block;margin-top:8px">${route}</b>${body}</div>`}
+function shAccept(id){const r=ride(id);const p=prov(S.actingAs);const d=HOSTD[r.liveCode];if(!d||tripStage(d)!=='finding'){toast('This request is no longer open');render();return}
+ const di=drvInfo(p);LIVE.db.ref('rides/'+r.liveCode).update({driver:{n:p.n,name:di.name,op:di.op,plate:di.plate,type:di.type,rv:di.rv,rc:di.rc,pid:p.id},drvAt:nowS()}).catch(()=>toast('Could not accept — check your connection'));
+ r.pid=p.id;r.status='accepted';r.acceptedAt=Date.now();save();render();toast('Accepted — every rider can see you’re on the way')}
+function shDecline(id){const r=ride(id);const was=(drvInfo(prov(r.cands[r.offerIdx]))||{}).name;r.offerIdx=(r.offerIdx+1)%Math.max(1,r.cands.length);save();render();toast(`${was||'Driver'} declined — passed to ${(drvInfo(prov(r.cands[r.offerIdx]))||{}).name||'the next driver'}`)}
+function shStep(id,f){const r=ride(id);if(!r||!LIVE.db)return;const n=nowS();const u={};u[f]=n;const d=HOSTD[r.liveCode]||{};if(f==='startAt'&&!d.pickAt)u.pickAt=n;
+ LIVE.db.ref('rides/'+r.liveCode).update(u).catch(()=>toast('Could not update — check your connection'));
+ if(f==='pickAt'){r.arriving=true;toast('Riders notified: you’ve arrived at the pickup')}
+ if(f==='startAt'){r.status='started';r.startedAt=Date.now();const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}toast('Trip started for every rider')}
+ if(f==='doneAt'){const pay=r.fare;if(!r.pid)r.pid=S.actingAs;complete(r.id);r.fare=pay;toast('Trip completed for every rider')}
+ save();render()}
 
 function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
  else setJoins(myJoins().filter(j=>j.code!==a.code));const el=document.getElementById('tripLock');if(el)el.remove();S.tab='home';render()}
