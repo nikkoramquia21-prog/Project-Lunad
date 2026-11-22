@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.3 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.8.4 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1781,7 +1781,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<h2>LUNAD — concept</h2><p>Getting around Catanduanes means asking around and waiting. LUNAD puts every available ride in one app, so you can see who is online, book one, and pay the driver directly.</p>
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button></div><h2>LUNAD — concept</h2><p>Getting around Catanduanes means asking around and waiting. LUNAD puts every available ride in one app, so you can see who is online, book one, and pay the driver directly.</p>
  <h3>In this MVP</h3><ul class="flow"><li>Direct booking (car or van, any town)</li><li>TODA route booking (tricycle, Virac–San Andres corridor)</li><li>Provider registration with automatic LGU-verified badge (documents, expiry, auto-suspend)</li><li>Proof of payment (QR, 15-min confirm, cash fallback)</li><li>Cancellation & no-show rules · Ratings & in-app issue reports</li><li>Tourism map with offline downloads · Weather & safety (auto storm-pause) · Trip sharing & SOS</li><li>In-app messaging between user and operator (no phone numbers shown) · SMS/Messenger notifications (simulated)</li></ul>
  <h3>Roadmap (not in this MVP)</h3><ul class="flow"><li>Motorcycle (habal-habal) riders — pending LTFRB and provincial approval</li><li>Reviews on map pins and destination pages</li><li>Multi-day Trip Builder, stays, pasalubong & local shops</li><li>Online payment gateway to replace screenshots</li><li>Bikol and Filipino language switch</li></ul>
  <h3>Open items to confirm</h3><ul class="flow"><li>Can tricycles run from every barangay to San Andres and Virac, or only from the town centers?</li><li>LGU fare matrix for the TODA corridor</li><li>Is a private motorcycle allowed to carry paying passengers in the province?</li><li>Who reviews in-app reports day-to-day: the LGU, an LUNAD support team, or both?</li><li>Cancellation fee amount and free window</li><li>Which hotline numbers should SOS use?</li></ul>`)}
