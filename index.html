@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.18.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.19.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1708,13 +1708,13 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='c
   <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
   <div class="check">${f.type===k?ic('check'):''}</div>
  </div>`).join('')}
- ${f.type==='tricycle'?(()=>{const q=sharedQuote('tricycle',d,f.pax,f.pax);const ok=mySeats(f)<SHARE.seats;return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole tricycle · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,mySeats(f),1)+' per seat · drops as riders join':'Not available for '+mySeats(f)+' seats'}</span></button></div>${f.shared?`<label class="lug"><input type="checkbox" ${f.lug?'checked':''} onchange="S.rideForm.lug=this.checked;save();render()"> With luggage <span class="muted">· a big bag takes a seat</span></label>`:''}${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Riders within 500 m can see and join your ride — it shows where it’s going so they can decide. Leaves when all ${SHARE.seats} seats are filled. Your fare only goes down. Sample fare: ₱15 + ₱5/km per seat.</p>`:''}`})():''}
+ ${SHARE_CAP[f.type]?(()=>{const q=sharedQuote(f.type,d,f.pax,f.pax);const ok=mySeats(f)<seatsOf(f);return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole ${vehW(f.type)} · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,mySeats(f),1,f.type)+' per seat · drops as riders join':'Not available for '+mySeats(f)+' seats'}</span></button></div>${f.shared?`<label class="lug"><input type="checkbox" ${f.lug?'checked':''} onchange="S.rideForm.lug=this.checked;save();render()"> With luggage <span class="muted">· a big bag takes a seat</span></label>`:''}${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Riders within 500 m can see and join your ride — it shows where it’s going so they can decide. ${leaveTxt(f)}. Your fare only goes down. Sample fare: ₱15 + ₱5/km per seat.</p>`:''}`})():(f.type==='moto'?`<p class="muted" style="margin:10px 0 0">${ic('moto')} Moto Taxi carries 1 passenger, so sharing isn't available.</p>`:'')}
  <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
  <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
  ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
  <div class="sep"></div>
  <div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,f.type)} min</b></div>
- ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${mySeats(f)} seat${mySeats(f)>1?'s':''}${f.lug?', incl. luggage':''})</span><b>${shareRange(d,mySeats(f),mySeats(f))}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
+ ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${mySeats(f)} seat${mySeats(f)>1?'s':''}${f.lug?', incl. luggage':''})</span><b>${shareRange(d,mySeats(f),mySeats(f),f.type)}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
  <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
  ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
  
@@ -1725,7 +1725,7 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='c
 function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
- ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${SHARE.seats} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">Leaves when all ${SHARE.seats} seats are filled.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more riders join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
+ ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more riders join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
  <button class="btn block" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
 function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
@@ -1736,23 +1736,36 @@ function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,t
 /* =================== SHARED TODA RIDES (sample rates) =================== */
 // Rider pays the LOWER of: per-passenger regular fare (sample ₱15 + ₱5/km) or the whole-trip fare split by seats filled.
 // Riders share only with the same pickup and drop-off area. 3 seats. In the demo a sample co-rider joins automatically.
-const SHARE={base:15,km:5,seats:3,co:[{n:'Maria (sample)'},{n:'Carla (sample)'}],gap:6000,wait:30000,near:0.3};
+const SHARE={base:15,km:5,seats:3,co:['Maria','Carla','Ben','Liza','Rico','Joy','Ana','Mark','Tess','Lito','Nica'].map(n=>({n:n+' (sample)'})),gap:6000,wait:30000,near:0.3};
 function mySeats(x){return x.pax+(x.lug?1:0)}
-function seatFare(d){return Math.round(SHARE.base+SHARE.km*d)}
-function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));const reg=seatFare(d);const per=Math.round(Math.min(reg,whole/seats));return {per,you:per*pax,whole,reg}}
-function waitDue(r,now){return r.booker==='me'&&r.shared&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<SHARE.seats&&now-(r.waitFrom||r.createdAt)>(r.live?60000:SHARE.wait)}
-function waitModal(id){const r=ride(id);const whole=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));modalForced(`<h2>Still ${sharedSeats(r)} of ${SHARE.seats} seats</h2><p class="muted" style="margin:0 0 12px">Your shared tricycle leaves only when all ${SHARE.seats} seats are filled. No one else has joined yet. (Demo: after 1 minute; the real app waits 10.)</p><button class="btn block" onclick="ride('${id}').waitFrom=Date.now();save();closeModal();toast('Still waiting for co-riders')">Keep waiting</button><button class="btn sec block" style="margin-top:8px" onclick="goSolo('${id}')">Go Solo · whole tricycle ${peso(whole)}</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="freeCancel('${id}')">Cancel for free</button>`)}
-function goSolo(id){const r=ride(id);liveStatus(r,'closed');r.shared=false;r.co=[];r.coDone=true;r.fare=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));r.seatFare=null;r.tripTotal=null;r.lunadCover=0;save();closeModal();render();toast('Switched to Solo · whole tricycle '+peso(r.fare))}
+function seatFare(d,type){const k=SEATRATE[type]||SEATRATE.tricycle;return Math.round(k[0]+k[1]*d)}
+function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));const reg=seatFare(d,type);const per=Math.round(Math.min(reg,whole/seats));return {per,you:per*pax,whole,reg}}
+function waitDue(r,now){return r.booker==='me'&&r.shared&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)&&now-(r.waitFrom||r.createdAt)>(r.live?60000:SHARE.wait)}
+function waitModal(id){const r=ride(id);const whole=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));const n=sharedSeats(r),m=MIN_GO[r.type];modalForced(`<h2>Still ${n} of ${seatsOf(r)} seats</h2><p class="muted" style="margin:0 0 12px">Your shared ${vehW(r.type)} leaves when all ${seatsOf(r)} seats are filled${m?`, or from ${m} riders if you choose`:''}. No one else has joined yet. (Demo: after 1 minute; the real app waits 10.)</p>${m&&n>=m?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${id}')">Leave now with ${n} riders</button>`:''}<button class="btn ${m&&n>=m?'sec ':''}block" onclick="ride('${id}').waitFrom=Date.now();save();closeModal();toast('Still waiting for co-riders')">Keep waiting</button><button class="btn sec block" style="margin-top:8px" onclick="goSolo('${id}')">Go Solo · whole ${vehW(r.type)} ${peso(whole)}</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="freeCancel('${id}')">Cancel for free</button>`)}
+function goSolo(id){const r=ride(id);liveStatus(r,'closed');r.shared=false;r.co=[];r.coDone=true;r.fare=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));r.seatFare=null;r.tripTotal=null;r.lunadCover=0;save();closeModal();render();toast('Switched to Solo · whole '+vehW(r.type)+' '+peso(r.fare))}
 function freeCancel(id){const r=ride(id);liveStatus(r,'closed');if(r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/cancelled').set(true).catch(()=>{});const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';r.fee=0;notify('me','cancelled',{ref:r.id,fee:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:''},r.id);save();closeModal();render();toast('Cancelled for free')}
 function coCancel(){const r=S.rides.filter(x=>x.booker==='me'&&x.shared&&['pending','accepted'].includes(x.status)&&x.co&&x.co.length).sort((a,b)=>b.createdAt-a.createdAt)[0];if(!r){toast('Book a shared ride with co-riders first');return}r.protect=Math.max(r.protect||0,r.tripTotal||0);const c=r.co.pop();r.coDone=true;r.waitFrom=Date.now();applyShared(r);save();render();toast(`${c.n} cancelled · your fare stays ${peso(r.fare)} · LUNAD covers ${peso(r.lunadCover)} for the driver`)}
-function shareRange(d,pax,mult){const hi=sharedQuote('tricycle',d,pax,pax).per*mult,lo=sharedQuote('tricycle',d,pax,SHARE.seats).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
-function shareOn(f){return f.type==='tricycle'&&!!f.shared&&mySeats(f)<SHARE.seats}
+function shareRange(d,pax,mult,type){type=type||'tricycle';const hi=sharedQuote(type,d,pax,pax).per*mult,lo=sharedQuote(type,d,pax,SHARE_CAP[type]||3).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
+
+/* ---- Shared rides by vehicle: seats per vehicle, minimum riders before 'Leave now', per-seat cap (sample rates). ---- */
+const SHARE_CAP={tricycle:3,car:4,minivan:8,van:12};
+const MIN_GO={car:3,minivan:5,van:8};
+const SEATRATE={tricycle:[15,5],car:[60,10],minivan:[40,6],van:[40,6]};
+const VEHW={tricycle:'tricycle',moto:'moto',car:'car',minivan:'van',van:'van'};
+function vehW(t){return VEHW[t]||'tricycle'}
+function capF(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function seatsOf(x){return SHARE_CAP[x&&x.type]||3}
+function leaveTxt(x){const n=seatsOf(x),m=MIN_GO[x&&x.type];return `Leaves when all ${n} seats are filled`+(m?` — or from ${m} riders if you choose`:'')}
+function tripType(a){return (a.d&&a.d.type)||(a.r&&a.r.type)||'tricycle'}
+function leaveNow(id){const r=ride(id);if(!r)return;r.goNow=true;r.coDone=true;if(r.live&&r.liveCode){markFull(r);liveStatus(r,'full')}save();closeModal();render();toast('Leaving now with '+sharedSeats(r)+' riders — finding your driver')}
+
+function shareOn(f){return !!SHARE_CAP[f.type]&&!!f.shared&&mySeats(f)<seatsOf(f)}
 function sharedSeats(r){return mySeats(r)+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
 function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r);const q=sharedQuote(r.type,d,mySeats(r),n);if(r.seatFare==null||q.per<r.seatFare){r.seatFare=q.per;r.fare=q.per*mySeats(r)}r.tripTotal=Math.max(r.seatFare*n,r.protect||0);r.lunadCover=r.tripTotal-r.seatFare*n}
-function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S.shareAuto===false)return false;if(!['pending','accepted'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(SHARE.seats-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();r.waitFrom=Date.now();if(sharedSeats(r)>=SHARE.seats||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);const full=sharedSeats(r)>=SHARE.seats;toast(`${next.n} joined from the same pickup · ${sharedSeats(r)} of ${SHARE.seats} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}${full?' · tricycle full, ready to leave':''}`);return true}
+function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S.shareAuto===false)return false;if(!['pending','accepted'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(seatsOf(r)-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();r.waitFrom=Date.now();if(sharedSeats(r)>=seatsOf(r)||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);const full=sharedSeats(r)>=seatsOf(r);toast(`${next.n} joined from the same pickup · ${sharedSeats(r)} of ${seatsOf(r)} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}${full?` · ${vehW(r.type)} full, ready to leave`:''}`);return true}
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
- <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${SHARE.seats} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=SHARE.seats?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample riders':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<SHARE.seats?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
+ <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample riders':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
  ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
@@ -1927,13 +1940,13 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
  let h=`<h2>${ic('file-text')} Offers & jobs</h2>${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
- if(autoShared.length)h+=autoShared.map(r=>{const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const L={waiting:'Waiting for riders · '+sharedSeats(r)+' of '+SHARE.seats,finding:'Finding a driver…',coming:'Driver on the way',riding:'On the trip',arrived:'Arrived',cancelled:'Cancelled'}[st]||st;return `<div class="card"><div class="share-line">${ic('tricycle')} Live shared ride · ${esc(L)}</div><b style="display:block;margin-top:8px">${esc(P(r.from).n.replace(' (sample)',''))} → ${esc(P(r.to).n.replace(' (sample)',''))}</b><p class="muted" style="margin:6px 0 10px">In this demo a sample TODA driver runs shared rides automatically, in sync on every phone. Switch to Rider to follow the trip.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button></div>`}).join('');
- h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${SHARE.seats} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
+ if(autoShared.length)h+=autoShared.map(r=>{const d=HOSTD[r.liveCode];const st=d?tripStage(d):'waiting';const L={waiting:'Waiting for riders · '+sharedSeats(r)+' of '+seatsOf(r),finding:'Finding a driver…',coming:'Driver on the way',riding:'On the trip',arrived:'Arrived',cancelled:'Cancelled'}[st]||st;return `<div class="card"><div class="share-line">${ic('tricycle')} Live shared ride · ${esc(L)}</div><b style="display:block;margin-top:8px">${esc(P(r.from).n.replace(' (sample)',''))} → ${esc(P(r.to).n.replace(' (sample)',''))}</b><p class="muted" style="margin:6px 0 10px">In this demo a sample TODA driver runs shared rides automatically, in sync on every phone. Switch to Rider to follow the trip.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button></div>`}).join('');
+ h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
- h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+SHARE.seats+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
-  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · rider notified':'Arrived at pickup'}</button>`:''}${r.shared&&sharedSeats(r)<SHARE.seats?`<button class="btn sm" disabled>Waiting for riders · ${sharedSeats(r)} of ${SHARE.seats}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
+ h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+seatsOf(r)+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
+  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · rider notified':'Arrived at pickup'}</button>`:''}${r.shared&&!r.goNow&&sharedSeats(r)<seatsOf(r)?`<button class="btn sm" disabled>Waiting for riders · ${sharedSeats(r)} of ${seatsOf(r)}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
    <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
    <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
    <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message rider${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
@@ -2012,7 +2025,7 @@ async function liveInit(){
  LIVE.ready=true;if(JOIN_ONLY)joinScreen(joinCodeFromUrl());else render()}
 function liveCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function livePublish(r){if(!LIVE.db)return false;const code=liveCode();const d=routeKm(P(r.from),P(r.to));r.liveCode=code;r.live=true;delete r.livePending;
- setTimeout(()=>openIndex(r),0);LIVE.db.ref('rides/'+code).set({from:r.from,to:r.to,fromName:P(r.from).n,toName:P(r.to).n,seats:SHARE.seats,createdAt:Date.now(),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),hostName:String(S.me.name||'Rider').split(' ')[0],hostSeats:mySeats(r),judgeCount:0,status:'open'}).catch(()=>{});
+ setTimeout(()=>openIndex(r),0);LIVE.db.ref('rides/'+code).set({from:r.from,to:r.to,fromName:P(r.from).n,toName:P(r.to).n,type:r.type,seats:seatsOf(r),createdAt:Date.now(),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d,r.type),hostName:String(S.me.name||'Rider').split(' ')[0],hostSeats:mySeats(r),judgeCount:0,status:'open'}).catch(()=>{});
  liveWatch(r);return true}
 function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;const code=r.liveCode;
  LIVE.subs[code]=LIVE.db.ref('rides/'+code+'/members').on('value',s=>{const rr=ride(r.id);if(!rr||!rr.live)return;const v=s.val()||{};
@@ -2021,9 +2034,9 @@ function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;con
   const was=rr.fare;rr.co=now;
   if(left.length)rr.protect=Math.max(rr.protect||0,rr.tripTotal||0);
   if(joined.length)rr.waitFrom=Date.now();applyShared(rr);
-  const full=sharedSeats(rr)>=SHARE.seats;if(full)markFull(rr);if(!full&&left.length)liveStatus(rr,'open');openIndex(rr);
+  const full=sharedSeats(rr)>=seatsOf(r);if(full)markFull(rr);if(!full&&left.length)liveStatus(rr,'open');openIndex(rr);
   save();render();
-  if(joined.length)toast(`${joined.map(m=>m.n).join(', ')} joined · ${sharedSeats(rr)} of ${SHARE.seats} seats · you pay ${peso(rr.fare)}${rr.fare<was?' (was '+peso(was)+')':''}${full?' · tricycle full, ready to leave':''}`);
+  if(joined.length)toast(`${joined.map(m=>m.n).join(', ')} joined · ${sharedSeats(rr)} of ${seatsOf(r)} seats · you pay ${peso(rr.fare)}${rr.fare<was?' (was '+peso(was)+')':''}${full?` · ${vehW(rr.type)} full, ready to leave`:''}`);
   else if(left.length)toast(`${left.map(m=>m.n).join(', ')} left · your fare stays ${peso(rr.fare)} · LUNAD covers the gap for the driver`)})}
 function liveResub(){if(JOIN_ONLY)return;for(const r of S.rides)if(r.live&&r.liveCode&&['pending','accepted'].includes(r.status)){liveWatch(r);openIndex(r)}}
 /* ---- nearby open shared rides: public index /open/{CODE} (pickup lat/lng, route, seats) ---- */
@@ -2034,10 +2047,10 @@ function nearbyStart(){NEAR.asked=true;nearbySub();NEAR.posLabel='';render();
  if(!navigator.geolocation){fallback();return}
  navigator.geolocation.getCurrentPosition(g=>{const la=g.coords.latitude,ln=g.coords.longitude;if(!(la>=GEO_BOUNDS.lat0&&la<=GEO_BOUNDS.lat1&&ln>=GEO_BOUNDS.lng0&&ln<=GEO_BOUNDS.lng1)){fallback();return}NEAR.pos={lat:la,lng:ln};NEAR.posLabel='you';render()},fallback,{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
 function openIndex(r){if(!LIVE.db||!r||!r.liveCode)return;const ref=LIVE.db.ref('open/'+r.liveCode);const used=sharedSeats(r);
- if(!r.live||!r.shared||!['pending','accepted'].includes(r.status)||used>=SHARE.seats){ref.remove().catch(()=>{});return}
- const p=P(r.from),d=routeKm(P(r.from),P(r.to));ref.set({lat:p.lat,lng:p.lng,fromName:p.n.replace(' (sample)',''),toName:P(r.to).n.replace(' (sample)',''),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d),seats:SHARE.seats,used,createdAt:r.createdAt}).then(()=>{try{ref.onDisconnect().remove()}catch(e){}}).catch(()=>{})}
+ if(!r.live||!r.shared||!['pending','accepted'].includes(r.status)||used>=seatsOf(r)){ref.remove().catch(()=>{});return}
+ const p=P(r.from),d=routeKm(P(r.from),P(r.to));ref.set({lat:p.lat,lng:p.lng,fromName:p.n.replace(' (sample)',''),toName:P(r.to).n.replace(' (sample)',''),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d,r.type),type:r.type,seats:seatsOf(r),used,createdAt:r.createdAt}).then(()=>{try{ref.onDisconnect().remove()}catch(e){}}).catch(()=>{})}
 function nearCard(o){const left=o.seats-o.used;const per=Math.round(Math.min(o.reg,o.whole/Math.min(o.used+1,o.seats)));
- return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>Goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}
+ return `<button class="near-card" onclick="openJoin('${o.code}')"><span class="near-tx"><b>${esc(o.fromName)} → ${esc(o.toName)}</b><span>${capF(vehW(o.type))} · goes to ${esc(o.toName)} · ${left} seat${left>1?'s':''} left${o.dist!=null?' · '+(o.dist<1000?Math.round(o.dist)+' m':(o.dist/1000).toFixed(1)+' km')+' away':''}</span></span><span class="near-fare">${peso(per)}<small>Join</small></span></button>`}
 function nearbyHTML(){if(!LIVE.db)return '';const all=S.shareAll===true;nearbySub();
  if(!NEAR.asked){const p=P(S.rideForm.from);NEAR.pos=p?{lat:p.lat,lng:p.lng}:null;NEAR.posLabel=p?p.n.replace(' (sample)',''):''}
  const mine=S.rides.map(r=>r.liveCode).filter(Boolean).concat(myJoins().map(j=>j.code));
@@ -2052,7 +2065,7 @@ function sampleRiders(id){const r=ride(id);if(!r)return;if(r.liveCode)liveStatus
 function liveStatus(r,s){if(r&&r.liveCode&&LIVE.db){LIVE.db.ref('rides/'+r.liveCode+'/status').set(s).catch(()=>{});if(s!=='open')LIVE.db.ref('open/'+r.liveCode).remove().catch(()=>{})}}
 function joinUrl(code){return location.origin+location.pathname+'?join='+code}
 function liveQR(r){const url=joinUrl(r.liveCode);let svg='';try{const q=qrcode(0,'L');q.addData(url);q.make();svg=q.createSvgTag({cellSize:6,margin:2,scalable:true})}catch(e){}
- return `<div class="live-qr"><div class="live-tx"><b>Join my shared ride</b><span>Scan with another phone to join live · code <b>${r.liveCode}</b>${sharedSeats(r)<SHARE.seats?' · '+(SHARE.seats-sharedSeats(r))+' seat'+(SHARE.seats-sharedSeats(r)>1?'s':'')+' free':''}</span><button class="btn sec sm" style="margin-top:6px;align-self:flex-start" onclick="bigQR('${r.liveCode}')">Show big QR</button></div>${svg?`<div class="live-code" role="img" aria-label="QR code to join ride ${r.liveCode}">${svg}</div>`:`<span class="muted">${esc(url)}</span>`}</div>`}
+ return `<div class="live-qr"><div class="live-tx"><b>Join my shared ride</b><span>Scan with another phone to join live · code <b>${r.liveCode}</b>${sharedSeats(r)<seatsOf(r)?' · '+(seatsOf(r)-sharedSeats(r))+' seat'+(seatsOf(r)-sharedSeats(r)>1?'s':'')+' free':''}</span><button class="btn sec sm" style="margin-top:6px;align-self:flex-start" onclick="bigQR('${r.liveCode}')">Show big QR</button></div>${svg?`<div class="live-code" role="img" aria-label="QR code to join ride ${r.liveCode}">${svg}</div>`:`<span class="muted">${esc(url)}</span>`}</div>`}
 function bigQR(code){const url=joinUrl(code);let svg='';try{const q=qrcode(0,'L');q.addData(url);q.make();svg=q.createSvgTag({cellSize:10,margin:3,scalable:true})}catch(e){}
  modal(`<h2>Join my shared ride</h2><p class="muted" style="margin:0 0 12px">Point another phone’s camera here. Or open LUNAD → ☰ → Join with code.</p><div class="big-qr" role="img" aria-label="QR code to join ride ${code}">${svg}</div><p style="text-align:center;font-size:28px;font-weight:800;letter-spacing:.2em;margin:12px 0 0">${code}</p>`)}
 function joinByCode(){const el=document.getElementById('joinCode');const c=(el&&el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==6){toast('Enter the 6-character ride code');return}location.href=location.pathname+'?join='+c}
@@ -2064,7 +2077,7 @@ function joinScreen(code){let box=document.getElementById('joinScreen');if(!box)
  if(!LIVE.db){box.innerHTML=head+`<div class="join-body"><h2>Can't connect</h2><p class="muted">Joining a shared ride needs internet. Check your connection and scan the QR again.</p></div>`;return}
  box.innerHTML=head+`<div class="join-body"><p class="muted">Loading ride ${esc(code)}…</p></div>`;
  LIVE.db.ref('rides/'+code).on('value',s=>drawJoin(box,head,code,s.val()),()=>{box.innerHTML=head+`<div class="join-body"><h2>Ride not found</h2></div>`})}
-function drawJoin(box,head,code,d){
+function drawJoin(box,head,code,d){head=String(head).replace('Shared tricycle','Shared '+vehW(d&&d.type));
  if(!d){box.innerHTML=head+`<div class="join-body"><h2>Ride not found</h2><p class="muted">Code ${esc(code)} doesn't match an open shared ride.</p></div>`;return}
  const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((a,[k,m])=>a+(m.pax||1),0);const mine=JOINKEY&&d.members&&d.members[JOINKEY];
  const seatsIf=mine?used:used+1;let per=Math.round(Math.min(d.reg,d.whole/Math.min(seatsIf,d.seats)));
@@ -2074,13 +2087,13 @@ function drawJoin(box,head,code,d){
  const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
  let action='';
  if(!open)action=`<div class="banner info">This ride is ${d.status==='started'?'on its way':'no longer open'}.</div>`;
- else if(mine){if(!myJoins().some(j=>j.code===code))addJoin(code,JOINKEY);action=`<div class="banner">${full?'<b>Tricycle full — ready to leave.</b>':'<b>You’re in!</b> Leaves when all '+d.seats+' seats are filled.'}</div><button class="btn block" onclick="goJoined()">View my shared ride</button>`}
+ else if(mine){if(!myJoins().some(j=>j.code===code))addJoin(code,JOINKEY);action=`<div class="banner">${full?'<b>'+capF(vehW(d.type))+' full — ready to leave.</b>':'<b>You’re in!</b> Leaves when all '+d.seats+' seats are filled.'}</div><button class="btn block" onclick="goJoined()">View my shared ride</button>`}
  else if(full)action=`<div class="banner info">This tricycle is full.</div>`;
  else action=`<button class="btn block" onclick="joinRide('${code}')">Join this ride · ${peso(per)}</button><p class="muted" style="text-align:center;margin:8px 0 0">Your fare only goes down if more riders join.</p>`;
  box.innerHTML=head+`<div class="join-body"><h2>${esc(d.fromName)} → ${esc(d.toName)}</h2><p class="muted" style="margin:-4px 0 6px">Pickup at ${esc(d.fromName)} · goes to ${esc(d.toName)} · leaves when full</p>
  <div class="kv"><span>Seats</span><b class="seats">${seatDots} ${used} of ${d.seats}</b></div>
  <div class="kv"><span>${mine?'You pay':'Your fare if you join'}</span><b>${peso(per)}</b></div>
- <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
+ <div class="kv"><span>Whole ${vehW(d.type)}</span><b>${peso(d.whole)}</b></div>
  <h3>Riders</h3><ul class="join-riders">${riders}</ul>${action}
  ${JOIN_ONLY?'':`<button class="btn ghost block" style="margin-top:12px" onclick="document.getElementById('joinScreen').remove()">Back</button>`}<p class="muted" style="margin-top:18px">Demo · names are generated (Test user 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
 
@@ -2101,12 +2114,12 @@ function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const
   const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
   const full=used>=d.seats;
   const riders=[`<li><b>${esc(d.hostName||'Rider')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,x])=>`<li><b>${esc(x.name)}</b>${k===j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
-  const state=d.status==='started'?'<b>On the way.</b> Your tricycle has left the pickup.':full?'<b>Tricycle full — ready to leave.</b> Head to the pickup.':`<b>You’re in!</b> Leaves when all ${d.seats} seats are filled.`;
+  const state=d.status==='started'?'<b>On the way.</b> Your '+vehW(d.type)+' has left the pickup.':full?'<b>'+capF(vehW(d.type))+' full — ready to leave.</b> Head to the pickup.':`<b>You’re in!</b> Leaves when all ${d.seats} seats are filled.`;
   return `<section class="card joined-card" style="border:2px solid var(--sunc)"><div class="share-line">${ic('user')} Shared ride · you joined · live</div>
   <h3 style="margin:8px 0 2px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--navy)">${esc(d.fromName)} → ${esc(d.toName)}</h3><p class="muted" style="margin:0 0 6px">Pickup at ${esc(d.fromName)} · ride code ${esc(j.code)}</p>
   <div class="kv"><span>Seats</span><b class="seats">${seatDots} ${used} of ${d.seats}</b></div>
   <div class="kv"><span>You pay</span><b>${peso(per)}</b></div>
-  <div class="kv"><span>Whole tricycle</span><b>${peso(d.whole)}</b></div>
+  <div class="kv"><span>Whole ${vehW(d.type)}</span><b>${peso(d.whole)}</b></div>
   <ul class="join-riders" style="margin-top:6px">${riders}</ul>
   <div class="banner" style="margin-bottom:10px">${state}</div>
   ${d.status==='started'?'':`<button class="btn sec block" onclick="leaveJoined('${j.code}')">Leave ride</button>`}</section>`}).join('');
@@ -2133,24 +2146,24 @@ function activeTrip(){if(S.role!=='booker'||document.getElementById('joinScreen'
 function tripSteps(st){const L=[['waiting','Riders'],['finding','Driver'],['coming','Pickup'],['riding','Trip'],['arrived','Arrived']];const i=L.findIndex(x=>x[0]===st);
  return `<ol class="trip-steps">${L.map((x,k)=>`<li class="${k<i?'done':k===i?'now':''}"><span></span>${x[1]}</li>`).join('')}</ol>`}
 function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);const r=a.r;
- const from=d?d.fromName:P(r.from).n,to=d?d.toName:P(r.to).n,seats=d?d.seats:SHARE.seats;
+ const from=d?d.fromName:P(r.from).n,to=d?d.toName:P(r.to).n,seats=d?d.seats:seatsOf(r);
  const mem=Object.entries((d&&d.members)||{});const used=d?(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0):sharedSeats(r);
  let pay;if(a.host){pay=r.fare}else{pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best}
  const drv=(d&&d.driver&&d.driver.n)||'Virac TODA driver';
  const riders=[`<li><b>${esc((d&&d.hostName)||'Rider')}</b>${a.host?' <span class="st ok sm">You</span>':''} <span class="muted">· booked the ride</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${!a.host&&k===a.j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
  const dots=Array.from({length:seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
- const T={waiting:['Waiting for riders',`Leaves when all ${seats} seats are filled. ${seats-used} seat${seats-used===1?'':'s'} left.`],
-  finding:['Finding a driver…','The tricycle is full. Asking TODA drivers near '+esc(from)+'.'],
-  coming:['Driver on the way',`Your tricycle is heading to ${esc(from)}. Check the plate before you get on.`],
+ const T={waiting:['Waiting for riders',`Leaves when all ${seats} seats are filled${MIN_GO[tripType(a)]?`, or from ${MIN_GO[tripType(a)]} riders`:''}. ${seats-used} seat${seats-used===1?'':'s'} left.`],
+  finding:['Finding a driver…','Your '+vehW(tripType(a))+' is ready to go. Asking '+(tripType(a)==='tricycle'?'TODA ':'')+'drivers near '+esc(from)+'.'],
+  coming:['Driver on the way',`Your ${vehW(tripType(a))} is heading to ${esc(from)}. Check the plate before you get on.`],
   riding:['On the way to '+esc(to),`${used} riders on board.`],
   arrived:['Trip completed','You’ve arrived at '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
   cancelled:['Ride cancelled','The rider who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
  let act='';
- if(st==='waiting')act=a.host?`${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
+ if(st==='waiting')act=a.host?`${(MIN_GO[r.type]&&used>=MIN_GO[r.type])?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${r.id}')">Leave now with ${used} riders</button>`:''}${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
  else if(st==='finding')act=`<div class="trip-spin" aria-hidden="true"></div>`;
  else if(st==='arrived'){const lr=a.host?a.r:S.rides.find(x=>x.joinCode===a.code);act=(lr&&lr.pay==='unpaid'?`<button class="btn block" onclick="payModal('${lr.id}')">Pay now · ${peso(pay)}</button>`:'')+`<button class="btn ${lr&&lr.pay==='unpaid'?'sec ':''}block" style="margin-top:8px" onclick="tripDone()">Done</button>`}else if(false){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Rider'):((d.members||{})[k]||{}).name||'Rider')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
  else if(st==='cancelled'||st==='gone')act=`<button class="btn block" onclick="tripDone()">Back to home</button>`;
- return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle${a.host?' · you booked':''}</span></div>
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared ${vehW(tripType(a))}${a.host?' · you booked':''}</span></div>
  <div class="join-body">${tripSteps(st==='gone'?'cancelled':st)}<h2 style="margin:16px 0 4px">${T[0]}</h2><p class="muted" style="margin:0 0 14px">${T[1]}</p>${['coming','riding','arrived'].includes(st)?drvCard(tripDrv(a),'trip'):''}${act}
  <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(from)} → ${esc(to)}</b></div>
  <div class="kv"><span>Seats</span><b class="seats">${dots} ${used} of ${seats}</b></div>
@@ -2172,10 +2185,10 @@ function tripDemo(a,st){const b=[];
 /* At 'arrived' each phone completes its own copy of the trip and opens the normal review form (Rider side only). */
 
 function joinLocal(a,status){const d=a.d||{};let r=S.rides.find(x=>x.joinCode===a.code);
- if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type==='tricycle');
+ if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type===(d.type||'tricycle'));
   const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0);
   let pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best;
-  r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:'tricycle',pax:1,start:Date.now()});
+  r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:d.type||'tricycle',pax:1,start:Date.now()});
   Object.assign(r,{pid:p?p.id:null,status,fare:pay,shared:true,joinCode:a.code,joinKey:a.j.key,co:[],reviewShown:true,rated:{b:true,p:false}});
   const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}
   S.rides.push(r);save();setTimeout(render,0);return r}
@@ -2186,10 +2199,10 @@ function tripArrive(a){if(a.host){const r=a.r;if(r.status!=='completed'){if(!r.p
  const d=a.d||{};
  if(a.host){const r=a.r;if(r.status==='completed'){if(r.rated&&r.rated.b){r.tripDone=true;save();tripTick();return}r.reviewShown=false;r.bizReviewShown=true;save();render();return}if(r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];const pay=r.fare;complete(r.id);r.fare=pay;save();render()}return}
  let r=S.rides.find(x=>x.joinCode===a.code);
- if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type==='tricycle');
+ if(!r){const drv=(d.driver&&d.driver.n)||'';const p=S.providers.find(x=>x.n===drv)||S.providers.find(x=>x.type===(d.type||'tricycle'));
   const mem=Object.entries(d.members||{});const used=(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0);
   let pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best;
-  r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:'tricycle',pax:1,start:Date.now()-((TRIP_T.ride-TRIP_T.come)||0)});
+  r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:d.type||'tricycle',pax:1,start:Date.now()-((TRIP_T.ride-TRIP_T.come)||0)});
   Object.assign(r,{pid:p?p.id:null,status:'completed',end:Date.now(),fare:pay,shared:true,joinCode:a.code,joinKey:a.j.key,co:[]});S.rides.push(r);save()}
  if(r.rated&&r.rated.b){setJoins(myJoins().filter(j=>j.code!==a.code));tripTick();return}r.reviewShown=false;render()}
 function tripRated(r,stars){const code=r.liveCode||r.joinCode;const who=r.joinCode?r.joinKey:'host';
@@ -2245,7 +2258,7 @@ function tripDrv(a){const dd=(a.d&&a.d.driver)||{};if(dd.plate)return {name:dd.n
 
 function clock(ms){const d=new Date(ms);let h=d.getHours(),m=d.getMinutes();const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap}
 function dropEta(key){const now=Date.now();
- if(key==='trip'){const a=activeTrip();if(!a||!a.d)return '';const d=a.d;const A=P(d.from),B=P(d.to);if(!A||!B)return '';const st=tripStage(d);const rideMin=dur(routeKm(A,B),'tricycle');const el=nowS()-(d.fullAt||nowS());
+ if(key==='trip'){const a=activeTrip();if(!a||!a.d)return '';const d=a.d;const A=P(d.from),B=P(d.to);if(!A||!B)return '';const st=tripStage(d);const rideMin=dur(routeKm(A,B),tripType(a));const el=nowS()-(d.fullAt||nowS());
   if(st==='coming'){const t=Math.max(0,Math.min(1,(el-TRIP_T.find)/(TRIP_T.come-TRIP_T.find)));const pm=Math.max(0,Math.round(km(lerpP(startPt(A,a.code),A,t),A)/0.35));const m=pm+rideMin;return `Drop-off ETA ${clock(now+m*MIN)} · about ${m} min to ${B.n.replace(' (sample)','')}`}
   if(st==='riding'){const t=Math.max(0,Math.min(1,(el-TRIP_T.come)/(TRIP_T.ride-TRIP_T.come)));const m=Math.max(1,Math.round(rideMin*(1-t)));return `Drop-off ETA ${clock(now+m*MIN)} · ${m} min left`}
   return ''}
@@ -2281,7 +2294,7 @@ function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.t
 function tripTick(){const a=activeTrip();let el=document.getElementById('tripLock');
  if(!a){if(el)el.remove();return}
  if(a.host&&a.d){const st=tripStage(a.d),r=a.r;
-  if(st==='waiting'&&sharedSeats(r)>=SHARE.seats)markFull(r);
+  if(st==='waiting'&&sharedSeats(r)>=seatsOf(r))markFull(r);
   if(['coming','riding','arrived'].includes(st)&&r.status==='pending'){r.pid=(r.cands||[])[0];r.status='accepted';save()}
   if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}save();setTimeout(render,0)}}
  {const st=a.d?tripStage(a.d):'waiting';const mt=($('#modalRoot').innerText||'');
