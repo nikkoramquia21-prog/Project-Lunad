@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.12.2 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.12.3 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -2107,7 +2107,10 @@ function tripTick(){const a=activeTrip();let el=document.getElementById('tripLoc
   if(st==='waiting'&&sharedSeats(r)>=SHARE.seats)markFull(r);
   if(['coming','riding','arrived'].includes(st)&&r.status==='pending'){r.pid=(r.cands||[])[0];r.status='accepted';save()}
   if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';save()}}
- if(a.d&&tripStage(a.d)==='arrived')setTimeout(()=>tripArrive(a),0);
+ {const st=a.d?tripStage(a.d):'waiting';const mt=($('#modalRoot').innerText||'');
+  if(mt&&st!=='waiting'&&/leaves only when all/.test(mt))closeModal();
+  if(mt&&st==='arrived'&&!/Ride completed|Thanks for your review|stop by|How was your visit|Help other travelers/i.test(mt))closeModal();
+  if(st==='arrived')setTimeout(()=>tripArrive(a),0)}
  if(!el){el=document.createElement('div');el.id='tripLock';el.className='join trip-lock';document.getElementById('phone').appendChild(el)}
  const h=tripHTML(a);if(el._h!==h){el.innerHTML=h;el._h=h}}
 setInterval(tripTick,1000);
