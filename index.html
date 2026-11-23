@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.23.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.24.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1107,6 +1107,10 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 .dest-card .img.ph{height:160px;padding:0;background:#0D1B2A;display:block}
 .dest-card .img.ph img{width:100%;height:100%;object-fit:cover;display:block}
 .place-ph{display:block;width:100%;height:170px;object-fit:cover;border-radius:12px;margin:2px 0 12px}
+
+.sb-spot{display:flex;gap:12px;align-items:center}.sb-spot .tile{width:44px;height:44px;flex:none;border-radius:12px;background:var(--sun-tint);display:flex;align-items:center;justify-content:center}.sb-spot .tile .ic{width:22px;height:22px}
+.sb-g{margin-top:10px;text-decoration:none}.sb-sub{font-size:15px;margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+.sb-done{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#E6F4EA;color:#1E6B34;font-size:13.5px;font-weight:600}.sb-done .ic{width:15px;height:15px;vertical-align:-3px}
 </style>
 </head>
 <body>
@@ -1309,10 +1313,23 @@ function osmRev(id){if(OSMREV[id])return OSMREV[id];if(String(id)[0]!=='o')retur
 
 function revStats(id){return BIZ[id]||SPOT_REVIEWS[id]||osmRev(id)||null}
 function nearbyReviewables(placeId){const a=P(placeId);if(!a)return [];return PLACES.filter(p=>revStats(p.id)).map(p=>({p,d:km(a,p)})).filter(x=>x.d<=0.5).sort((x,y)=>x.d-y.d).slice(0,3)}
-function stopByModal(id){const r=ride(id);BZ={stars:0,id,tags:[],comment:''};const a=P(r.from);const list=(r.bizList||[r.bizId]).map(P).filter(Boolean);
- modalForced(`<h2 class="sb-h">Did you stop by any of these?</h2><p class="sb-p">Picked up near ${esc(a.n.replace(' (sample)',''))} · tap one to review it</p>`+
- list.map(p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}${rv&&rv.offer?' · offer':''}</span></span>${ic('chevron','chev')}</button>`}).join('')+
- `<button class="sb-skip" onclick="bizLater()">No, just passing by</button>`)}
+
+function isTouristSpot(p){if(!p)return false;if(p.osm)return p.k==='ospot';return p.k==='spot'||['waves','droplet','landmark','mountain'].includes(p.e)}
+function touristNear(placeId){const a=P(placeId);if(!a)return null;const c=PLACES.filter(isTouristSpot).map(p=>({p,d:km(a,p)})).filter(x=>x.d<=0.5).sort((x,y)=>x.d-y.d)[0];return c?c.p:null}
+function spotGoogleUrl(p){const rv=revStats(p.id);const u=rv&&rv.googleUrl;return (u&&!/DEMO_PLACE_ID/.test(u))?u:('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.n.replace(' (sample)','')+', '+p.t+', Catanduanes'))}
+function setPickupReviews(r){const sp=touristNear(r.from);if(sp)r.spotId=sp.id;const l=nearbyReviewables(r.from).filter(x=>!sp||x.p.id!==sp.id);if(l.length)r.bizList=l.map(x=>x.p.id);if(sp||l.length)r.bizAt='pickup'}
+function spotReviewed(id){const r=ride(id);if(!r)return;r.spotReviewed=true;save();setTimeout(()=>{const list=(r.bizList||[]);if(!list.length){r.bizReviewShown=true;save();closeModal();render();toast('Thanks for reviewing on Google')}else stopByModal(id)},400)}
+function stopByModal(id){const r=ride(id);BZ={stars:0,id,tags:[],comment:''};const a=P(r.from);const sp=r.spotId?P(r.spotId):null;
+ const list=(r.bizList||(r.bizId?[r.bizId]:[])).filter(x=>!sp||x!==sp.id).map(P).filter(Boolean);
+ const row=p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}${rv&&rv.offer?' · offer':''}</span></span>${ic('chevron','chev')}</button>`};
+ let h='';
+ if(sp){const sn=esc(sp.n.replace(' (sample)',''));const d=km(a,sp)*1000;
+  h+=`<div class="sb-spot"><span class="tile">${ic(sp.e||'pin')}</span><div><h2 class="sb-h">How was ${sn}?</h2><p class="sb-p">Tourist spot · ${d<20?'at your pickup':Math.round(d)+' m from your pickup'}</p></div></div>`+
+   (r.spotReviewed?`<p class="sb-done">${ic('check')} Thanks — your Google review page is open</p>`:`<p class="sb-p" style="margin:6px 0 0">Share your visit so other travelers find it on Google.</p><a class="btn block sb-g" href="${spotGoogleUrl(sp)}" target="_blank" rel="noopener" onclick="spotReviewed('${id}')">${ic('star-f')} Review on Google →</a>`);
+  if(list.length)h+=`<h3 class="sb-sub">Did you stop by any of these?</h3><p class="sb-p">Near ${esc(a.n.replace(' (sample)',''))} · tap one to review it</p>`+list.map(row).join('');
+  h+=`<button class="sb-skip" onclick="bizLater()">${list.length?'No, just passing by':'Not now'}</button>`}
+ else h=`<h2 class="sb-h">Did you stop by any of these?</h2><p class="sb-p">Picked up near ${esc(a.n.replace(' (sample)',''))} · tap one to review it</p>`+list.map(row).join('')+`<button class="sb-skip" onclick="bizLater()">No, just passing by</button>`;
+ modalForced(h)}
 function stopPick(rid,pid){const r=ride(rid);r.bizId=pid;save();bizModal(rid)}
 /* ---- List your business (demo: instant sample approval) ---- */
 const BIZ_CATS=[['Eatery','utensils','shop'],['Coffee','utensils','shop'],['Bakery','utensils','shop'],['Snacks & desserts','utensils','shop'],['Pasalubong & souvenirs','bag','shop'],['Homestay','building','stay'],['Tours & activities','compass','shop']];
@@ -1575,7 +1592,7 @@ function render(){const nav=navFor();
 function maybeAutoReview(){if(S.role!=='booker')return;if(($('#modalRoot')||{}).innerHTML)return;
  // Business/place review takes priority: it pops up right after ride completion,
  // before the driver rating — not after it.
- const dueBiz=S.rides.find(r=>r.booker==='me'&&['started','completed'].includes(r.status)&&(r.bizList||r.bizId)&&r.bizAt==='pickup'&&!r.bizReviewShown);
+ const dueBiz=S.rides.find(r=>r.booker==='me'&&['started','completed'].includes(r.status)&&(r.bizList||r.bizId||r.spotId)&&r.bizAt==='pickup'&&!r.bizReviewShown);
  if(dueBiz){stopByModal(dueBiz.id);return}
  const due=S.rides.find(r=>r.booker==='me'&&r.status==='completed'&&!r.rated.b&&!r.reviewShown);
  if(due&&RIDE_REVIEW){due.reviewShown=true;save();rateModal(due.id,'b')}}
@@ -2036,7 +2053,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
 function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next rider')}
 function arriving(id){const r=ride(id);if(r.arriving){toast('Rider already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Rider notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
-function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}}notify('me','started',{ref:r.id},r.id);save();render()}
+function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{setPickupReviews(r);}notify('me','started',{ref:r.id},r.id);save();render()}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
  
  notify('me','completed',{ref:r.id},r.id);save();render();toast('Trip completed — rating and payment requests sent')}
@@ -2278,7 +2295,7 @@ function joinLocal(a,status){const d=a.d||{};let r=S.rides.find(x=>x.joinCode===
   let pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best;
   r=newRide({from:P(d.from)?d.from:'air',to:P(d.to)?d.to:'saport',type:d.type||'tricycle',pax:1,start:Date.now()});
   Object.assign(r,{pid:p?p.id:null,status,fare:pay,shared:true,joinCode:a.code,joinKey:a.j.key,co:[],reviewShown:true,rated:{b:true,p:false}});
-  const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}
+  setPickupReviews(r);
   S.rides.push(r);save();setTimeout(render,0);return r}
  if(status==='completed'&&r.status!=='completed'){r.status='completed';r.end=Date.now();save()}
  return r}
@@ -2404,7 +2421,7 @@ function shDecline(id){const r=ride(id);const was=(drvInfo(prov(r.cands[r.offerI
 function shStep(id,f){const r=ride(id);if(!r||!LIVE.db)return;const n=nowS();const u={};u[f]=n;const d=HOSTD[r.liveCode]||{};if(f==='startAt'&&!d.pickAt)u.pickAt=n;
  LIVE.db.ref('rides/'+r.liveCode).update(u).catch(()=>toast('Could not update — check your connection'));
  if(f==='pickAt'){r.arriving=true;toast('Riders notified: you’ve arrived at the pickup')}
- if(f==='startAt'){r.status='started';r.startedAt=Date.now();const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}toast('Trip started for every rider')}
+ if(f==='startAt'){r.status='started';r.startedAt=Date.now();setPickupReviews(r);toast('Trip started for every rider')}
  if(f==='doneAt'){const pay=r.fare;if(!r.pid)r.pid=S.actingAs;complete(r.id);r.fare=pay;toast('Trip completed for every rider')}
  save();render()}
 
@@ -2415,7 +2432,7 @@ function tripTick(){const a=activeTrip();let el=document.getElementById('tripLoc
  if(a.host&&a.d){const st=tripStage(a.d),r=a.r;
   if(st==='waiting'&&sharedSeats(r)>=seatsOf(r))markFull(r);
   if(['coming','riding','arrived'].includes(st)&&r.status==='pending'){r.pid=(r.cands||[])[0];r.status='accepted';save()}
-  if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';const l=nearbyReviewables(r.from);if(l.length){r.bizList=l.map(x=>x.p.id);r.bizAt='pickup'}save();setTimeout(render,0)}}
+  if(['riding','arrived'].includes(st)&&r.status==='accepted'){r.status='started';setPickupReviews(r);save();setTimeout(render,0)}}
  {const st=a.d?tripStage(a.d):'waiting';const mt=($('#modalRoot').innerText||'');
   if(!a.host&&st==='riding')joinLocal(a,'started');
   if(mt&&st!=='waiting'&&/leaves only when all/.test(mt))closeModal();
