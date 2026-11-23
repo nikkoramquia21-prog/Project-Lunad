@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.25.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.26.1 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1111,6 +1111,8 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 .sb-spot{display:flex;gap:12px;align-items:center}.sb-spot .tile{width:44px;height:44px;flex:none;border-radius:12px;background:var(--sun-tint);display:flex;align-items:center;justify-content:center}.sb-spot .tile .ic{width:22px;height:22px}
 .sb-g{margin-top:10px;text-decoration:none}.sb-sub{font-size:15px;margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line)}
 .sb-done{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#E6F4EA;color:#1E6B34;font-size:13.5px;font-weight:600}.sb-done .ic{width:15px;height:15px;vertical-align:-3px}
+
+.trip-steps li{font-size:11.5px;letter-spacing:-.01em;min-width:0;white-space:nowrap}.trip-steps li:first-child{flex:1.25}
 </style>
 </head>
 <body>
@@ -1119,9 +1121,9 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
     <h1>LUNAD</h1>
     <p><b>Book. Ride. Explore Catanduanes.</b> Book a Direct ride (car or van) or a TODA route (tricycle), see who is online, and pay the driver directly. Every operator is LGU-verified.</p>
     <div class="box"><b>Demo script</b>
-      <p>1. <b>Rider → Ride</b>: set pickup and drop-off, then request. The offer goes to the nearest online operator, who has 3 minutes to answer.</p>
+      <p>1. <b>Passenger → Ride</b>: set pickup and drop-off, then request. The offer goes to the nearest online operator, who has 3 minutes to answer.</p>
       <p>2. Switch to <b>Driver</b> and accept, or decline to pass it to the next one. Then arrive → start → complete.</p>
-      <p>3. Back as Rider: pay by QR, upload proof, rate, or report an issue.</p>
+      <p>3. Back as Passenger: pay by QR, upload proof, rate, or report an issue.</p>
       <p>4. Message the operator directly from an active trip — no phone numbers are shown.</p>
     </div>
     <div class="box"><b>Prototype notes</b>
@@ -1199,7 +1201,7 @@ function joinCodeFromUrl(){const q=new URLSearchParams(location.search).get('joi
 const PHONE=(new URLSearchParams(location.search).get('phone')||'').replace(/\W/g,'').slice(0,4);const SK=PHONE?'-p'+PHONE:'';const JOIN_ONLY=!!joinCodeFromUrl();const KEY='lunad-v3'+SK, MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
 const TYPES={
  tricycle:{label:'Tricycle (TODA route)',e:'tricycle',kph:25,seats:3},
- moto:{label:'Moto Taxi (LUNAD rider)',e:'moto',kph:35,seats:1,inhouse:true},
+ moto:{label:'Moto Taxi (LUNAD driver)',e:'moto',kph:35,seats:1,inhouse:true},
  car:{label:'Private car (Direct)',e:'car',kph:45,seats:4},
  minivan:{label:'Private van · 8-seater (Direct)',e:'van',kph:42,seats:8},
  van:{label:'Private van · 12-seater (Direct)',e:'van',kph:40,seats:12}
@@ -1218,7 +1220,7 @@ const DOCS={
 // Verification badge: independent operators show the LGU-verified badge; LUNAD's own in-house
 // fleet (moto) shows a distinct "LUNAD rider" badge instead — it isn't LGU-verified, it's
 // LUNAD-employed/managed directly, so claiming LGU verification for it would be inaccurate.
-function verifBadge(type,cls){return TYPES[type]&&TYPES[type].inhouse?`<span class="st gold ${cls||''}">${ic('home')} LUNAD rider</span>`:`<span class="st gold ${cls||''}">${ic('shield')} LGU verified</span>`}
+function verifBadge(type,cls){return TYPES[type]&&TYPES[type].inhouse?`<span class="st gold ${cls||''}">${ic('home')} LUNAD driver</span>`:`<span class="st gold ${cls||''}">${ic('shield')} LGU verified</span>`}
 const TOWNS={'Virac':[13.584,124.230],'Bato':[13.607,124.299],'Baras':[13.663,124.366],'Gigmoto':[13.779,124.391],'San Andres':[13.597,124.098],'Caramoran':[13.983,124.135],'Pandan':[14.046,124.168],'Viga':[13.869,124.310],'San Miguel':[13.640,124.300],'Bagamanoc':[13.940,124.287],'Panganiban':[13.905,124.300]};
 // approximate coordinates — prototype only
 const PLACES=[
@@ -1336,13 +1338,13 @@ const BIZ_CATS=[['Eatery','utensils','shop'],['Coffee','utensils','shop'],['Bake
 function loadMyBiz(){for(let i=PLACES.length-1;i>=0;i--)if(PLACES[i].id.indexOf('mb-')===0&&!(S.myBiz||[]).find(b=>b.place.id===PLACES[i].id))PLACES.splice(i,1);
  for(const b of S.myBiz||[]){if(!PLACES.find(p=>p.id===b.place.id))PLACES.push(b.place);BIZ[b.place.id]=b.stats}}
 let BIZLOC=null;
-function bizForm(){BIZLOC=null;modal(`<h2>List your business</h2><p class="muted" style="margin:0 0 6px">Get on the LUNAD map, in search, and in “Did you stop by?” prompts for riders picked up nearby.</p>
+function bizForm(){BIZLOC=null;modal(`<h2>List your business</h2><p class="muted" style="margin:0 0 6px">Get on the LUNAD map, in search, and in “Did you stop by?” prompts for passengers picked up nearby.</p>
  <label class="f">Business name</label><input class="inp" id="bzName" maxlength="40" placeholder="e.g. Aling Nena's Carinderia">
  <label class="f">Category</label><select class="inp" id="bzCat">${BIZ_CATS.map(c=>`<option>${c[0]}</option>`).join('')}</select>
  <label class="f">Location</label><div style="display:flex;gap:6px"><select class="inp" id="bzNear">${placeOpts(S.rideForm.from)}</select><button class="btn sm ghost" aria-label="Use my location" onclick="bizUseGPS()">${ic('target')}</button></div>
  <p class="muted" id="bzLocNote" style="margin:4px 0 0">Pinned next to the place you choose, or at your current location.</p>
  <label class="f">Opening hours</label><input class="inp" id="bzHours" maxlength="40" placeholder="e.g. 7 AM – 8 PM daily">
- <label class="f">Rider offer (optional)</label><input class="inp" id="bzOffer" maxlength="60" placeholder="e.g. Free iced tea with any meal">
+ <label class="f">Passenger offer (optional)</label><input class="inp" id="bzOffer" maxlength="60" placeholder="e.g. Free iced tea with any meal">
  <label class="f">Business permit (DTI / Mayor’s / barangay)</label><input class="inp" type="file" accept="image/*,.pdf" id="bzPermit">
  <button class="btn block" style="margin-top:14px" onclick="bizSubmit()">Submit listing</button>`)}
 function bizUseGPS(){if(!navigator.geolocation){toast('Location not available');return}navigator.geolocation.getCurrentPosition(g=>{BIZLOC={lat:g.coords.latitude,lng:g.coords.longitude};const n=$('#bzLocNote');if(n)n.textContent='Pinned at your current location.'},()=>toast('Could not get your location — choose a place instead'),{enableHighAccuracy:true,timeout:8000})}
@@ -1351,7 +1353,7 @@ function bizSubmit(){const name=($('#bzName').value||'').trim();if(name.length<3
  const id='mb-'+(S.seq++);const place={id,n:name,t:nearestTown(lat,lng),lat,lng,k:cat[2],e:cat[1],cat:cat[0],hours:($('#bzHours').value||'').trim()};
  const offer=($('#bzOffer').value||'').trim()||null;S.myBiz=S.myBiz||[];S.myBiz.push({place,stats:{avg:0,count:0,offer,verified:true,mine:true,googleUrl:'https://search.google.com/local/writereview?placeid=DEMO_PLACE_ID_NEW'}});
  loadMyBiz();save();modal(`<div style="text-align:center;padding:8px 4px"><div style="font-size:34px">${ic('shield')}</div><h2 style="margin:8px 0 4px">${esc(name)} is live</h2><span class="st ok">Verified local business · sample approval</span>
- <p class="muted" style="margin:12px 0 0">It now appears on the Explore map and in “Where to?” search, and riders picked up within 500 m will be asked if they stopped by.${offer?' Your offer: '+esc(offer)+'.':''}</p>
+ <p class="muted" style="margin:12px 0 0">It now appears on the Explore map and in “Where to?” search, and passengers picked up within 500 m will be asked if they stopped by.${offer?' Your offer: '+esc(offer)+'.':''}</p>
  <p class="muted">In the real app, LUNAD or the LGU tourism office checks your permit first.</p><button class="btn block" style="margin-top:10px" onclick="closeModal();openPlace('${id}')">View listing</button></div>`)}
 function stopByModalPlaceholder(){}
 function nearPickupSpot(placeId){const place=P(placeId);if(!place)return {biz:null};if(revStats(placeId))return {biz:place,dist:0};if(place.k!=='pin')return {biz:null};let best=null,bd=Infinity;for(const p of PLACES){if(!revStats(p.id))continue;const d=km(place,p);if(d<bd){bd=d;best=p}}return bd<=0.5?{biz:best,dist:bd}:{biz:null}}
@@ -1400,8 +1402,8 @@ function saveBiz(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revStats(s
  <button class="btn block" style="margin-top:10px" onclick="closeModal();render()">Continue →</button>
  </div>`)}
 const MSG={
- en:{request:'LUNAD: {ref} requested. Finding a rider…',offer:'LUNAD: New ride {ref}: {route} at {time}. Accept within 3 min.',accepted:'LUNAD: {ref} accepted by {prov}. Pickup {time}.',arriving:'LUNAD: Your rider for {ref} is arriving.',started:'LUNAD: Trip {ref} started.',completed:'LUNAD: Trip {ref} done. Please rate your ride.',cancelled:'LUNAD: {ref} cancelled.{fee}',nomatch:'LUNAD: No rider for {ref}. Reply YES for {alt}.',rematch:'LUNAD: Rider cancelled {ref}. Finding another rider…',storm:'LUNAD: Storm signal in {town}. New bookings paused.',resume:'LUNAD: Signal lifted in {town}. Bookings resumed.',paid:'LUNAD: Payment for {ref} confirmed.',payrej:'LUNAD: Proof for {ref} rejected. Re-upload or pay another way.',noshow:'LUNAD: {ref} marked no-show. Late fee {fee}.',help:'LUNAD help: support 0917-000-0000 (sample).',stop:'LUNAD: SMS stopped. App notices continue.',otp:'LUNAD code {code}. Enter it to link Messenger.',share:'LUNAD: {name} shared a trip: {link}',sos:'LUNAD SOS: {name} needs help near {loc}. Trip {ref}.',dispute:'LUNAD: Fare dispute {ref}: {msg}'},
- fil:{request:'LUNAD: Na-request ang {ref}. Naghahanap ng rider…',accepted:'LUNAD: Tinanggap ni {prov} ang {ref}. Sundo {time}.',arriving:'LUNAD: Paparating na ang rider mo para sa {ref}.',started:'LUNAD: Nagsimula na ang biyahe {ref}.',completed:'LUNAD: Tapos na ang {ref}. I-rate ang biyahe.',cancelled:'LUNAD: Kanselado ang {ref}.{fee}',nomatch:'LUNAD: Walang rider para sa {ref}. Reply YES para sa {alt}.',rematch:'LUNAD: Nag-cancel ang rider ng {ref}. Naghahanap ng iba…',storm:'LUNAD: May storm signal sa {town}. Hinto muna ang bagong booking.',resume:'LUNAD: Wala nang signal sa {town}. Tuloy na ang booking.',paid:'LUNAD: Kumpirmado ang bayad sa {ref}.',payrej:'LUNAD: Hindi tinanggap ang proof ng {ref}. Mag-upload ulit o ibang paraan ng bayad.'}
+ en:{request:'LUNAD: {ref} requested. Finding a driver…',offer:'LUNAD: New ride {ref}: {route} at {time}. Accept within 3 min.',accepted:'LUNAD: {ref} accepted by {prov}. Pickup {time}.',arriving:'LUNAD: Your driver for {ref} is arriving.',started:'LUNAD: Trip {ref} started.',completed:'LUNAD: Trip {ref} done. Please rate your ride.',cancelled:'LUNAD: {ref} cancelled.{fee}',nomatch:'LUNAD: No driver for {ref}. Reply YES for {alt}.',rematch:'LUNAD: Driver cancelled {ref}. Finding another driver…',storm:'LUNAD: Storm signal in {town}. New bookings paused.',resume:'LUNAD: Signal lifted in {town}. Bookings resumed.',paid:'LUNAD: Payment for {ref} confirmed.',payrej:'LUNAD: Proof for {ref} rejected. Re-upload or pay another way.',noshow:'LUNAD: {ref} marked no-show. Late fee {fee}.',help:'LUNAD help: support 0917-000-0000 (sample).',stop:'LUNAD: SMS stopped. App notices continue.',otp:'LUNAD code {code}. Enter it to link Messenger.',share:'LUNAD: {name} shared a trip: {link}',sos:'LUNAD SOS: {name} needs help near {loc}. Trip {ref}.',dispute:'LUNAD: Fare dispute {ref}: {msg}'},
+ fil:{request:'LUNAD: Na-request ang {ref}. Naghahanap ng driver…',accepted:'LUNAD: Tinanggap ni {prov} ang {ref}. Sundo {time}.',arriving:'LUNAD: Paparating na ang driver mo para sa {ref}.',started:'LUNAD: Nagsimula na ang biyahe {ref}.',completed:'LUNAD: Tapos na ang {ref}. I-rate ang biyahe.',cancelled:'LUNAD: Kanselado ang {ref}.{fee}',nomatch:'LUNAD: Walang driver para sa {ref}. Reply YES para sa {alt}.',rematch:'LUNAD: Nag-cancel ang driver ng {ref}. Naghahanap ng iba…',storm:'LUNAD: May storm signal sa {town}. Hinto muna ang bagong booking.',resume:'LUNAD: Wala nang signal sa {town}. Tuloy na ang booking.',paid:'LUNAD: Kumpirmado ang bayad sa {ref}.',payrej:'LUNAD: Hindi tinanggap ang proof ng {ref}. Mag-upload ulit o ibang paraan ng bayad.'}
 };
 
 /* =================== STATE =================== */
@@ -1421,17 +1423,17 @@ function seed(){
   mkProv('p10','San Andres TODA – Unit 05 (Leo)','tricycle','San Andres',3,'approved','0917-000-0810','GCash',true,DOCS.tricycle.map((n,i)=>doc(n,exp(i===1?-3:200)))),
   mkProv('p11','Elmer – 8-seater Van','minivan','Virac',8,'approved','0917-000-0811','GCash',true,DOCS.minivan.map(n=>doc(n,exp(190)))),
   // LUNAD-owned Moto Taxi fleet — in-house riders, always online, no public registration.
-  mkProv('p12','LUNAD Rider – Jun','moto','Virac',1,'approved','0917-000-0901','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
-  mkProv('p13','LUNAD Rider – Ariel','moto','San Andres',1,'approved','0917-000-0902','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p14','LUNAD Rider – Paolo','moto','Bato',1,'approved','0917-000-0903','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p15','LUNAD Rider – Kiko','moto','Baras',1,'approved','0917-000-0904','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p16','LUNAD Rider – Nonoy','moto','Gigmoto',1,'approved','0917-000-0905','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p17','LUNAD Rider – Rey','moto','Viga',1,'approved','0917-000-0906','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p18','LUNAD Rider – Jomar','moto','Panganiban',1,'approved','0917-000-0907','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p19','LUNAD Rider – Elvin','moto','Bagamanoc',1,'approved','0917-000-0908','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p20','LUNAD Rider – Carlo','moto','Pandan',1,'approved','0917-000-0909','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p21','LUNAD Rider – Nestor','moto','Caramoran',1,'approved','0917-000-0910','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
- mkProv('p22','LUNAD Rider – Arvin','moto','San Miguel',1,'approved','0917-000-0911','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+  mkProv('p12','LUNAD Driver – Jun','moto','Virac',1,'approved','0917-000-0901','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+  mkProv('p13','LUNAD Driver – Ariel','moto','San Andres',1,'approved','0917-000-0902','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p14','LUNAD Driver – Paolo','moto','Bato',1,'approved','0917-000-0903','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p15','LUNAD Driver – Kiko','moto','Baras',1,'approved','0917-000-0904','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p16','LUNAD Driver – Nonoy','moto','Gigmoto',1,'approved','0917-000-0905','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p17','LUNAD Driver – Rey','moto','Viga',1,'approved','0917-000-0906','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p18','LUNAD Driver – Jomar','moto','Panganiban',1,'approved','0917-000-0907','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p19','LUNAD Driver – Elvin','moto','Bagamanoc',1,'approved','0917-000-0908','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p20','LUNAD Driver – Carlo','moto','Pandan',1,'approved','0917-000-0909','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p21','LUNAD Driver – Nestor','moto','Caramoran',1,'approved','0917-000-0910','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
+ mkProv('p22','LUNAD Driver – Arvin','moto','San Miguel',1,'approved','0917-000-0911','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
  mkProv('p23','Nelia – Private Car (4 seats)','car','Bato',4,'approved','0917-000-0412','GCash',true,DOCS.car.map(n=>doc(n,exp(240)))),
  mkProv('p24','Ramon – 8-seater Van','minivan','San Andres',8,'approved','0917-000-0813','Maya',true,DOCS.minivan.map(n=>doc(n,exp(210)))),
  mkProv('p25','Baras Shuttle (12 seats)','van','Baras',12,'approved','0917-000-0314','GCash',true,DOCS.van.map(n=>doc(n,exp(200))))
@@ -1506,7 +1508,7 @@ function fakeQR(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;const R
 function tpl(key,v,lang){const t=(MSG[lang]&&MSG[lang][key])||MSG.en[key]||key;return t.replace(/\{(\w+)\}/g,(_,k)=>v[k]??'')}
 function townOf(p){return p.t}
 function paused(town){return (S.signals[town]||0)>0}
-function stChip(s){const m={queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to riders'],no_match:['bad','No rider found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
+function stChip(s){const m={queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to drivers'],no_match:['bad','No driver found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
 function payChip(r){if(['cancelled','no_match','queued'].includes(r.status)&&!r.fee)return '';const m={unpaid:['wait','Unpaid'],proof:['info','Proof sent'],paid:['ok','Paid'],rejected:['bad','Proof rejected'],cash:['info','Cash — awaiting driver'],escalated:['bad','Escalated to support']}[r.pay]||['mut',r.pay];return `<span class="st ${m[0]}">${ic('card')} ${m[1]}</span>`}
 function amount(r){return r.fare+(r.fee||0)}
 
@@ -1541,7 +1543,7 @@ function dispatch(r,silent){
  if(!silent)notify('me','request',{ref:r.id},r.id);
  offerNotify(r)}
 function offerNotify(r){notify(r.cands[r.offerIdx],'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id)}
-function noMatch(r){r.status='no_match';r.alt=findAlt(r);r.why='No online rider free';
+function noMatch(r){r.status='no_match';r.alt=findAlt(r);r.why='No online driver free';
  notify('me','nomatch',{ref:r.id,alt:r.alt[0]?altLabel(r.alt[0]):'another time'},r.id)}
 function findAlt(r){const out=[],len=r.end-r.start;
  for(const m of [30,60,120]){const s=r.start+m*MIN;if(eligible(r.type,r.pax,s,s+len,r.id).length){out.push({k:'time',start:s});break}}
@@ -1580,7 +1582,7 @@ function navFor(){return NAV[S.role]}
 function render(){const nav=navFor();
  if(!nav.some(n=>n[0]===S.tab))S.tab=nav[0][0];
  $('#top').innerHTML=`<div class="row"><div class="logo">LUNAD<small>Book. Ride. Explore Catanduanes.</small></div>
-  <div class="mode" role="group" aria-label="Mode"><button class="${S.role==='booker'?'on':''}" onclick="setRole('booker')">Rider</button><button class="${S.role==='provider'?'on':''}" onclick="setRole('provider')">Driver</button></div>
+  <div class="mode" role="group" aria-label="Mode"><button class="${S.role==='booker'?'on':''}" onclick="setRole('booker')">Passenger</button><button class="${S.role==='provider'?'on':''}" onclick="setRole('provider')">Driver</button></div>
   <button class="iconbtn" aria-label="Menu" onclick="openAbout()">${ic('menu')}</button></div>
   <div class="net">${online()?'':`<span class="pill off" style="cursor:pointer" onclick="toggleNet()" title="Tap to simulate signal returning (demo)">${ic('wifi-off')} No signal</span>`}
   ${activeCount()&&S.rides.some(r=>r.booker==='me'&&r.status==='queued')?`<span class="pill off">${ic('clock')} Queued request pending signal</span>`:''}
@@ -1709,7 +1711,7 @@ function pickByText(which,text){text=(text||'').trim();if(!text)return;
  const id='cu-'+(S.seq++);S.custom.push({id,n:text,t:town,lat:TOWNS[town][0],lng:TOWNS[town][1],k:'pin',e:'pin'});S.custom=S.custom.slice(-8);
  S.rideForm[which]=id;save();render();toast(`Using "${text}" near ${town}`)}
 function openPlace(id){const p=P(id);
- modal(`${PHOTOS[id]?`<img class="place-ph" src="${PHOTOS[id]}" alt="${esc(p.n)}">`:`<div style="font-size:32px">${ic(p.e)}</div>`}<h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${p.cat?esc(p.cat):({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>${BIZ[id]?`<div class="banner" style="margin-top:10px"><b>${ic('shield')} Verified local business</b>${p.hours?'<br>Open '+esc(p.hours):''}${BIZ[id].offer?'<br>'+ic('gift')+' Rider offer: '+esc(BIZ[id].offer):''}</div>`:''}
+ modal(`${PHOTOS[id]?`<img class="place-ph" src="${PHOTOS[id]}" alt="${esc(p.n)}">`:`<div style="font-size:32px">${ic(p.e)}</div>`}<h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${p.cat?esc(p.cat):({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>${BIZ[id]?`<div class="banner" style="margin-top:10px"><b>${ic('shield')} Verified local business</b>${p.hours?'<br>Open '+esc(p.hours):''}${BIZ[id].offer?'<br>'+ic('gift')+' Passenger offer: '+esc(BIZ[id].offer):''}</div>`:''}
  ${p.k==='spot'?`<p class="muted">Full attraction details (fees, hours${PHOTOS[id]?'':', photos'}) are on the roadmap.</p>`:''}
  <div class="btns"><button class="btn sm" onclick="S.rideForm.from='${id}';closeModal();go('ride')">Ride from here</button><button class="btn sm" onclick="S.rideForm.to='${id}';closeModal();go('ride')">Ride to here</button></div>
  <div class="btns"><a class="btn ghost sm" style="text-decoration:none" href="${dirUrl(p)}" target="_blank" rel="noopener">${ic('nav')} Directions</a><a class="btn ghost sm" style="text-decoration:none" href="${svUrl(p)}" target="_blank" rel="noopener">${ic('eye')} Street View</a></div>
@@ -1797,7 +1799,7 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='c
   <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
   <div class="check">${f.type===k?ic('check'):''}</div>
  </div>`).join('')}
- ${SHARE_CAP[f.type]?(()=>{const q=sharedQuote(f.type,d,f.pax,f.pax);const ok=mySeats(f)<seatsOf(f);return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole ${vehW(f.type)} · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,mySeats(f),1,f.type)+' per seat · drops as riders join':'Not available for '+mySeats(f)+' seats'}</span></button></div>${f.shared?`<label class="lug"><input type="checkbox" ${f.lug?'checked':''} onchange="S.rideForm.lug=this.checked;save();render()"> With luggage <span class="muted">· a big bag takes a seat</span></label>`:''}${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Riders within 500 m can see and join your ride — it shows where it’s going so they can decide. ${leaveTxt(f)}. Your fare only goes down. Sample fare: ₱15 + ₱5/km per seat.</p>`:''}`})():(f.type==='moto'?`<p class="muted" style="margin:10px 0 0">${ic('moto')} Moto Taxi carries 1 passenger, so sharing isn't available.</p>`:'')}
+ ${SHARE_CAP[f.type]?(()=>{const q=sharedQuote(f.type,d,f.pax,f.pax);const ok=mySeats(f)<seatsOf(f);return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole ${vehW(f.type)} · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,mySeats(f),1,f.type)+' per seat · drops as passengers join':'Not available for '+mySeats(f)+' seats'}</span></button></div>${f.shared?`<label class="lug"><input type="checkbox" ${f.lug?'checked':''} onchange="S.rideForm.lug=this.checked;save();render()"> With luggage <span class="muted">· a big bag takes a seat</span></label>`:''}${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Passengers within 500 m can see and join your ride — it shows where it’s going so they can decide. ${leaveTxt(f)}. Your fare only goes down. Sample fare: ₱15 + ₱5/km per seat.</p>`:''}`})():(f.type==='moto'?`<p class="muted" style="margin:10px 0 0">${ic('moto')} Moto Taxi carries 1 passenger, so sharing isn't available.</p>`:'')}
  <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
  <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
  ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
@@ -1807,19 +1809,19 @@ function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='c
  <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
  ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
  
- h+=`<p class="muted">Your request goes to the nearest available rider first. If they don't accept within 3 minutes, it moves to the next one.</p>`;
+ h+=`<p class="muted">Your request goes to the nearest available driver first. If they don't accept within 3 minutes, it moves to the next one.</p>`;
  if(f.type==='tricycle')h+=`<div class="banner info">${ic('tricycle')} TODA route: tricycles currently run between Virac and San Andres only. Outside that corridor, choose a car or van (Direct booking).</div>`;
- if(f.type==='moto')h+=`<div class="banner info">${ic('moto')} Moto Taxi is LUNAD's own rider fleet — always online, 1 passenger only, no helmet-less pillion.</div>`;
+ if(f.type==='moto')h+=`<div class="banner info">${ic('moto')} Moto Taxi is LUNAD's own driver fleet — always online, 1 passenger only, no helmet-less pillion.</div>`;
  return h}
 function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
- ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more riders join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
+ ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more passengers join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
  <button class="btn block" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
 function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
  dispatch(r);
- closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No rider available — see options')}
+ closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No driver available — see options')}
 
 /* =================== RIDE CARD (booker) =================== */
 /* =================== SHARED TODA RIDES (sample rates) =================== */
@@ -1830,10 +1832,10 @@ function mySeats(x){return x.pax+(x.lug?1:0)}
 function seatFare(d,type){const k=SEATRATE[type]||SEATRATE.tricycle;return Math.round(k[0]+k[1]*d)}
 function sharedQuote(type,d,pax,seats){const whole=Math.round(fareCalc(type,d));const reg=seatFare(d,type);const per=Math.round(Math.min(reg,whole/seats));return {per,you:per*pax,whole,reg}}
 function waitDue(r,now){return r.booker==='me'&&r.shared&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)&&now-(r.waitFrom||r.createdAt)>(r.live?60000:SHARE.wait)}
-function waitModal(id){const r=ride(id);const whole=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));const n=sharedSeats(r),m=MIN_GO[r.type];modalForced(`<h2>Still ${n} of ${seatsOf(r)} seats</h2><p class="muted" style="margin:0 0 12px">Your shared ${vehW(r.type)} leaves when all ${seatsOf(r)} seats are filled${m?`, or from ${m} riders if you choose`:''}. No one else has joined yet. (Demo: after 1 minute; the real app waits 10.)</p>${m&&n>=m?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${id}')">Leave now with ${n} riders</button>`:''}<button class="btn ${m&&n>=m?'sec ':''}block" onclick="ride('${id}').waitFrom=Date.now();save();closeModal();toast('Still waiting for co-riders')">Keep waiting</button><button class="btn sec block" style="margin-top:8px" onclick="goSolo('${id}')">Go Solo · whole ${vehW(r.type)} ${peso(whole)}</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="freeCancel('${id}')">Cancel for free</button>`)}
+function waitModal(id){const r=ride(id);const whole=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));const n=sharedSeats(r),m=MIN_GO[r.type];modalForced(`<h2>Still ${n} of ${seatsOf(r)} seats</h2><p class="muted" style="margin:0 0 12px">Your shared ${vehW(r.type)} leaves when all ${seatsOf(r)} seats are filled${m?`, or from ${m} passengers if you choose`:''}. No one else has joined yet. (Demo: after 1 minute; the real app waits 10.)</p>${m&&n>=m?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${id}')">Leave now with ${n} passengers</button>`:''}<button class="btn ${m&&n>=m?'sec ':''}block" onclick="ride('${id}').waitFrom=Date.now();save();closeModal();toast('Still waiting for other passengers')">Keep waiting</button><button class="btn sec block" style="margin-top:8px" onclick="goSolo('${id}')">Go Solo · whole ${vehW(r.type)} ${peso(whole)}</button><button class="btn ghost block" style="margin-top:8px;border:0" onclick="freeCancel('${id}')">Cancel for free</button>`)}
 function goSolo(id){const r=ride(id);liveStatus(r,'closed');r.shared=false;r.co=[];r.coDone=true;r.fare=Math.round(fareCalc(r.type,routeKm(P(r.from),P(r.to))));r.seatFare=null;r.tripTotal=null;r.lunadCover=0;save();closeModal();render();toast('Switched to Solo · whole '+vehW(r.type)+' '+peso(r.fare))}
 function freeCancel(id){const r=ride(id);liveStatus(r,'closed');if(r.liveCode&&LIVE.db)LIVE.db.ref('rides/'+r.liveCode+'/cancelled').set(true).catch(()=>{});const offered=r.status==='pending'?r.cands[r.offerIdx]:r.pid;r.status='cancelled';r.fee=0;notify('me','cancelled',{ref:r.id,fee:''},r.id);if(offered)notify(offered,'cancelled',{ref:r.id,fee:''},r.id);save();closeModal();render();toast('Cancelled for free')}
-function coCancel(){const r=S.rides.filter(x=>x.booker==='me'&&x.shared&&['pending','accepted'].includes(x.status)&&x.co&&x.co.length).sort((a,b)=>b.createdAt-a.createdAt)[0];if(!r){toast('Book a shared ride with co-riders first');return}r.protect=Math.max(r.protect||0,r.tripTotal||0);const c=r.co.pop();r.coDone=true;r.waitFrom=Date.now();applyShared(r);save();render();toast(`${c.n} cancelled · your fare stays ${peso(r.fare)} · LUNAD covers ${peso(r.lunadCover)} for the driver`)}
+function coCancel(){const r=S.rides.filter(x=>x.booker==='me'&&x.shared&&['pending','accepted'].includes(x.status)&&x.co&&x.co.length).sort((a,b)=>b.createdAt-a.createdAt)[0];if(!r){toast('Book a shared ride with other passengers first');return}r.protect=Math.max(r.protect||0,r.tripTotal||0);const c=r.co.pop();r.coDone=true;r.waitFrom=Date.now();applyShared(r);save();render();toast(`${c.n} cancelled · your fare stays ${peso(r.fare)} · LUNAD covers ${peso(r.lunadCover)} for the driver`)}
 function shareRange(d,pax,mult,type){type=type||'tricycle';const hi=sharedQuote(type,d,pax,pax).per*mult,lo=sharedQuote(type,d,pax,SHARE_CAP[type]||3).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
 
 /* ---- Shared rides by vehicle: seats per vehicle, minimum riders before 'Leave now', per-seat cap (sample rates). ---- */
@@ -1844,9 +1846,9 @@ const VEHW={tricycle:'tricycle',moto:'moto',car:'car',minivan:'van',van:'van'};
 function vehW(t){return VEHW[t]||'tricycle'}
 function capF(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function seatsOf(x){return SHARE_CAP[x&&x.type]||3}
-function leaveTxt(x){const n=seatsOf(x),m=MIN_GO[x&&x.type];return `Leaves when all ${n} seats are filled`+(m?` — or from ${m} riders if you choose`:'')}
+function leaveTxt(x){const n=seatsOf(x),m=MIN_GO[x&&x.type];return `Leaves when all ${n} seats are filled`+(m?` — or from ${m} passengers if you choose`:'')}
 function tripType(a){return (a.d&&a.d.type)||(a.r&&a.r.type)||'tricycle'}
-function leaveNow(id){const r=ride(id);if(!r)return;r.goNow=true;r.coDone=true;if(r.live&&r.liveCode){markFull(r);liveStatus(r,'full')}save();closeModal();render();toast('Leaving now with '+sharedSeats(r)+' riders — finding your driver')}
+function leaveNow(id){const r=ride(id);if(!r)return;r.goNow=true;r.coDone=true;if(r.live&&r.liveCode){markFull(r);liveStatus(r,'full')}save();closeModal();render();toast('Leaving now with '+sharedSeats(r)+' passengers — finding your driver')}
 
 function shareOn(f){return !!SHARE_CAP[f.type]&&!!f.shared&&mySeats(f)<seatsOf(f)}
 function sharedSeats(r){return mySeats(r)+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
@@ -1854,13 +1856,13 @@ function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r
 function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S.shareAuto===false)return false;if(!['pending','accepted'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(seatsOf(r)-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();r.waitFrom=Date.now();if(sharedSeats(r)>=seatsOf(r)||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);const full=sharedSeats(r)>=seatsOf(r);toast(`${next.n} joined from the same pickup · ${sharedSeats(r)} of ${seatsOf(r)} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}${full?` · ${vehW(r.type)} full, ready to leave`:''}`);return true}
 function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
- <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample riders':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
+ <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample passengers':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
  ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
- if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
+ if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more driver(s) in line</div>`;
  if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
  if(r.status==='queued')h+=`<div class="banner info" style="margin:6px 0">${ic('wifi-off')} No signal — this request will send automatically once you're back online. <button class="btn sm sec" style="margin-top:6px" onclick="toggleNet()">Simulate: back online</button></div>`;
- if(r.status==='accepted'&&r.arriving)h+=`<div class="banner info" style="margin:6px 0">${ic('tricycle')} Your rider is arriving.</div>`;
+ if(r.status==='accepted'&&r.arriving)h+=`<div class="banner info" style="margin:6px 0">${ic('tricycle')} Your driver is arriving.</div>`;
  if(r.rated.b){const rv=S.ratings.find(x=>x.rideId===r.id&&x.from==='b');if(rv)h+=`<div class="muted" style="margin:4px 0">Your review: ${starRow(rv.stars,'sm')}${rv.tags&&rv.tags.length?' · '+rv.tags.map(esc).join(', '):''}${rv.comment?' — '+esc(rv.comment):''}</div>`}
  const btn=[];
  if(['accepted','started'].includes(r.status)&&['unpaid','rejected'].includes(r.pay))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">Pay / upload proof</button>`);
@@ -1916,7 +1918,7 @@ function toggleTag(t){const i=RT.tags.indexOf(t);if(i>=0)RT.tags.splice(i,1);els
 function drawRate(){const r=ride(RT.id);const who=RT.side==='b'?prov(r.pid).n:'Booker '+r.id;
  const summary=RT.side==='b'?`<div class="card"><div class="kv"><span>Route</span><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></div><div class="kv"><span>Operator</span><b>${esc(who)}</b></div><div class="kv"><span></span>${verifBadge(r.type,'sm')}</div><div class="kv"><span>Fare</span><b>${peso(amount(r))}</b></div></div>`:'';
  const dest=esc(P(r.to).n);
- modalForced(`<h2>${RT.side==='b'?'Ride completed':'Rate your rider'}</h2>${summary}
+ modalForced(`<h2>${RT.side==='b'?'Ride completed':'Rate your passenger'}</h2>${summary}
  <label class="f">${RT.side==='b'?`How was your ride with ${esc(who)}?`:'Rate '+esc(who)}</label><div class="stars">${[1,2,3,4,5].map(i=>`<span class="${i<=RT.stars?'on':''}" onclick="RT.stars=${i};drawRate()">${ic('star-f')}</span>`).join('')}</div>
  ${RT.side==='b'?`<div class="chips" style="margin:8px 0">${REVIEW_TAGS.map(t=>`<span class="chip ${RT.tags.includes(t)?'on':''}" onclick="toggleTag('${t}')">${t}</span>`).join('')}</div>`:''}
  ${RT.stars&&RT.stars<=2?`<label class="f">What went wrong? (required)</label><select class="inp" id="rr"><option value="">Choose a reason</option>${(RT.side==='b'?['Late','Rude','Unsafe driving','Overcharged','Vehicle condition','Other']:['No-show / late','Rude','Wrong pickup','Did not pay','Other']).map(x=>`<option>${x}</option>`).join('')}</select>`:''}
@@ -1929,7 +1931,7 @@ function saveRate(){const reason=$('#rr')?$('#rr').value:'';if(RT.stars<=2&&!rea
  r.rated[RT.side]=true;save();render();
  // The business/place review already ran first (see bizModal, triggered by maybeAutoReview
  // before this driver rating) — this step is just the driver/ride rating on its own.
- modal(`<div style="text-align:center;padding:24px 4px"><div style="font-size:40px">${ic('check')}</div><h2 style="margin:10px 0 4px">Thanks for your review!</h2><p class="muted">${RT.side==='b'?'It helps other riders and keeps LUNAD trustworthy.':'Saved to your trip history.'}</p></div>`);
+ modal(`<div style="text-align:center;padding:24px 4px"><div style="font-size:40px">${ic('check')}</div><h2 style="margin:10px 0 4px">Thanks for your review!</h2><p class="muted">${RT.side==='b'?'It helps other passengers and keeps LUNAD trustworthy.':'Saved to your trip history.'}</p></div>`);
  setTimeout(closeModal,1400)}
 const REPORT_TYPES=['Fare dispute','Payment not confirmed','Safety concern','Other'];
 function reportModal(id,defaultType){const r=ride(id);
@@ -2002,12 +2004,12 @@ function vMe(){const m=S.me;const inbox=S.notifs.filter(n=>n.to==='me'||n.to==='
  <p class="muted">Bikol and a full app language switch are on the roadmap (feature 5).</p></div>
  <h3>${ic('warn')} Emergency contacts (max 3)</h3><div class="card">${m.contacts.map((c,i)=>`<div class="kv"><span>${esc(c.n)}<br><span class="muted">${esc(c.m)}</span></span><button class="btn sm ghost" onclick="S.me.contacts.splice(${i},1);save();render()">Remove</button></div>`).join('')||'<p class="muted">None yet.</p>'}
  ${m.contacts.length<3?`<div class="two" style="margin-top:6px"><input class="inp" id="cnm" placeholder="Name"><input class="inp" id="cmb" placeholder="Mobile"></div><button class="btn sm sec" style="margin-top:6px" onclick="addContact()">+ Add contact</button>`:''}</div>
- <h3>${ic('pkg')} Offline pack</h3><div class="card"><div class="muted">Map, ${PLACES.length} places, ${S.providers.filter(p=>p.status==='approved').length} verified riders and saved trips. Updated ${fmtD(m.pack)}.</div><button class="btn sm sec" style="margin-top:6px" ${online()?'':'disabled'} onclick="S.me.pack=D(0);save();render();toast('Offline pack updated')">Update pack</button></div>
+ <h3>${ic('pkg')} Offline pack</h3><div class="card"><div class="muted">Map, ${PLACES.length} places, ${S.providers.filter(p=>p.status==='approved').length} verified drivers and saved trips. Updated ${fmtD(m.pack)}.</div><button class="btn sm sec" style="margin-top:6px" ${online()?'':'disabled'} onclick="S.me.pack=D(0);save();render();toast('Offline pack updated')">Update pack</button></div>
  <h3>Account</h3><div class="card"><div class="kv"><span>No-shows on record</span><b>${m.noShows}</b></div><div class="kv"><span>Active booking limit</span><b>${bookingLimit()}</b></div></div>
  <h3>${ic('mail')} Inbox (app / SMS / Messenger)</h3><div class="card"><label class="f">Reply by SMS keyword</label><div style="display:flex;gap:6px"><input class="inp" id="kw" placeholder="YES, CANCEL, HELP or STOP"><button class="btn sm" onclick="smsReply()">Send</button></div></div>
  ${inbox.slice(0,25).map(n=>msgHTML(n)).join('')||'<p class="muted">No messages yet.</p>'}`}
 function msgHTML(n){return `<div class="msg"><div class="h"><span>${n.to==='contacts'?'To emergency contacts':n.to==='lgu'?'To LGU hotline':''} · ${esc(n.ch)}</span><span>${new Date(n.at).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'})} · ${esc(n.status)}</span></div>${esc(n.text)}</div>`}
-function messageModal(id){const r=ride(id);const th=S.threads[id]||[];const them=S.role==='booker'?'Operator':'Rider';
+function messageModal(id){const r=ride(id);const th=S.threads[id]||[];const them=S.role==='booker'?'Operator':'Passenger';
  modal(`<h2>${ic('mail')} Message · ${r.id}</h2><p class="muted">No phone numbers are shared — all coordination happens here.</p>
  <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${th.map(m=>`<div class="msg"><div class="h"><span>${m.from===S.role?'You':them}</span><span>${fmtT(m.at)}</span></div>${esc(m.text)}</div>`).join('')||'<p class="muted">No messages yet — say hello.</p>'}</div>
  <div style="display:flex;gap:6px"><input class="inp" id="mtxt" placeholder="Type a message" onkeydown="if(event.key==='Enter'){sendMsg('${id}')}"><button class="btn sm" onclick="sendMsg('${id}')">Send</button></div>`)}
@@ -2037,22 +2039,22 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  let h=`<h2>${ic('file-text')} Offers & jobs</h2>${holdBanner()}${provPick()}${provBanner(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
  if(autoShared.length)h+=autoShared.map(shDrvCard).join('');
- h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all riders)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
+ h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all passengers)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
  h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+seatsOf(r)+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
-  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · rider notified':'Arrived at pickup'}</button>`:''}${r.shared&&!r.goNow&&sharedSeats(r)<seatsOf(r)?`<button class="btn sm" disabled>Waiting for riders · ${sharedSeats(r)} of ${seatsOf(r)}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
+  <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · passenger notified':'Arrived at pickup'}</button>`:''}${r.shared&&!r.goNow&&sharedSeats(r)<seatsOf(r)?`<button class="btn sm" disabled>Waiting for passengers · ${sharedSeats(r)} of ${seatsOf(r)}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
    <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
    <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
-   <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message rider${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
+   <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message passenger${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
  if(payq.length)h+=`<h3>Payments to confirm (15 min)</h3>`+payq.map(r=>`<div class="card"><b>${r.id} · ${peso(amount(r))}</b> ${r.pay==='cash'?'<span class="st info">Cash</span>':''}${r.proof&&r.pay==='proof'?`<img class="proof" src="${r.proof}" alt="proof">`:''}
   <div class="btns"><button class="btn sm" onclick="confirmPay('${r.id}',true)">${ic('check')} ${r.pay==='cash'?'Cash received':'Payment received'}</button>${r.pay==='proof'?`<button class="btn sm warn" onclick="confirmPay('${r.id}',false)">✕ Not received</button>`:''}</div></div>`).join('');
  const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your bookers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
  return h}
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
-function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next rider')}
-function arriving(id){const r=ride(id);if(r.arriving){toast('Rider already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Rider notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
+function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next driver')}
+function arriving(id){const r=ride(id);if(r.arriving){toast('Passenger already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Passenger notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
 function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{setPickupReviews(r);}notify('me','started',{ref:r.id},r.id);save();render()}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
  
@@ -2090,7 +2092,7 @@ function vRegister(){const req=DOCS[REG.type];const have=req.filter(n=>REG.docs[
  <div class="card"><label class="f">Name / business</label><input class="inp" id="rn" placeholder="e.g. Viga TODA – Unit 21">
  <label class="f">Contact number</label><input class="inp" id="rp" placeholder="09xx-xxx-xxxx">
  <label class="f">Vehicle / provider type</label><select class="inp" onchange="REG.type=this.value;REG.docs={};render()">${Object.entries(TYPES).filter(([k,T])=>!T.inhouse).map(([k,T])=>`<option value="${k}" ${REG.type===k?'selected':''}>${T.label}</option>`).join('')}</select>
- <p class="muted" style="margin-top:2px">Moto Taxi isn't listed here — it's LUNAD's own in-house rider fleet, not a self-registered provider.</p>
+ <p class="muted" style="margin-top:2px">Moto Taxi isn't listed here — it's LUNAD's own in-house driver fleet, not a self-registered provider.</p>
  <div class="two"><div><label class="f">Operating area</label><select class="inp" id="ra">${Object.keys(TOWNS).map(t=>`<option>${t}</option>`).join('')}</select></div><div><label class="f">Seats</label><input class="inp" id="rs" type="number" value="${TYPES[REG.type].seats}"></div></div>
  <h3>Documents (${have}/${req.length})</h3>${req.map((n,i)=>`<div style="border-top:1px solid var(--line);padding:6px 0"><b style="font-size:12.5px">${esc(n)}</b> ${REG.docs[n]&&REG.docs[n].file?'<span class="st ok">Uploaded</span>':'<span class="st bad">Required</span>'}
   <div class="two"><input class="inp" type="file" accept="image/*,.pdf" onchange="regDoc(${i},'file',!!this.files[0])"><input class="inp" type="date" value="${REG.docs[n]?.exp||''}" onchange="regDoc(${i},'exp',this.value)" title="Expiry date"></div></div>`).join('')}
@@ -2103,7 +2105,7 @@ function submitReg(){const name=$('#rn').value.trim();if(!name){toast('Enter a n
 function vPInbox(){const p=prov(S.actingAs);const msgs=S.notifs.filter(n=>n.to===p.id);return `<h2>${ic('mail')} Inbox</h2>${provPick()}${msgs.map(msgHTML).join('')||'<p class="muted">No messages yet.</p>'}`}
 
 /* =================== ABOUT / ROADMAP =================== */
-function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAll===true?'checked':''} onchange="S.shareAll=this.checked;save()"> Show all shared rides (demo, ignores distance)</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-rider cancelling</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Own a small business?</b><p class="muted" style="margin:4px 0 10px">Eatery, coffee stall, pasalubong shop or homestay — get found by LUNAD riders.</p><button class="btn sec block" onclick="bizForm()">List your business</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Join a shared ride</b><p class="muted" style="margin:4px 0 10px">Type the 6-character code shown on the rider’s booking.</p><div style="display:flex;gap:8px"><input id="joinCode" class="inp" maxlength="6" autocapitalize="characters" placeholder="e.g. KHPHJ2" aria-label="Ride code" style="text-transform:uppercase;letter-spacing:.15em"><button class="btn" onclick="joinByCode()">Join</button></div></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-riders are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Business listings are approved instantly:</b> in the real app, LUNAD or the LGU tourism office checks the permit first. Listings stay on this phone only.</li><li><b>Barangays and local places are a snapshot:</b> 870+ names from OpenStreetMap, downloaded 22 Nov 2026. Real places have no LUNAD ratings yet; their review button opens Google Maps.</li><li><b>Live shared rides need internet:</b> other phones see open shared rides within 500 m on Home, or join by scanning the ride’s QR. Without a connection, sample co-riders join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
+function openAbout(){modal(`<div class="card" style="clear:both;margin:8px 0 16px"><b style="font-size:16px">Demo tools</b><p class="muted" style="margin:4px 0 10px">Clears bookings, ratings and messages so the demo starts fresh.</p><button class="btn sec block" onclick="closeModal();STORM_KEY='';resetDemo();flashStorm()">Reset demo data</button><label class="lug" style="margin-top:12px"><input type="checkbox" ${S.shareAll===true?'checked':''} onchange="S.shareAll=this.checked;save()"> Show all shared rides (demo, ignores distance)</label><button class="btn sec block" style="margin-top:8px" onclick="closeModal();coCancel()">Simulate a co-passenger cancelling</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Own a small business?</b><p class="muted" style="margin:4px 0 10px">Eatery, coffee stall, pasalubong shop or homestay — get found by LUNAD passengers.</p><button class="btn sec block" onclick="bizForm()">List your business</button></div><div class="card" style="margin:0 0 16px"><b style="font-size:16px">Join a shared ride</b><p class="muted" style="margin:4px 0 10px">Type the 6-character code shown on the passenger’s booking.</p><div style="display:flex;gap:8px"><input id="joinCode" class="inp" maxlength="6" autocapitalize="characters" placeholder="e.g. KHPHJ2" aria-label="Ride code" style="text-transform:uppercase;letter-spacing:.15em"><button class="btn" onclick="joinByCode()">Join</button></div></div><h2>About this demo</h2><p style="margin:0 0 6px;line-height:1.5">This is a clickable prototype of LUNAD. It shows how the app will work, but it isn’t connected to real drivers, payments or messages yet.</p><h3>Demo limitations</h3><ul class="flow lim"><li><b>Sample data only:</b> places, drivers, fares and reviews are examples.</li><li><b>No real drivers:</b> to accept your ride, switch to <b>Driver</b> at the top.</li><li><b>No real payments:</b> the QR code is a sample, and no money is charged.</li><li><b>Messages are simulated:</b> SMS and Messenger alerts appear only in the app’s Inbox.</li><li><b>Shared rides are simulated:</b> co-passengers are samples, the per-seat fare (₱15 + ₱5/km) is a sample rate, and the 10-minute wait is shortened to 30 seconds.</li><li><b>Business listings are approved instantly:</b> in the real app, LUNAD or the LGU tourism office checks the permit first. Listings stay on this phone only.</li><li><b>Barangays and local places are a snapshot:</b> 870+ names from OpenStreetMap, downloaded 22 Nov 2026. Real places have no LUNAD ratings yet; their review button opens Google Maps.</li><li><b>Live shared rides need internet:</b> other phones see open shared rides within 500 m on Home, or join by scanning the ride’s QR. Without a connection, sample passengers join instead.</li><li><b>Storm signal is simulated:</b> Gigmoto is set to show how storm pauses work.</li><li><b>Location:</b> real GPS works inside Catanduanes; elsewhere, a sample spot near Virac is used.</li><li><b>Maps need internet:</b> without a connection, a simple drawn map is shown instead.</li><li><b>Saved on this phone only:</b> your bookings stay in this browser. Use <b>Reset demo data</b> to start over.</li></ul>`)}
 
 /* =================== LIVE SHARED RIDES (Firebase Realtime Database) ===================
    The host's shared ride is published under /rides/{CODE}. Other phones scan the QR (#join-CODE),
@@ -2121,7 +2123,7 @@ async function liveInit(){
  LIVE.ready=true;if(JOIN_ONLY)joinScreen(joinCodeFromUrl());else render()}
 function liveCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
 function livePublish(r){if(!LIVE.db)return false;const code=liveCode();const d=routeKm(P(r.from),P(r.to));r.liveCode=code;r.live=true;delete r.livePending;
- setTimeout(()=>openIndex(r),0);LIVE.db.ref('rides/'+code).set({from:r.from,to:r.to,fromName:P(r.from).n,toName:P(r.to).n,type:r.type,seats:seatsOf(r),createdAt:Date.now(),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d,r.type),hostName:String(S.me.name||'Rider').split(' ')[0],hostSeats:mySeats(r),judgeCount:0,status:'open'}).catch(()=>{});
+ setTimeout(()=>openIndex(r),0);LIVE.db.ref('rides/'+code).set({from:r.from,to:r.to,fromName:P(r.from).n,toName:P(r.to).n,type:r.type,seats:seatsOf(r),createdAt:Date.now(),whole:Math.round(fareCalc(r.type,d)),reg:seatFare(d,r.type),hostName:String(S.me.name||'Passenger').split(' ')[0],hostSeats:mySeats(r),judgeCount:0,status:'open'}).catch(()=>{});
  liveWatch(r);return true}
 function liveWatch(r){if(!LIVE.db||!r.liveCode||LIVE.subs[r.liveCode])return;const code=r.liveCode;
  LIVE.subs[code]=LIVE.db.ref('rides/'+code+'/members').on('value',s=>{const rr=ride(r.id);if(!rr||!rr.live)return;const v=s.val()||{};
@@ -2179,18 +2181,18 @@ function drawJoin(box,head,code,d){head=String(head).replace('Shared tricycle','
  const seatsIf=mine?used:used+1;let per=Math.round(Math.min(d.reg,d.whole/Math.min(seatsIf,d.seats)));
  if(mine){try{const k='lunad-best-'+code;const b=+sessionStorage.getItem(k)||Infinity;per=Math.min(per,b);sessionStorage.setItem(k,per)}catch(e){}}
  const full=used>=d.seats,open=d.status==='open'||d.status==='full';
- const riders=[`<li><b>${esc(d.hostName||'Rider')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${k===JOINKEY?' <span class="st ok sm">You</span>':''}</li>`)).join('');
+ const riders=[`<li><b>${esc(d.hostName||'Passenger')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${k===JOINKEY?' <span class="st ok sm">You</span>':''}</li>`)).join('');
  const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
  let action='';
  if(!open)action=`<div class="banner info">This ride is ${d.status==='started'?'on its way':'no longer open'}.</div>`;
  else if(mine){if(!myJoins().some(j=>j.code===code))addJoin(code,JOINKEY);action=`<div class="banner">${full?'<b>'+capF(vehW(d.type))+' full — ready to leave.</b>':'<b>You’re in!</b> Leaves when all '+d.seats+' seats are filled.'}</div><button class="btn block" onclick="goJoined()">View my shared ride</button>`}
  else if(full)action=`<div class="banner info">This tricycle is full.</div>`;
- else action=`<button class="btn block" onclick="joinRide('${code}')">Join this ride · ${peso(per)}</button><p class="muted" style="text-align:center;margin:8px 0 0">Your fare only goes down if more riders join.</p>`;
+ else action=`<button class="btn block" onclick="joinRide('${code}')">Join this ride · ${peso(per)}</button><p class="muted" style="text-align:center;margin:8px 0 0">Your fare only goes down if more passengers join.</p>`;
  box.innerHTML=head+`<div class="join-body"><h2>${esc(d.fromName)} → ${esc(d.toName)}</h2><p class="muted" style="margin:-4px 0 6px">Pickup at ${esc(d.fromName)} · goes to ${esc(d.toName)} · leaves when full</p>
  <div class="kv"><span>Seats</span><b class="seats">${seatDots} ${used} of ${d.seats}</b></div>
  <div class="kv"><span>${mine?'You pay':'Your fare if you join'}</span><b>${peso(per)}</b></div>
  <div class="kv"><span>Whole ${vehW(d.type)}</span><b>${peso(d.whole)}</b></div>
- <h3>Riders</h3><ul class="join-riders">${riders}</ul>${action}
+ <h3>Passengers</h3><ul class="join-riders">${riders}</ul>${action}
  ${JOIN_ONLY?'':`<button class="btn ghost block" style="margin-top:12px" onclick="document.getElementById('joinScreen').remove()">Back</button>`}<p class="muted" style="margin-top:18px">Demo · names are generated (Test user 1, 2…). Sample fare ₱15 + ₱5/km per seat. Ride code ${esc(code)}.</p></div>`}
 
 /* ---- rides this phone joined (kept in localStorage 'lunad-joins'+SK, separate from demo state) ---- */
@@ -2209,7 +2211,7 @@ function joinedHTML(){if(S.role!=='booker'||!LIVE.db)return '';joinedSub();const
   let per=Math.round(Math.min(d.reg,d.whole/Math.min(used,d.seats)));if(j.best&&j.best<per)per=j.best;if(!j.best||per<j.best){j.best=per;setJoins(myJoins().map(x=>x.code===j.code?Object.assign(x,{best:per}):x))}
   const seatDots=Array.from({length:d.seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
   const full=used>=d.seats;
-  const riders=[`<li><b>${esc(d.hostName||'Rider')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,x])=>`<li><b>${esc(x.name)}</b>${k===j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
+  const riders=[`<li><b>${esc(d.hostName||'Passenger')}</b> <span class="muted">· booked the ride · ${d.hostSeats} seat${d.hostSeats>1?'s':''}</span></li>`].concat(mem.map(([k,x])=>`<li><b>${esc(x.name)}</b>${k===j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
   const state=d.status==='started'?'<b>On the way.</b> Your '+vehW(d.type)+' has left the pickup.':full?'<b>'+capF(vehW(d.type))+' full — ready to leave.</b> Head to the pickup.':`<b>You’re in!</b> Leaves when all ${d.seats} seats are filled.`;
   return `<section class="card joined-card" style="border:2px solid var(--sunc)"><div class="share-line">${ic('user')} Shared ride · you joined · live</div>
   <h3 style="margin:8px 0 2px;font-size:18px;text-transform:none;letter-spacing:0;color:var(--navy)">${esc(d.fromName)} → ${esc(d.toName)}</h3><p class="muted" style="margin:0 0 6px">Pickup at ${esc(d.fromName)} · ride code ${esc(j.code)}</p>
@@ -2245,43 +2247,43 @@ function activeTrip(){if(S.role!=='booker'||document.getElementById('joinScreen'
  if(LIVE.db){joinedSub();for(const j of myJoins()){const d=JOINED.data[j.code];if(d===undefined)continue;if(d&&d.members&&d.members[j.key])return {host:false,j,code:j.code,d}
   if(d&&(d.cancelled||d.status==='closed')&&!d.fullAt)return {host:false,j,code:j.code,d}}}
  return null}
-function tripSteps(st){const L=[['waiting','Riders'],['finding','Driver'],['coming','Pickup'],['riding','Trip'],['arrived','Arrived']];const i=L.findIndex(x=>x[0]===st);
+function tripSteps(st){const L=[['waiting','Passengers'],['finding','Driver'],['coming','Pickup'],['riding','Trip'],['arrived','Arrived']];const i=L.findIndex(x=>x[0]===st);
  return `<ol class="trip-steps">${L.map((x,k)=>`<li class="${k<i?'done':k===i?'now':''}"><span></span>${x[1]}</li>`).join('')}</ol>`}
 function tripHTML(a){const d=a.d;const st=a.host&&!d?'waiting':tripStage(d);const r=a.r;
  const from=d?d.fromName:P(r.from).n,to=d?d.toName:P(r.to).n,seats=d?d.seats:seatsOf(r);
  const mem=Object.entries((d&&d.members)||{});const used=d?(d.hostSeats||1)+mem.reduce((s,[k,m])=>s+(m.pax||1),0):sharedSeats(r);
  let pay;if(a.host){pay=r.fare}else{pay=Math.round(Math.min(d.reg,d.whole/Math.min(used,seats)));if(a.j.best&&a.j.best<pay)pay=a.j.best}
  const drv=(d&&d.driver&&d.driver.n)||'Virac TODA driver';
- const riders=[`<li><b>${esc((d&&d.hostName)||'Rider')}</b>${a.host?' <span class="st ok sm">You</span>':''} <span class="muted">· booked the ride</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${!a.host&&k===a.j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
+ const riders=[`<li><b>${esc((d&&d.hostName)||'Passenger')}</b>${a.host?' <span class="st ok sm">You</span>':''} <span class="muted">· booked the ride</span></li>`].concat(mem.map(([k,m])=>`<li><b>${esc(m.name)}</b>${!a.host&&k===a.j.key?' <span class="st ok sm">You</span>':''}</li>`)).join('');
  const dots=Array.from({length:seats},(_,i)=>`<span class="seat ${i<used?'on':''}"></span>`).join('');
- const T={waiting:['Waiting for riders',`Leaves when all ${seats} seats are filled${MIN_GO[tripType(a)]?`, or from ${MIN_GO[tripType(a)]} riders`:''}. ${seats-used} seat${seats-used===1?'':'s'} left.`],
+ const T={waiting:['Waiting for passengers',`Leaves when all ${seats} seats are filled${MIN_GO[tripType(a)]?`, or from ${MIN_GO[tripType(a)]} passengers`:''}. ${seats-used} seat${seats-used===1?'':'s'} left.`],
   finding:['Finding a driver…','Your '+vehW(tripType(a))+' is ready to go. Asking '+(tripType(a)==='tricycle'?'TODA ':'')+'drivers near '+esc(from)+'. A sample driver steps in after 30 s if no one accepts.'],
   coming:['Driver on the way',`Your ${vehW(tripType(a))} is heading to ${esc(from)}. Check the plate before you get on.`],
-  riding:['On the way to '+esc(to),`${used} riders on board.`],
+  riding:['On the way to '+esc(to),`${used} passengers on board.`],
   arrived:['Trip completed','You’ve arrived at '+esc(to)+'. Pay your driver '+peso(pay)+'.'],
-  cancelled:['Ride cancelled','The rider who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
+  cancelled:['Ride cancelled','The passenger who booked it cancelled before it was full. No charge.'],gone:['Ride not found','']}[st]||['',''];
  let act='';
- if(st==='waiting')act=a.host?`${(MIN_GO[r.type]&&used>=MIN_GO[r.type])?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${r.id}')">Leave now with ${used} riders</button>`:''}${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
+ if(st==='waiting')act=a.host?`${(MIN_GO[r.type]&&used>=MIN_GO[r.type])?`<button class="btn block" style="margin-bottom:8px" onclick="leaveNow('${r.id}')">Leave now with ${used} passengers</button>`:''}${r.liveCode?liveQR(r):''}<button class="btn sec block" onclick="freeCancel('${r.id}');render()">Cancel ride · free</button>`:`<button class="btn sec block" onclick="leaveJoined('${a.code}')">Leave ride</button>`;
  else if(st==='finding')act=`<div class="trip-spin" aria-hidden="true"></div>`;
- else if(st==='arrived'){const lr=a.host?a.r:S.rides.find(x=>x.joinCode===a.code);act=(lr&&lr.pay==='unpaid'?`<button class="btn block" onclick="payModal('${lr.id}')">Pay now · ${peso(pay)}</button>`:'')+`<button class="btn ${lr&&lr.pay==='unpaid'?'sec ':''}block" style="margin-top:8px" onclick="tripDone()">Done</button>`}else if(false){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Rider'):((d.members||{})[k]||{}).name||'Rider')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
+ else if(st==='arrived'){const lr=a.host?a.r:S.rides.find(x=>x.joinCode===a.code);act=(lr&&lr.pay==='unpaid'?`<button class="btn block" onclick="payModal('${lr.id}')">Pay now · ${peso(pay)}</button>`:'')+`<button class="btn ${lr&&lr.pay==='unpaid'?'sec ':''}block" style="margin-top:8px" onclick="tripDone()">Done</button>`}else if(false){const rs=Object.entries((d&&d.ratings)||{});act=`<p class="muted" style="margin:0 0 10px">Opening your review…</p>`+(rs.length?`<div class="banner info">Ratings in: ${rs.map(([k,v])=>`${esc(k==='host'?(d.hostName||'Passenger'):((d.members||{})[k]||{}).name||'Passenger')} ${'★'.repeat(v.s)}`).join(' · ')}</div>`:'')}
  else if(st==='cancelled'||st==='gone')act=`<button class="btn block" onclick="tripDone()">Back to home</button>`;
  return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared ${vehW(tripType(a))}${a.host?' · you booked':''}</span></div>
  <div class="join-body">${tripSteps(st==='gone'?'cancelled':st)}<h2 style="margin:16px 0 4px">${T[0]}</h2><p class="muted" style="margin:0 0 14px">${T[1]}</p>${['coming','riding','arrived'].includes(st)?drvCard(tripDrv(a),'trip'):''}${act}
  <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(from)} → ${esc(to)}</b></div>
  <div class="kv"><span>Seats</span><b class="seats">${dots} ${used} of ${seats}</b></div>
  <div class="kv"><span>${st==='arrived'?'You pay':'Your fare'}</span><b>${peso(pay)}</b></div>
- <h3>Riders</h3><ul class="join-riders">${riders}</ul></div>
+ <h3>Passengers</h3><ul class="join-riders">${riders}</ul></div>
  ${['arrived','cancelled','gone'].includes(st)?'':tripDemo(a,st)}<p class="muted" style="margin-top:14px">Demo · a sample TODA driver accepts automatically. Ride code ${esc(a.code)}.</p></div>`}
 
 function fillSample(code){if(!LIVE.db)return;LIVE.db.ref('rides/'+code).transaction(d=>{if(!d)return d;d.members=d.members||{};let used=(d.hostSeats||1)+Object.values(d.members).reduce((s,m)=>s+(m.pax||1),0);let i=1;
-  while(used<d.seats){d.members['s'+Date.now().toString(36)+i]={name:'Sample rider '+i,pax:1,joinedAt:Date.now()};used++;i++}d.status='full';d.fullAt=d.fullAt||nowS();return d},
- (e,ok)=>{toast(ok?'Sample riders filled the empty seats':'Could not add sample riders — check your connection')})}
+  while(used<d.seats){d.members['s'+Date.now().toString(36)+i]={name:'Sample passenger '+i,pax:1,joinedAt:Date.now()};used++;i++}d.status='full';d.fullAt=d.fullAt||nowS();return d},
+ (e,ok)=>{toast(ok?'Sample passengers filled the empty seats':'Could not add sample passengers — check your connection')})}
 function skipStep(code){if(!LIVE.db)return;const n=nowS();LIVE.db.ref('rides/'+code).transaction(d=>{if(!d||!d.fullAt)return d;
  if(d.drvAt){if(!d.pickAt)d.pickAt=n;else if(!d.startAt)d.startAt=n;else if(!d.doneAt)d.doneAt=n;return d}
  const el=n-d.fullAt;if(el<TRIP_AUTO){d.fullAt=n-TRIP_AUTO-50;return d}
  const t=el-TRIP_AUTO+TRIP_T.find;const next=t<TRIP_T.come?TRIP_T.come:TRIP_T.ride;d.fullAt=n-(next-TRIP_T.find+TRIP_AUTO)-200;return d}).catch(()=>{})}
 function tripDemo(a,st){const b=[];
- if(a.host&&st==='waiting')b.push(`<button class="btn sec block" onclick="fillSample('${a.code}')">Fill empty seats with sample riders</button>`);
+ if(a.host&&st==='waiting')b.push(`<button class="btn sec block" onclick="fillSample('${a.code}')">Fill empty seats with sample passengers</button>`);
  if(['finding','coming','riding'].includes(st))b.push(`<button class="btn sec block" onclick="skipStep('${a.code}')">Skip to next step</button>`);
  b.push(`<div style="display:flex;gap:8px"><button class="btn ghost" style="flex:1" onclick="setRole('provider');tripTick()">Switch to Driver</button><button class="btn ghost" style="flex:1" onclick="openAbout()">Menu</button></div>`);
  return `<div class="trip-demo"><b>Demo controls</b>${b.join('')}</div>`}
@@ -2402,27 +2404,27 @@ function shDrvCard(r){hostSub(r.liveCode);const d=HOSTD[r.liveCode];const st=d?t
  const route=esc(P(r.from).n.replace(' (sample)',''))+' → '+esc(P(r.to).n.replace(' (sample)',''));
  const per=d?Math.round(Math.min(d.reg||1e9,d.whole/Math.max(1,Math.min(n,N)))):0;const total=d?Math.min(d.whole,per*n):0;
  let body='',hl=false;
- if(st==='waiting')body=`<p class="muted" style="margin:6px 0 0">Waiting for riders (${n} of ${N}). The request comes here when the seats fill${MIN_GO[r.type]?' or the booker taps Leave now':''}.</p>`;
- else if(st==='finding'){const hid=r.cands[r.offerIdx];if(hid===S.actingAs){hl=true;body=`<div class="kv"><span>Pickup</span><b>${esc(P(r.from).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Riders</span><b>${n} of ${N}</b></div><div class="kv"><span>Fare (all riders)</span><b>${peso(total)}</b></div>
+ if(st==='waiting')body=`<p class="muted" style="margin:6px 0 0">Waiting for passengers (${n} of ${N}). The request comes here when the seats fill${MIN_GO[r.type]?' or the booker taps Leave now':''}.</p>`;
+ else if(st==='finding'){const hid=r.cands[r.offerIdx];if(hid===S.actingAs){hl=true;body=`<div class="kv"><span>Pickup</span><b>${esc(P(r.from).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Passengers</span><b>${n} of ${N}</b></div><div class="kv"><span>Fare (all passengers)</span><b>${peso(total)}</b></div>
   <div style="margin:4px 0"><span class="st info">Sample driver takes it in<span class="cd2" data-until="${(d.fullAt||0)+TRIP_AUTO}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="shAccept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="shDecline('${r.id}')">Decline</button></div>`}
   else body=`<p class="muted" style="margin:6px 0 0">Offered to ${esc((drvInfo(prov(hid))||{}).name||'another driver')}.</p>`}
  else if(d&&d.drvAt){const mine=d.driver&&d.driver.pid===S.actingAs;
   if(!mine)body=`<p class="muted" style="margin:6px 0 0">Accepted by ${esc((d.driver&&d.driver.name)||'another driver')}.</p>`;
-  else if(st==='coming')body=`<p class="muted" style="margin:6px 0 8px">${n} riders waiting at the pickup.</p><div class="btns">${d.pickAt?`<button class="btn sm sec" disabled>${ic('check')} Arrived · riders notified</button>`:`<button class="btn sm sec" onclick="shStep('${r.id}','pickAt')">Arrived at pickup</button>`}<button class="btn sm" onclick="shStep('${r.id}','startAt')">Start trip</button></div>`;
-  else if(st==='riding')body=`<p class="muted" style="margin:6px 0 8px">On the trip with ${n} riders.</p><div class="btns"><button class="btn sm" onclick="shStep('${r.id}','doneAt')">Complete ride</button></div>`;
+  else if(st==='coming')body=`<p class="muted" style="margin:6px 0 8px">${n} passengers waiting at the pickup.</p><div class="btns">${d.pickAt?`<button class="btn sm sec" disabled>${ic('check')} Arrived · passengers notified</button>`:`<button class="btn sm sec" onclick="shStep('${r.id}','pickAt')">Arrived at pickup</button>`}<button class="btn sm" onclick="shStep('${r.id}','startAt')">Start trip</button></div>`;
+  else if(st==='riding')body=`<p class="muted" style="margin:6px 0 8px">On the trip with ${n} passengers.</p><div class="btns"><button class="btn sm" onclick="shStep('${r.id}','doneAt')">Complete ride</button></div>`;
   else body=`<p class="muted" style="margin:6px 0 0">Trip completed.</p>`}
- else body=`<p class="muted" style="margin:6px 0 8px">No driver accepted within 30 s, so a sample driver took this ride.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Rider</button>`;
- return `<div class="card ${hl?'hl':''}"><div class="share-line">${ic((TYPES[r.type]||{}).e||'tricycle')} Shared ${vehW(r.type)} request · ${n} of ${N} riders</div><b style="display:block;margin-top:8px">${route}</b>${body}</div>`}
+ else body=`<p class="muted" style="margin:6px 0 8px">No driver accepted within 30 s, so a sample driver took this ride.</p><button class="btn sm sec" onclick="setRole('booker')">Back to Passenger</button>`;
+ return `<div class="card ${hl?'hl':''}"><div class="share-line">${ic((TYPES[r.type]||{}).e||'tricycle')} Shared ${vehW(r.type)} request · ${n} of ${N} passengers</div><b style="display:block;margin-top:8px">${route}</b>${body}</div>`}
 function shAccept(id){const r=ride(id);const p=prov(S.actingAs);const d=HOSTD[r.liveCode];if(!d||tripStage(d)!=='finding'){toast('This request is no longer open');render();return}
  const di=drvInfo(p);LIVE.db.ref('rides/'+r.liveCode).update({driver:{n:p.n,name:di.name,op:di.op,plate:di.plate,type:di.type,rv:di.rv,rc:di.rc,pid:p.id},drvAt:nowS()}).catch(()=>toast('Could not accept — check your connection'));
- r.pid=p.id;r.status='accepted';r.acceptedAt=Date.now();save();render();toast('Accepted — every rider can see you’re on the way')}
+ r.pid=p.id;r.status='accepted';r.acceptedAt=Date.now();save();render();toast('Accepted — every passenger can see you’re on the way')}
 function shDecline(id){const r=ride(id);const was=(drvInfo(prov(r.cands[r.offerIdx]))||{}).name;r.offerIdx=(r.offerIdx+1)%Math.max(1,r.cands.length);save();render();toast(`${was||'Driver'} declined — passed to ${(drvInfo(prov(r.cands[r.offerIdx]))||{}).name||'the next driver'}`)}
 function shStep(id,f){const r=ride(id);if(!r||!LIVE.db)return;const n=nowS();const u={};u[f]=n;const d=HOSTD[r.liveCode]||{};if(f==='startAt'&&!d.pickAt)u.pickAt=n;
  LIVE.db.ref('rides/'+r.liveCode).update(u).catch(()=>toast('Could not update — check your connection'));
- if(f==='pickAt'){r.arriving=true;toast('Riders notified: you’ve arrived at the pickup')}
- if(f==='startAt'){r.status='started';r.startedAt=Date.now();setPickupReviews(r);toast('Trip started for every rider')}
- if(f==='doneAt'){const pay=r.fare;if(!r.pid)r.pid=S.actingAs;complete(r.id);r.fare=pay;toast('Trip completed for every rider')}
+ if(f==='pickAt'){r.arriving=true;toast('Passengers notified: you’ve arrived at the pickup')}
+ if(f==='startAt'){r.status='started';r.startedAt=Date.now();setPickupReviews(r);toast('Trip started for every passenger')}
+ if(f==='doneAt'){const pay=r.fare;if(!r.pid)r.pid=S.actingAs;complete(r.id);r.fare=pay;toast('Trip completed for every passenger')}
  save();render()}
 
 function tripDone(){const a=activeTrip();if(!a)return;if(a.host){const r=a.r;r.tripDone=true;if(tripStage(a.d)==='arrived'&&r.status!=='completed'){if(!r.pid)r.pid=(r.cands||[])[0];complete(r.id)}save()}
