@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.24.0 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.25.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1321,7 +1321,7 @@ function setPickupReviews(r){const sp=touristNear(r.from);if(sp)r.spotId=sp.id;c
 function spotReviewed(id){const r=ride(id);if(!r)return;r.spotReviewed=true;save();setTimeout(()=>{const list=(r.bizList||[]);if(!list.length){r.bizReviewShown=true;save();closeModal();render();toast('Thanks for reviewing on Google')}else stopByModal(id)},400)}
 function stopByModal(id){const r=ride(id);BZ={stars:0,id,tags:[],comment:''};const a=P(r.from);const sp=r.spotId?P(r.spotId):null;
  const list=(r.bizList||(r.bizId?[r.bizId]:[])).filter(x=>!sp||x!==sp.id).map(P).filter(Boolean);
- const row=p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}${rv&&rv.offer?' · offer':''}</span></span>${ic('chevron','chev')}</button>`};
+ const row=p=>{const d=km(a,p)*1000;const rv=revStats(p.id);return `<button class="stop-row" onclick="stopPick('${id}','${p.id}')"><span class="tile">${ic(p.e)}</span><span class="tx"><b>${esc(p.n.replace(' (sample)',''))}</b><span>${esc(p.cat||({spot:'Tourist spot',stay:'Stay',shop:'Shop'})[p.k]||'Place')} · ${d<20?'at your pickup':Math.round(d)+' m away'}</span></span>${ic('chevron','chev')}</button>`};
  let h='';
  if(sp){const sn=esc(sp.n.replace(' (sample)',''));const d=km(a,sp)*1000;
   h+=`<div class="sb-spot"><span class="tile">${ic(sp.e||'pin')}</span><div><h2 class="sb-h">How was ${sn}?</h2><p class="sb-p">Tourist spot · ${d<20?'at your pickup':Math.round(d)+' m from your pickup'}</p></div></div>`+
@@ -1376,7 +1376,7 @@ function drawBizGoogle(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revS
  modalForced(`<div style="text-align:center;padding:2px 2px 0"><div class="sb-ic">${ic(spot.e)}</div><h2 class="sb-h" style="margin:6px 0 2px">How was your visit to ${name}?</h2>
  <p class="sb-p">Help other travelers find it on Google — it takes a few seconds.</p>
  <a class="btn block" style="margin-top:10px;text-decoration:none" href="${rv.googleUrl}" target="_blank" rel="noopener">${ic('star-f')} Review on Google →</a>
- ${rv.offer?`<p class="sb-offer">${ic('gift')} ${esc(rv.offer)} · unlocks with a quick LUNAD rating (sample offer)</p>`:''}
+ 
  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sec" style="flex:1" onclick="drawBiz()">Rate in LUNAD</button><button class="btn ghost" style="flex:1" onclick="bizLater()">Later</button></div></div>`)}
 function bizLater(){const r=ride(BZ.id);if(r){r.bizReviewShown=true;save()}closeModal();render()}
 function redrawBiz(){BZ.comment=($('#bc')||{}).value||'';drawBiz()}
