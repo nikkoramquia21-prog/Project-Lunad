@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.26.1 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.26.2 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -2050,7 +2050,7 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
    <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message passenger${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div></div>`}).join('')||'<div class="card muted">No active jobs.</div>');
  if(payq.length)h+=`<h3>Payments to confirm (15 min)</h3>`+payq.map(r=>`<div class="card"><b>${r.id} · ${peso(amount(r))}</b> ${r.pay==='cash'?'<span class="st info">Cash</span>':''}${r.proof&&r.pay==='proof'?`<img class="proof" src="${r.proof}" alt="proof">`:''}
   <div class="btns"><button class="btn sm" onclick="confirmPay('${r.id}',true)">${ic('check')} ${r.pay==='cash'?'Cash received':'Payment received'}</button>${r.pay==='proof'?`<button class="btn sm warn" onclick="confirmPay('${r.id}',false)">✕ Not received</button>`:''}</div></div>`).join('');
- const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your bookers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
+ const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your passengers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
  return h}
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
 function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next driver')}
@@ -2062,7 +2062,7 @@ function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='complete
 function noShow(id){const r=ride(id);r.status='noshow';r.fee=S.fares.active.lateFee;r.fare=0;r.pay='unpaid';S.me.noShows++;notify('me','noshow',{ref:r.id,fee:peso(r.fee)},r.id);save();render();toast('No-show recorded · late fee applies')}
 function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);
  const c=rank(eligible(r.type,r.pax,r.start,r.end,r.id,r.declined),r.from);if(c.length){r.cands=c.map(x=>x.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';offerNotify(r)}else noMatch(r);
- save();render();toast('Booker is being rematched · reliability note added')}
+ save();render();toast('Passenger is being rematched · reliability note added')}
 function confirmPay(id,ok){const r=ride(id);if(ok){r.pay='paid';notify('me','paid',{ref:r.id},r.id)}else{r.pay='rejected';notify('me','payrej',{ref:r.id},r.id)}save();render()}
 function vStatus(){const p=prov(S.actingAs);
  return `<h2>${ic('dot-on')} Status & availability</h2>${provPick()}
@@ -2080,11 +2080,11 @@ function addBlock(){const b={date:$('#bd').value,from:$('#bf').value,to:$('#bt')
  const s=new Date(b.date+'T'+b.from).getTime(),e=new Date(b.date+'T'+b.to).getTime();if(busy(S.actingAs,s,e)){toast('You have a booking in that window');return}
  prov(S.actingAs).blocks.push(b);save();render();toast('Blocked')}
 function vPaySet(){const p=prov(S.actingAs);
- return `<h2>${ic('card')} Payment details</h2>${provPick()}<div class="card"><div class="muted">Bookers see this QR at booking and pay you directly.</div>
+ return `<h2>${ic('card')} Payment details</h2>${provPick()}<div class="card"><div class="muted">Passengers see this QR at booking and pay you directly.</div>
  <label class="f">Method</label><select class="inp" id="pm">${['GCash','Maya','Bank (Landbank)','Bank (BDO)','Bank (BPI)'].map(m=>`<option ${p.pay.m===m?'selected':''}>${m}</option>`).join('')}</select>
  <label class="f">Account name</label><input class="inp" id="pn" value="${esc(p.pay.name)}"><label class="f">Number</label><input class="inp" id="pa" value="${esc(p.pay.acct)}">
  <label class="f">Upload your QR code</label><input class="inp" type="file" accept="image/*" onchange="if(this.files[0])readImg(this.files[0],d=>{prov(S.actingAs).pay.qr=d;save();render();toast('QR published')})">
- ${p.pay.qr?`<img class="qr" src="${p.pay.qr}">`:'<p class="muted">No QR uploaded — bookers see a sample QR.</p>'}
+ ${p.pay.qr?`<img class="qr" src="${p.pay.qr}">`:'<p class="muted">No QR uploaded — passengers see a sample QR.</p>'}
  <button class="btn block" style="margin-top:8px" onclick="const q=prov(S.actingAs).pay;q.m=$('#pm').value;q.name=$('#pn').value;q.acct=$('#pa').value;save();toast('Saved')">Save</button></div>`}
 let REG={type:'tricycle',docs:{}};
 function vRegister(){const req=DOCS[REG.type];const have=req.filter(n=>REG.docs[n]&&REG.docs[n].file&&REG.docs[n].exp).length;
@@ -2404,7 +2404,7 @@ function shDrvCard(r){hostSub(r.liveCode);const d=HOSTD[r.liveCode];const st=d?t
  const route=esc(P(r.from).n.replace(' (sample)',''))+' → '+esc(P(r.to).n.replace(' (sample)',''));
  const per=d?Math.round(Math.min(d.reg||1e9,d.whole/Math.max(1,Math.min(n,N)))):0;const total=d?Math.min(d.whole,per*n):0;
  let body='',hl=false;
- if(st==='waiting')body=`<p class="muted" style="margin:6px 0 0">Waiting for passengers (${n} of ${N}). The request comes here when the seats fill${MIN_GO[r.type]?' or the booker taps Leave now':''}.</p>`;
+ if(st==='waiting')body=`<p class="muted" style="margin:6px 0 0">Waiting for passengers (${n} of ${N}). The request comes here when the seats fill${MIN_GO[r.type]?' or the passenger who booked taps Leave now':''}.</p>`;
  else if(st==='finding'){const hid=r.cands[r.offerIdx];if(hid===S.actingAs){hl=true;body=`<div class="kv"><span>Pickup</span><b>${esc(P(r.from).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n.replace(' (sample)',''))}</b></div><div class="kv"><span>Passengers</span><b>${n} of ${N}</b></div><div class="kv"><span>Fare (all passengers)</span><b>${peso(total)}</b></div>
   <div style="margin:4px 0"><span class="st info">Sample driver takes it in<span class="cd2" data-until="${(d.fullAt||0)+TRIP_AUTO}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="shAccept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="shDecline('${r.id}')">Decline</button></div>`}
