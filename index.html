@@ -1133,6 +1133,7 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
       <p>6. <b>Student ride-along</b>: while that delivery is active, tap <b>Student</b> and book a free TODA backride on the same route — it attaches to the delivery. As Driver, accept the student inside the delivery job.</p>
       <p>7. <b>No ride-along?</b> As Student, book a free backride where no delivery is heading — choose <b>Wait</b>. Then as Passenger send a parcel on that route and accept it as Driver: the student is added automatically.</p>
       <p>8. <b>Free seat in a car/van</b>: as Passenger book a Solo car and tick “Allow a verified student to ride along”, accept it as Driver, then book a free ride as Student on the same route. Moto Taxi never takes ride-alongs.</p>
+      <p>9. <b>Meet on the route</b>: as Passenger send a parcel from Virac Airport to Viga, accept it as Driver, then as Student book a free ride from CatSU to Viga. The student walks 198 m to a meeting point on the rider’s route (max 300 m) — the rider never detours and waits at most 2 min.</p>
     </div>
     <div class="box"><b>Prototype notes</b>
       <p>All names, fares, permits and numbers are sample data. The map is stylized. SMS and Messenger are simulated in the Inbox. Data stays in this browser only.</p>
@@ -1471,7 +1472,7 @@ function seed(){
 }
 const FARES0={tricycle:{base:30,km:15},moto:{base:25,km:12},car:{base:300,km:25},minivan:{base:400,km:28},van:{base:500,km:30},cancelFee:20,lateFee:30};
 let S;
-const PIDX=new Map();function P(id){let p=PIDX.get(id);if(!p){p=PLACES.find(x=>x.id===id);if(p)PIDX.set(id,p)}return p||(S&&S.custom.find(x=>x.id===id))}
+const PIDX=new Map();function P(id){let p=PIDX.get(id);if(!p){p=PLACES.find(x=>x.id===id);if(p)PIDX.set(id,p)}return p||(S&&(S.custom.find(x=>x.id===id)||(S.meet||[]).find(x=>x.id===id)))}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.me)S=seed();
 function save(){if(JOIN_ONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -1871,7 +1872,7 @@ function sharedSeats(r){return mySeats(r)+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
 function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r);const q=sharedQuote(r.type,d,mySeats(r),n);if(r.seatFare==null||q.per<r.seatFare){r.seatFare=q.per;r.fare=q.per*mySeats(r)}r.tripTotal=Math.max(r.seatFare*n,r.protect||0);r.lunadCover=r.tripTotal-r.seatFare*n}
 function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S.shareAuto===false)return false;if(!['pending','accepted'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(seatsOf(r)-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();r.waitFrom=Date.now();if(sharedSeats(r)>=seatsOf(r)||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);const full=sharedSeats(r)>=seatsOf(r);toast(`${next.n} joined from the same pickup · ${sharedSeats(r)} of ${seatsOf(r)} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}${full?` · ${vehW(r.type)} full, ready to leave`:''}`);return true}
 function rideCard(r,hl){if(isX(r))return xCard(r,hl);const p=r.pid?prov(r.pid):null;const now=Date.now();const host=r.attachTo&&ride(r.attachTo);
- let h=`<div class="card ${hl?'hl':''}">${host?`<div class="share-line" id="alongStu">${isX(host)?`${ic('tricycle')} Riding along on TODA Express trip ${esc(r.attachTo)} · ${esc(host.item.desc)} on board`:`${ic(TYPES[host.type].e)} Free seat on ${esc(TYPES[host.type].label)} trip ${esc(r.attachTo)}`}</div>`:''}${!r.student&&alongActive(r).length?`<div class="share-line" id="alongHost">${ic('grad')} A verified student is riding along free on an empty seat — your fare doesn’t change</div>`:''}<div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
+ let h=`<div class="card ${hl?'hl':''}">${host&&r.meet&&['pending','accepted'].includes(r.status)?meetCard(r,host):''}${host?`<div class="share-line" id="alongStu">${isX(host)?`${ic('tricycle')} Riding along on TODA Express trip ${esc(r.attachTo)} · ${esc(host.item.desc)} on board`:`${ic(TYPES[host.type].e)} Free seat on ${esc(TYPES[host.type].label)} trip ${esc(r.attachTo)}`}</div>`:''}${!r.student&&alongActive(r).length?`<div class="share-line" id="alongHost">${ic('grad')} A verified student is riding along free on an empty seat — your fare doesn’t change</div>`:''}<div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
  <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.student?'Free student backride':peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample passengers':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
  ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
@@ -2477,7 +2478,7 @@ window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0
 const PAX_TYPES=['moto','car','minivan','van'];
 const XP={base:40,km:10,batchDisc:0.2,cap:3,near:2,ang:45}; // sample delivery rates & batching rules
 const X_CATS=[['Food & drinks','utensils'],['Pasalubong & local products','bag'],['Groceries','fish'],['Documents','file-text'],['Clothing & abaca crafts','gift'],['Fragile','warn'],['Other','pkg']];
-const STU={daily:2,along:20,waitMin:30,sponsor:'Catanduanes LGU · school partners · local business CSR (sample)',
+const STU={daily:2,along:20,waitMin:30,walk:0.3,noShowMin:2,sponsor:'Catanduanes LGU · school partners · local business CSR (sample)',
  schools:['Catanduanes State University (CatSU) – Virac','CatSU – Panganiban Campus','Catanduanes College','Virac National High School','San Andres Vocational School','Bato Rural Development High School','Other school']};
 const LUNAD_URL='https://github.com/nikkoramquia21-prog/Project-Lunad';
 function isX(r){return !!r&&r.kind==='express'}
@@ -2769,20 +2770,21 @@ function setPersona(p){S.persona=S.persona||'tourist';if(p!==S.persona){if(!S.me
 function alongActive(e){return S.rides.filter(r=>r.attachTo===e.id&&['pending','accepted','started'].includes(r.status))}
 const FOUR_W=['car','minivan','van'];
 // LUNAD Moto Taxi never carries ride-alongs (1 seat, in-house fleet). Pasabuy trips are never joined either.
-function alongTarget(r){const ok=e=>e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&alongMatch(e,r)&&prov(e.pid)&&prov(e.pid).online&&prov(e.pid).status==='approved';
+function alongTarget(r){const ok=e=>e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&meetCalc(e,r).ok&&prov(e.pid)&&prov(e.pid).online&&prov(e.pid).status==='approved';
  const toda=S.rides.filter(e=>isX(e)&&!e.buy&&prov(e.pid||'')&&prov(e.pid).type==='tricycle'&&ok(e)&&!alongActive(e).length&&!stuHeld(e.pid,r.id));
  const four=S.rides.filter(e=>!isX(e)&&!e.student&&!e.live&&FOUR_W.includes(e.type)&&(e.shared||e.allowStu)&&ok(e)&&seatsFree(e)>0);
  return [...toda,...four].sort((a,b)=>km(P(a.from),P(r.from))-km(P(b.from),P(r.from)))[0]||null}
 function seatsFree(e){const used=(e.shared?sharedSeats(e):e.pax)+alongActive(e).length;return (e.shared?seatsOf(e):TYPES[e.type].seats)-used}
-function attachAlong(r,e){r.attachTo=e.id;r.rideAlong=true;r.type=isX(e)?'tricycle':e.type;r.sponsorFare=isX(e)?STU.along:0;r.cands=[e.pid];r.offerIdx=0;r.offerAt=Date.now();r.status='pending';e.alongStu=r.id;
+function attachAlong(r,e){setMeet(r,e);r.attachTo=e.id;r.rideAlong=true;r.type=isX(e)?'tricycle':e.type;r.sponsorFare=isX(e)?STU.along:0;r.cands=[e.pid];r.offerIdx=0;r.offerAt=Date.now();r.status='pending';e.alongStu=r.id;
  notify('me','request',{ref:r.id},r.id);notify(e.pid,'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id);S.notifs[0].text=isX(e)?`LUNAD: Student backride ${r.id} added to your TODA Express trip ${e.id}. Accept within 3 min.`:`LUNAD: A student (${r.id}) asks for a free seat on your trip ${e.id}. Accept within 3 min.`}
 function detachAlong(r){const e=ride(r.attachTo);if(e&&e.alongStu===r.id)e.alongStu=null;r.attachTo=null;r.rideAlong=false}
 function alongBlock(e){return alongActive(e).map(r=>alongOne(e,r)).join('')}
-function alongOne(e,r){const A=P(r.from),B=P(r.to);
+function alongOne(e,r){const A=P(r.from),B=P(r.to);const late=r.arriving&&Date.now()-(r.arrivedAt||0)>=STU.noShowMin*MIN;
  const btns=r.status==='pending'?`<button class="btn sm" id="alongAccept" onclick="accept('${r.id}')">Accept student</button><button class="btn sm ghost" id="alongDecline" onclick="decline('${r.id}')">Decline</button>`
-  :r.status==='accepted'?`<button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>`
+  :r.status==='accepted'?(r.arriving?`<button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>${late?`<button class="btn sm warn" id="alongNoShow" onclick="stuNoShow('${r.id}')">Student not there — continue</button>`:`<button class="btn sm ghost" id="alongWaited" onclick="ride('${r.id}').arrivedAt-=${STU.noShowMin}*MIN;save();render()">Demo: waited ${STU.noShowMin} min</button>`}`
+   :`<button class="btn sm sec" id="alongAtMeet" onclick="meetArrive('${r.id}')">At meeting point</button><button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>`)
   :`<button class="btn sm" id="alongDrop" onclick="complete('${r.id}')">Dropped off student</button>`;
- return `<div class="banner info along-block" style="margin:6px 0"><b>${ic('grad')} ${isX(e)?'Student backride added to this trip':'Student ride-along · free seat'}</b><br>${esc(r.stuName||'Student')} · ${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))} · ${r.id}<br><span class="muted">${isX(e)?'Free for the student · '+peso(r.sponsorFare||0)+' ride-along fee paid to you by the student program':'Free seat for the student · no fee · +15 reward points for you'}</span>${r.status==='pending'?`<span class="st info" style="margin-left:4px">Respond in<span class="cd" data-id="${r.id}"></span></span>`:` <span class="st ${r.status==='started'?'info':'ok'}">${r.status==='started'?'Student on board':'Accepted'}</span>`}<div class="btns" style="margin-top:6px">${btns}</div></div>`}
+ return `<div class="banner info along-block" style="margin:6px 0"><b>${ic('grad')} ${isX(e)?'Student backride added to this trip':'Student ride-along · free seat'}</b><br>${esc(r.stuName||'Student')} · ${r.id}<br>${ic('flag')} Stop at <b>${esc(A.n)}</b> — on your route, no detour${r.arriving&&r.status==='accepted'?` · waiting max ${STU.noShowMin} min`:''}<br>${ic('pin')} Let them off at <b>${esc(B.n)}</b><br><span class="muted">${isX(e)?'Free for the student · '+peso(r.sponsorFare||0)+' ride-along fee paid to you by the student program':'Free seat for the student · no fee · +15 reward points for you'}</span>${r.status==='pending'?`<span class="st info" style="margin-left:4px">Respond in<span class="cd" data-id="${r.id}"></span></span>`:` <span class="st ${r.status==='started'?'info':'ok'}">${r.status==='started'?'Student on board':'Accepted'}</span>`}<div class="btns" style="margin-top:6px">${btns}</div></div>`}
 
 
 /* ---- Ride-along only: no matching delivery -> Wait / Paid ride / Cancel ---- */
@@ -2798,7 +2800,7 @@ function stuNoMatch(){const f=S.rideForm;const B=P(f.to);const n=B?B.n.replace('
 function stuWait(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:'tricycle',pax:1,start:Date.now()});Object.assign(r,{student:true,pax:1,sponsorFare:STU.along,fare:0,pay:'sponsored',stuName:S.me.name,status:'waiting',waitUntil:Date.now()+STU.waitMin*MIN,cands:[]});
  S.rides.push(r);closeModal();save();render();toast('Waiting for a TODA Express rider heading to '+P(f.to).n.replace(' (sample)','')+' — we’ll add you automatically')}
 function stuPaid(){S.rideForm.type='moto';S.rideForm.pax=1;S.rideMode='ride';closeModal();save();render();toast('Switched to a paid Moto Taxi ride — choose any vehicle')}
-function stuBackToWait(r){r.type='tricycle';r.status='waiting';r.pid=null;r.cands=[];r.offerIdx=0;r.waitUntil=Math.max(r.waitUntil||0,Date.now()+10*MIN)}
+function stuBackToWait(r){clearMeet(r);r.type='tricycle';r.status='waiting';r.pid=null;r.cands=[];r.offerIdx=0;r.waitUntil=Math.max(r.waitUntil||0,Date.now()+10*MIN)}
 function stuWaitTick(now){let ch=false;for(const r of S.rides){if(r.status!=='waiting'||!r.student)continue;
   if(now>r.waitUntil){r.status='no_match';r.why='No TODA Express rider headed that way in '+STU.waitMin+' minutes — your free ride wasn’t used';notify('me','nomatch',{ref:r.id,alt:'a paid ride'},r.id);ch=true;continue}
   const e=alongTarget(r);if(e){attachAlong(r,e);if(r.booker==='me'&&S.role==='booker')toast('Matched! You’re riding along with '+drvInfo(prov(e.pid)).name+' ('+e.id+')');ch=true}}
@@ -2806,14 +2808,19 @@ function stuWaitTick(now){let ch=false;for(const r of S.rides){if(r.status!=='wa
 
 
 /* Why a same-route trip can't take the student (shown in the no-match pop-up) */
-function stuWhyNot(f){const q={from:f.from,to:f.to};const near=S.rides.filter(e=>e.booker!=='other'&&!e.student&&['pending','accepted','started'].includes(e.status)&&P(e.from)&&P(e.to)&&alongMatch(e,q));const out=[];
- for(const e of S.rides.filter(e=>e.booker!=='other'&&!e.student&&!near.includes(e)&&['accepted','started'].includes(e.status)&&(isX(e)&&!e.buy||FOUR_W.includes(e.type)&&(e.shared||e.allowStu)))){const i=alongInfo(e,q);if(!i)continue;const nm=P(e.from).n.replace(' (sample)',''),tn=P(e.to).n.replace(' (sample)','');if(!i.pickOK&&i.pickOff<6)out.push(`A ${isX(e)?'TODA Express delivery':'trip'} from ${nm} to ${tn} is running, but your pickup is ${i.pickOff.toFixed(1)} km off its route.`);else if(i.pickOK&&!i.dropOK)out.push(`A ${isX(e)?'TODA Express delivery':'trip'} from ${nm} passes your pickup, but it ends at ${tn} — not on the way to your drop-off.`)}
- if(near.some(e=>e.type==='moto'&&!isX(e)))out.push('Only a LUNAD Moto Taxi is going that way — Moto Taxi can’t take ride-alongs.');
- if(near.some(e=>FOUR_W.includes(e.type)&&!e.shared&&!e.allowStu&&!isX(e)))out.push('A car/van trip is going that way, but the passenger didn’t allow a student ride-along.');
- if(near.some(e=>e.buy))out.push('A Pasabuy trip is going that way — Pasabuy riders stop to shop, so they don’t take ride-alongs.');
- if(near.some(e=>e.status==='pending'&&(isX(e)&&!e.buy||FOUR_W.includes(e.type)&&(e.shared||e.allowStu))))out.push('A trip going that way is still waiting for a driver — tap Wait and you’ll be added once a driver accepts it.');
- if(near.some(e=>isX(e)&&!e.buy&&['accepted','started'].includes(e.status)&&alongActive(e).length))out.push('The TODA Express rider going that way already has a student on the backride.');
- return out.length?`<div class="banner info" id="stuWhy" style="margin:0 0 10px">${out.map(esc).join('<br>')}</div>`:''}
+function stuWhyNot(f){const q={from:f.from,to:f.to};const out=[];const add=t=>{if(!out.includes(t))out.push(t)};
+ for(const e of S.rides.filter(e=>e.booker!=='other'&&!e.student&&['pending','accepted','started'].includes(e.status)&&P(e.from)&&P(e.to))){const m=meetCalc(e,q);if(!m)continue;
+  const nm=P(e.from).n.replace(' (sample)',''),tn=P(e.to).n.replace(' (sample)','');const kind=isX(e)?(e.buy?'Pasabuy trip':'TODA Express delivery'):(TYPES[e.type].label.split(' (')[0]+' trip');
+  const elig=isX(e)?!e.buy:FOUR_W.includes(e.type)&&(e.shared||e.allowStu);
+  if(m.geoOK){if(e.type==='moto'&&!isX(e))add('Only a LUNAD Moto Taxi is going your way — Moto Taxi can’t take ride-alongs.');
+   else if(e.buy)add('A Pasabuy trip is going your way — Pasabuy riders stop to shop, so they don’t take ride-alongs.');
+   else if(FOUR_W.includes(e.type)&&!isX(e)&&!e.shared&&!e.allowStu)add('A car/van trip is going your way, but the passenger didn’t allow a student ride-along.');
+   else if(e.status==='pending')add('A trip going your way is still waiting for a driver — tap Wait and you’ll be added once a driver accepts it.');
+   else if(!m.ahead)add(`The ${kind} from ${nm} has already passed your meeting point.`);
+   else if(isX(e)&&alongActive(e).length)add('The TODA Express rider going your way already has a student on the backride.')}
+  else if(elig&&['accepted','started'].includes(e.status)){if(!m.pickOK&&m.pick.walk<3)add(`A ${kind} from ${nm} to ${tn} is running, but your pickup is ${Math.round(m.pick.walk*1000)} m from its route — the walking limit is ${STU.walk*1000} m.`);
+   else if(m.pickOK&&!m.dropOK)add(`A ${kind} from ${nm} passes near you, but it doesn’t go within ${STU.walk*1000} m of your drop-off (it ends at ${tn}).`)}}
+ return out.length?`<div class="banner info" id="stuWhy" style="margin:0 0 10px">${out.slice(0,3).map(esc).join('<br>')}</div>`:''}
 /* Driver toggle opens the driver who has something to do */
 function actionDriver(){const mine=r=>String(r.booker).indexOf('me')===0;
  const stu=S.rides.filter(r=>r.student&&r.attachTo&&['pending','accepted','started'].includes(r.status)).sort((a,b)=>b.createdAt-a.createdAt)[0];if(stu)return holderOf(stu);
@@ -2831,6 +2838,31 @@ function alongInfo(e,r){const A1=P(e.from),B1=P(e.to),A2=P(r.from),B2=P(r.to);if
  const dropOK=km(B1,B2)<=ALONG.near||(q.t>=p.t&&q.t<=1.05&&q.d<=ALONG.corridor);
  return {pickOK,dropOK,pickOff:p.d,dropOff:q.d}}
 function alongMatch(e,r){if(sameRoute(e,r))return true;const i=alongInfo(e,r);return !!(i&&i.pickOK&&i.dropOK)}
+
+
+/* ---- Meet on the route (ride-alongs) ----
+   The rider never detours. The app finds the point on the rider's route closest to the student (snapped to the
+   nearest named place within 150 m). The student must be within 300 m walking of it, and the rider must not have
+   passed it yet. Drop-off works the same way: the point on the route closest to the destination, within 300 m.
+   Prototype routes are straight lines between places; production would use real road routes. */
+function lerpLL(A,B,t){return {lat:A.lat+(B.lat-A.lat)*t,lng:A.lng+(B.lng-A.lng)*t}}
+function routeProg(e){if(e.status!=='started')return 0;return Math.max(0,Math.min(1,(Date.now()-(e.startedAt||Date.now()))/90000))}
+function meetCalc(e,r){const A1=P(e.from),B1=P(e.to),A2=P(r.origFrom||r.from),B2=P(r.origTo||r.to);if(!A1||!B1||!A2||!B2)return {ok:false,geoOK:false,pick:{walk:99},drop:{walk:99}};
+ const p=segProj(A1,B1,A2),q=segProj(A1,B1,B2);const pt=Math.max(0,Math.min(1,p.t)),qt=Math.max(0,Math.min(1,q.t));
+ const pick={...lerpLL(A1,B1,pt),t:pt,walk:p.d},drop={...lerpLL(A1,B1,qt),t:qt,walk:q.d};
+ const pickOK=pick.walk<=STU.walk,dropOK=drop.walk<=STU.walk&&qt>pt+0.02;const geoOK=pickOK&&dropOK;
+ const ahead=e.status!=='started'||pt>routeProg(e)+0.02;return {ok:geoOK&&ahead,geoOK,ahead,pickOK,dropOK,pick,drop}}
+function snapName(ll){let best=null,bd=Infinity;for(const p of PLACES){if(p.k==='pin')continue;const d=km(ll,p);if(d<bd){bd=d;best=p}}
+ return bd<=0.15?'near '+best.n.replace(' (sample)',''):'on the road, '+(best?Math.round(bd*1000)+' m from '+best.n.replace(' (sample)',''):'route')}
+function setMeet(r,e){const m=meetCalc(e,r);if(!m||!m.geoOK)return;S.meet=S.meet||[];r.origFrom=r.origFrom||r.from;r.origTo=r.origTo||r.to;
+ const mk=(ll,label)=>{const id='mp-'+(S.seq++);const t=nearestTown(ll.lat,ll.lng);S.meet.push({id,n:'Meeting point '+label,t,lat:ll.lat,lng:ll.lng,k:'pin',e:'flag'});S.meet=S.meet.slice(-40);return id};
+ r.from=mk(m.pick,snapName(m.pick));r.to=mk(m.drop,snapName(m.drop));P(r.to).n='Drop point '+snapName(m.drop);
+ r.meet={walkPick:Math.round(m.pick.walk*1000),walkDrop:Math.round(m.drop.walk*1000),t:m.pick.t,pickLabel:snapName(m.pick),dropLabel:snapName(m.drop)}}
+function clearMeet(r){if(r.origFrom){r.from=r.origFrom;r.to=r.origTo}r.meet=null;r.arriving=false;r.arrivedAt=0}
+function meetEta(r,e){const A1=P(e.from),M=P(r.from);const d=km(A1,M)*(e.status==='started'?Math.max(0,1-routeProg(e)/Math.max(r.meet.t,0.01)):1);return Math.max(1,(e.status==='accepted'?4:0)+Math.round(d/25*60))}
+function meetCard(r,e){const M=P(r.from),B=P(r.to),O=P(r.origTo||r.to);return `<div class="banner info meet-card" id="meetCard" style="margin:0 0 6px">${ic('flag')} <b>Walk ${r.meet.walkPick} m to the meeting point</b> — ${esc(r.meet.pickLabel||M.n.replace('Meeting point ',''))}. Your rider passes in about ${meetEta(r,e)} min. They wait up to ${STU.noShowMin} min, so be there first.<br>${ic('pin')} You’ll get off ${esc(r.meet.dropLabel||B.n.replace('Drop point ',''))}${r.meet.walkDrop>20?` and walk ${r.meet.walkDrop} m to ${esc(O.n.replace(' (sample)',''))}`:''}.</div>`}
+function meetArrive(id){const r=ride(id);if(!r)return;r.arriving=true;r.arrivedAt=Date.now();notify('me','arriving',{ref:r.id},r.id);S.notifs[0].text=`LUNAD: Your ride-along for ${r.id} is at the meeting point — it waits up to ${STU.noShowMin} min.`;save();render();toast('Student notified — waiting up to '+STU.noShowMin+' min')}
+function stuNoShow(id){const r=ride(id);if(!r)return;r.status='cancelled';r.why='You weren’t at the meeting point — the rider continued. Your free ride wasn’t used.';notify('me','cancelled',{ref:r.id,fee:''},r.id);save();render();toast('Continuing your trip — the student’s free ride was not used')}
 
 /* ---- Driver Rewards Program ---- */
 const RW_RULES=[['ride','Completed ride',10],['delivery','Completed TODA Express delivery',12],['student','Student backride (social impact)',15],['five','5-star rating',5],['review','Positive review',5],['streak','Active 5+ days this week',30]];

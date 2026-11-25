@@ -52,8 +52,17 @@ Previous version is preserved on branch `release/v0.26.2`.
   - their drop-off is further along that route or within 2 km of the trip's drop-off.
   - The no-match pop-up also says when a running trip is close but off-route ("your pickup is 2.3 km off its route") or ends before the student's destination.
 
+- **Meet on the route (replaces the "on the way" matching)** — riders never detour to a student's pickup:
+  - The app finds the point on the rider's route closest to the student, labelled by the nearest named place within 150 m. The student must be **within 300 m walking**, and the rider must **not have passed it yet**.
+  - Drop-off: the point on the route closest to the destination, also within 300 m. The student walks the rest.
+  - The student sees "Walk N m to the meeting point — … your rider passes in about X min, be there first". The rider sees "Stop at … — on your route, no detour" and taps At meeting point.
+  - The rider waits **at most 2 minutes**, then can continue. The student's free ride isn't used.
+  - The rule applies the same way to every place and barangay on the map.
+  - The no-match pop-up gives the walking distance versus the 300 m limit, or says the rider has already passed.
+  - Prototype routes are straight lines between places. Production would use real road routes.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 193 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 193/193 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 199 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 199/199 pass, no JavaScript errors.
