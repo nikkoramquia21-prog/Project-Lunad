@@ -61,8 +61,14 @@ Previous version is preserved on branch `release/v0.26.2`.
   - The no-match pop-up gives the walking distance versus the 300 m limit, or says the rider has already passed.
   - Prototype routes are straight lines between places. Production would use real road routes.
 
+- **Student hubs** — free ride-alongs can only be booked from a hub:
+  - **Which places are hubs:** Virac core (Virac Public Market, Virac town proper / Cathedral plaza, CatSU main gate, Virac Port), transport points (Virac Airport, San Andres Port), every town proper, and verified LUNAD partner businesses. Partner hubs bring those businesses foot traffic.
+  - **Booking:** the student must be at a hub (within 300 m). Otherwise the request is blocked, and a picker shows the nearest hubs with distances; tapping one sets it as the pickup.
+  - **Matching:** a trip can pick the student up if it starts at the hub or passes within 300 m of it, and hasn't passed it yet. The student can get off anywhere within 300 m of the route, or at the trip's drop-off.
+  - **What each side sees:** the student gets "Wait at the student hub: … your rider arrives in about X min"; the rider gets "Pick up at student hub …".
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 199 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 199/199 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 203 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 203/203 pass, no JavaScript errors.
