@@ -28,8 +28,15 @@ Previous version is preserved on branch `release/v0.26.2`.
 - **Welcome screen: "I’m a student"** — a new button between Get started and I’m a driver. It opens the Student view.
 - **Phone frame fix** — the welcome screen had square corners that stuck out past the rounded phone frame (a strip on the right). It now follows the frame. The header toggle (Passenger | Student | Driver) and the menu button fit inside the phone at every size, down to 320 px.
 
+- **Ride-along-only rules for free student rides** — TODA riders never make a separate trip for a free student, and no driver ever sees a standalone student request.
+  - A student booking joins a delivery when the rider has accepted it or already has the item on board, and the trip is on the student's route (pickups within 2 km; drop-offs within 2 km or in the same direction). One student per tricycle.
+  - **No match → pop-up:** "No TODA Express rider is heading to … right now". The options are **Wait for a ride-along (up to 30 min)** (the student is added automatically when a matching delivery is accepted), **Book a paid ride instead** (switches to Moto Taxi), or **Cancel**.
+  - If the rider declines, cancels or doesn't answer in 3 minutes, the student goes back on the waiting list and that rider isn't asked again. After 30 minutes without a match, the request ends with an option to book a paid ride.
+  - The free-ride count only goes down when the student is matched. Waiting, no match and cancelling don't use a ride.
+  - The sponsor pays the rider a flat **₱20 ride-along fee** instead of the full tricycle fare.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 157 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 157/157 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 171 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 171/171 pass, no JavaScript errors.

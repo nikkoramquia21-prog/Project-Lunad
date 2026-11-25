@@ -1131,6 +1131,7 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
       <p>4. Message the operator directly from an active trip — no phone numbers are shown.</p>
       <p>5. <b>TODA Express</b>: as Passenger, Ride → TODA Express → send an item or Pasabuy. Switch to Driver and accept as the TODA rider.</p>
       <p>6. <b>Student ride-along</b>: while that delivery is active, tap <b>Student</b> and book a free TODA backride on the same route — it attaches to the delivery. As Driver, accept the student inside the delivery job.</p>
+      <p>7. <b>No ride-along?</b> As Student, book a free backride where no delivery is heading — choose <b>Wait</b>. Then as Passenger send a parcel on that route and accept it as Driver: the student is added automatically.</p>
     </div>
     <div class="box"><b>Prototype notes</b>
       <p>All names, fares, permits and numbers are sample data. The map is stylized. SMS and Messenger are simulated in the Inbox. Data stays in this browser only.</p>
@@ -1521,7 +1522,7 @@ function fakeQR(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;const R
 function tpl(key,v,lang){const t=(MSG[lang]&&MSG[lang][key])||MSG.en[key]||key;return t.replace(/\{(\w+)\}/g,(_,k)=>v[k]??'')}
 function townOf(p){return p.t}
 function paused(town){return (S.signals[town]||0)>0}
-function stChip(s){const m={queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to drivers'],no_match:['bad','No driver found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
+function stChip(s){const m={waiting:['wait',`${ic('clock')} Waiting for a ride-along`],queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to drivers'],no_match:['bad','No driver found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
 function payChip(r){if(['cancelled','no_match','queued'].includes(r.status)&&!r.fee)return '';const m={unpaid:['wait','Unpaid'],proof:['info','Proof sent'],paid:['ok','Paid'],rejected:['bad','Proof rejected'],cash:['info','Cash — awaiting driver'],buying:['wait','Pay after receipt'],recipient:['info','Cash on arrival'],sponsored:['ok','Free · sponsored'],escalated:['bad','Escalated to support']}[r.pay]||['mut',r.pay];return `<span class="st ${m[0]}">${ic('card')} ${m[1]}</span>`}
 function amount(r){return r.fare+(r.fee||0)+(r.goods||0)}
 
@@ -1564,7 +1565,7 @@ function findAlt(r){const out=[],len=r.end-r.start;
  for(const t of PAX_TYPES){if(t===r.type)continue;if(eligible(t,r.pax,r.start,r.end,r.id).length){out.push({k:'type',type:t});if(out.length>=3)break}}
  return out}
 function altLabel(a){return a.k==='time'?'same vehicle at '+hm(a.start):TYPES[a.type].label+' now'}
-function advance(r,why){r.declined.push(r.cands[r.offerIdx]);if(r.attachTo){detachAlong(r);dispatch(r,true);return}r.offerIdx++;
+function advance(r,why){r.declined.push(r.cands[r.offerIdx]);if(r.attachTo||r.student){detachAlong(r);stuBackToWait(r);return}r.offerIdx++;
  while(r.offerIdx<r.cands.length){const pid=r.cands[r.offerIdx];const p=prov(pid);if(p.online&&p.status==='approved'&&!busy(pid,r.start,r.end,r.id))break;r.offerIdx++}
  if(r.offerIdx>=r.cands.length){noMatch(r)}else{r.offerAt=Date.now();offerNotify(r)}}
 function bookAlt(id,i){const r=ride(id),a=r.alt[i];if(!a)return;const o={from:r.from,to:r.to,pax:r.pax,type:a.k==='type'?a.type:r.type,start:a.k==='time'?a.start:r.start};
@@ -1573,7 +1574,7 @@ function activeCount(){return S.rides.filter(r=>r.booker==='me'&&['queued','pend
 function bookingLimit(){return S.me.noShows>=2?1:5}
 
 /* =================== CHECKS (timers, expiry, fares) =================== */
-function tick(){let changed=false;const now=Date.now();
+function tick(){let changed=false;const now=Date.now();if(stuWaitTick(now))changed=true;
  for(const r of S.rides)if(r.status==='pending'&&!(r.live&&r.shared)&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
  for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-(r.lastJoin||r.createdAt)>SHARE.gap&&coJoin(r))changed=true;
  if(S.role==='booker'&&!($('#modalRoot')||{}).innerHTML){const w=S.rides.find(r=>waitDue(r,now));if(w){if(changed){save();render()}waitModal(w.id);return}}
@@ -1736,7 +1737,7 @@ function placeOpts(sel){const sp=sel&&P(sel);const osmOpt=sp&&sp.osm?`<option va
  let o=osmOpt+S.custom.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('');
  for(const [k,l] of groups)o+=`<optgroup label="${l}">${PLACES.filter(p=>p.k===k).map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('')}</optgroup>`;return o}
 function formStart(){const f=S.rideForm;if(f.when==='now')return Date.now()+5*MIN;return new Date(f.date+'T'+f.time).getTime()}
-function activeCard(){const a=S.rides.filter(r=>r.booker==='me'&&!isX(r)&&['queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((x,y)=>y.createdAt-x.createdAt)[0];
+function activeCard(){const a=S.rides.filter(r=>r.booker==='me'&&!isX(r)&&['waiting','queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((x,y)=>y.createdAt-x.createdAt)[0];
  return a?rideCard(a,true):''}
 // ============ Home dashboard — hero, search, quick access, featured spots ============
 function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started'].includes(r.status)).length;
@@ -1828,10 +1829,10 @@ function vRide(){if(S.rideMode==='express')return vExpress();const f=S.rideForm;
 function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
- ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more passengers join.</p>`})():f.type==='tricycle'?`<div class="kv"><span>Fare</span><b>Free · student backride</b></div><p class="muted" style="margin:4px 0 0">After the ride you’ll be asked to share it on Facebook or Instagram to unlock your next free ride.</p>`:`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
+ ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more passengers join.</p>`})():f.type==='tricycle'?`<div class="kv"><span>Fare</span><b>Free · student ride-along</b></div><p class="muted" style="margin:4px 0 0">We’ll add you to a TODA Express rider already heading your way. After the ride you’ll be asked to share it on Facebook or Instagram to unlock your next free ride.</p>`:`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
  <button class="btn block" id="confirmReq" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
-function requestRide(){const f=S.rideForm;if(stuBlock(f)){toast(stuBlock(f));closeModal();return}const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(r.type==='tricycle'){r.student=true;r.pax=1;r.sponsorFare=r.fare;r.fare=0;r.pay='sponsored';r.stuName=S.me.name}
- if(r.student&&online()){const e=alongTarget(r);if(e){S.rides.push(r);attachAlong(r,e);closeModal();save();render();toast('Added to '+drvInfo(prov(e.pid)).name+'’s TODA Express trip '+e.id+' — riding along');return}}if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
+function requestRide(){const f=S.rideForm;if(stuBlock(f)){toast(stuBlock(f));closeModal();return}const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(r.type==='tricycle'){r.student=true;r.pax=1;r.sponsorFare=STU.along;r.fare=0;r.pay='sponsored';r.stuName=S.me.name}
+ if(r.student){const e=alongTarget(r);if(e){S.rides.push(r);attachAlong(r,e);closeModal();save();render();toast('Added to '+drvInfo(prov(e.pid)).name+'’s TODA Express trip '+e.id+' — riding along');return}stuNoMatch();return}if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
  dispatch(r);
  closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No driver available — see options')}
@@ -1874,6 +1875,8 @@ function rideCard(r,hl){if(isX(r))return xCard(r,hl);const p=r.pid?prov(r.pid):n
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more driver(s) in line</div>`;
  if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
+ if(r.status==='waiting')h+=`<div class="banner info" id="stuWaitBanner" style="margin:6px 0">${ic('clock')} We’ll add you to the first TODA Express rider heading to ${esc(P(r.to).n.replace(' (sample)',''))} — waiting until ${clock(r.waitUntil)}. Your free ride isn’t used until you’re matched.</div>`;
+ if(r.status==='no_match'&&r.student)h+=`<div class="btns"><button class="btn sm sec" onclick="S.rideForm.type='moto';S.rideForm.from='${r.from}';S.rideForm.to='${r.to}';S.rideMode='ride';go('ride')">Book a paid ride instead</button></div>`;
  if(r.status==='queued')h+=`<div class="banner info" style="margin:6px 0">${ic('wifi-off')} No signal — this request will send automatically once you're back online. <button class="btn sm sec" style="margin-top:6px" onclick="toggleNet()">Simulate: back online</button></div>`;
  if(r.status==='accepted'&&r.arriving)h+=`<div class="banner info" style="margin:6px 0">${ic('tricycle')} Your driver is arriving.</div>`;
  if(r.rated.b){const rv=S.ratings.find(x=>x.rideId===r.id&&x.from==='b');if(rv)h+=`<div class="muted" style="margin:4px 0">Your review: ${starRow(rv.stars,'sm')}${rv.tags&&rv.tags.length?' · '+rv.tags.map(esc).join(', '):''}${rv.comment?' — '+esc(rv.comment):''}</div>`}
@@ -1882,7 +1885,7 @@ function rideCard(r,hl){if(isX(r))return xCard(r,hl);const p=r.pid?prov(r.pid):n
  if(r.status==='completed'&&['unpaid','rejected'].includes(r.pay))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">Pay now</button>`);
  if(r.pay==='proof'&&now-r.proofAt>PAY_MS)btn.push(`<button class="btn sm warn" onclick="reportModal('${r.id}','Payment not confirmed')">No response — report issue</button>`);
  if(r.pay==='proof'&&now-r.proofAt<=PAY_MS)btn.push(`<button class="btn sm ghost" onclick="ride('${r.id}').proofAt-=${PAY_MS+1000};save();render()">Demo: 15 min pass</button>`);
- if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
+ if(r.status==='waiting')btn.push(`<button class="btn sm ghost" id="stuWaitCancel" onclick="freeCancel('${r.id}')">Stop waiting</button>`);else if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
  if(['accepted','started'].includes(r.status)&&r.type!=='agency')btn.push(`<button class="btn sm sec" onclick="shareTrip('${r.id}')">${r.share&&r.share.on?ic('link')+' Sharing':'Share trip'}</button>`);
  if(r.status==='completed'&&!r.rated.b&&!r.student)btn.push(`<button class="btn sm" onclick="rateModal('${r.id}','b')">${ic('star-f')} Rate ride</button>`);
  if(r.student&&r.status==='completed'&&stu().shareOwed===r.id)btn.push(stuShareBtn(r.id,'fb','sm'),stuShareBtn(r.id,'ig','sm sec'));
@@ -2067,14 +2070,14 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
  const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your passengers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
  return h}
 function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];if(r.buy)r.type=prov(r.pid).type;if(isX(r)){r.batch=!r.buy&&xActive(r.pid).some(j=>j.id!==r.id&&!j.buy&&sameRoute(j,r));r.fare=r.batch?Math.round(r.fullFare*(1-XP.batchDisc)):r.fullFare}if(r.student)r.rideAlong=xActive(r.pid).length>0;r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast(r.buy?'Pasabuy accepted — head to the store':isX(r)?(r.batch?'Delivery added to your trip — same route':'Delivery accepted — head to the pickup'):'Accepted — slot locked')}
-function decline(id){const r=ride(id);const was=!!r.attachTo;advance(r,'declined');save();render();toast(was?'Student backride declined — sent to other TODA riders':'Declined — offered to the next driver')}
+function decline(id){const r=ride(id);const was=!!r.attachTo;advance(r,'declined');save();render();toast(was?'Student backride declined — the student waits for another ride-along':'Declined — offered to the next driver')}
 function arriving(id){const r=ride(id);if(r.arriving){toast('Passenger already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Passenger notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
 function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{if(!isX(r))setPickupReviews(r);}notify('me',isX(r)?'xpicked':'started',{ref:r.id},r.id);save();render();if(isX(r))toast('Item picked up — recipient notified')}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
  xOnComplete(r);
  notify('me',isX(r)?'xdone':'completed',{ref:r.id,rcpt:r.rcpt?r.rcpt.name:''},r.id);save();render();toast(isX(r)?'Delivered — sender notified'+(r.payBy==='recipient'?'. Confirm the cash you collected.':''):r.student?'Student ride completed — paid by the student program':'Trip completed — rating and payment requests sent')}
 function noShow(id){const r=ride(id);r.status='noshow';r.fee=S.fares.active.lateFee;r.fare=0;r.pay='unpaid';S.me.noShows++;notify('me','noshow',{ref:r.id,fee:peso(r.fee)},r.id);save();render();toast('No-show recorded · late fee applies')}
-function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);
+function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);if(r.student){detachAlong(r);stuBackToWait(r);save();render();toast('Student is back on the ride-along waiting list');return}
  const c=candFor(r);if(c.length){r.cands=c.map(x=>x.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';offerNotify(r)}else noMatch(r);
  save();render();toast('Passenger is being rematched · reliability note added')}
 function confirmPay(id,ok){const r=ride(id);if(ok){r.pay='paid';notify('me','paid',{ref:r.id},r.id)}else{r.pay='rejected';notify('me','payrej',{ref:r.id},r.id)}save();render()}
@@ -2472,7 +2475,7 @@ window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0
 const PAX_TYPES=['moto','car','minivan','van'];
 const XP={base:40,km:10,batchDisc:0.2,cap:3,near:2,ang:45}; // sample delivery rates & batching rules
 const X_CATS=[['Food & drinks','utensils'],['Pasalubong & local products','bag'],['Groceries','fish'],['Documents','file-text'],['Clothing & abaca crafts','gift'],['Fragile','warn'],['Other','pkg']];
-const STU={daily:2,sponsor:'Catanduanes LGU · school partners · local business CSR (sample)',
+const STU={daily:2,along:20,waitMin:30,sponsor:'Catanduanes LGU · school partners · local business CSR (sample)',
  schools:['Catanduanes State University (CatSU) – Virac','CatSU – Panganiban Campus','Catanduanes College','Virac National High School','San Andres Vocational School','Bato Rural Development High School','Other school']};
 const LUNAD_URL='https://github.com/nikkoramquia21-prog/Project-Lunad';
 function isX(r){return !!r&&r.kind==='express'}
@@ -2481,7 +2484,7 @@ function xF(){S.xForm=S.xForm||{from:'market',to:'',desc:'',cat:X_CATS[0][0],rNa
 function stu(){S.me.student=S.me.student||{status:'none'};return S.me.student}
 function stuOK(){return stu().status==='verified'}
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}
-function stuUsed(){return S.rides.filter(r=>r.booker==='me'&&r.student&&r.createdAt>=today0()&&!['cancelled','no_match'].includes(r.status)).length}
+function stuUsed(){return S.rides.filter(r=>r.booker==='me'&&r.student&&r.createdAt>=today0()&&!['cancelled','no_match','waiting'].includes(r.status)).length}
 function stuLeft(){return Math.max(0,STU.daily-stuUsed())}
 function stuLocked(){const o=stu().shareOwed;const r=o&&ride(o);return r||null}
 function rideTypes(){return stuOK()?['tricycle',...PAX_TYPES]:PAX_TYPES}
@@ -2651,10 +2654,10 @@ function stuFormSt(){const e=$('#stuIdSt');if(e){e.className='st '+(STUF.idFile?
 function stuSubmit(){const no=($('#stuIdNo').value||'').trim();if(no.length<4){toast('Enter your student ID number');return}if(!STUF.idFile){toast('Upload a photo of your school ID');return}
  Object.assign(stu(),{status:'pending',school:$('#stuSchool').value,idNo:no,reg:STUF.reg,at:Date.now()});save();closeModal();render();toast('Submitted — your school ID is under review')}
 function stuApprove(){const s=stu();if(s.status!=='pending')return;s.status='verified';s.verifiedAt=Date.now();save();render();toast('You’re a Verified Student — free TODA backrides unlocked')}
-function stuFareKV(d){return `<div class="kv"><span>Fare · free student backride</span><b>${peso(0)} <span class="muted" style="font-weight:400">(${peso(fareCalc('tricycle',d))} paid by sponsor)</span></b></div>`}
-function stuBlock(f){if(f.type!=='tricycle')return '';if(!stuOK())return 'Verify your student status first';if(stuLocked())return 'Share your last free ride to unlock this one';if(stuLeft()<1)return 'You’ve used today’s '+STU.daily+' free rides';if(f.pax>1)return 'Backride carries 1 student only';if(f.when!=='now')return 'Free backrides are booked for now, not scheduled';return ''}
+function stuFareKV(d){return `<div class="kv"><span>Fare · free student ride-along</span><b>${peso(0)} <span class="muted" style="font-weight:400">(${peso(STU.along)} ride-along fee paid by sponsor)</span></b></div>`}
+function stuBlock(f){if(f.type!=='tricycle')return '';if(!stuOK())return 'Verify your student status first';if(stuWaiting())return 'You’re already waiting for a ride-along';if(!online())return 'Free backrides need a signal to find a ride-along';if(stuLocked())return 'Share your last free ride to unlock this one';if(stuLeft()<1)return 'You’ve used today’s '+STU.daily+' free rides';if(f.pax>1)return 'Backride carries 1 student only';if(f.when!=='now')return 'Free backrides are booked for now, not scheduled';return ''}
 function stuBanner(f){const lk=stuLocked();const why=stuBlock(f);
- return `<div class="banner info">${ic('grad')} Free TODA backride for verified students · ${stuLeft()} of ${STU.daily} left today. You’re matched with a TODA Express rider already heading your way when possible. Sponsored by ${esc(STU.sponsor)}.</div>`+
+ return `<div class="banner info">${ic('grad')} Free TODA backride for verified students · ${stuLeft()} of ${STU.daily} left today. You ride along with a TODA Express rider who’s already delivering your way — riders don’t make separate trips for free rides. Sponsored by ${esc(STU.sponsor)}.</div>`+
  (lk?`<div class="banner bad" id="stuLockBanner">${ic('ban')} Your next free ride is locked. Share your last free ride to unlock it.<div class="btns" style="margin-top:6px">${stuShareBtn(lk.id,'fb','sm')}${stuShareBtn(lk.id,'ig','sm sec')}</div></div>`:why?`<p class="muted" id="stuWhy">${esc(why)}</p>`:'')}
 function stuShareText(r){return `Free ride to ${P(r.to).n.replace(' (sample)','')} with LUNAD’s Student Mobility Program! TODA rides are free for students in Catanduanes. #LUNAD #Catanduanes #HappyIsland`}
 function stuShareUrl(r,net){return net==='fb'?'https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(stuShareText(r)):'https://www.instagram.com/'}
@@ -2760,7 +2763,7 @@ function setPersona(p){S.persona=S.persona||'tourist';if(p!==S.persona){if(!S.me
  closeModal();if(S.role!=='booker'){S.role='booker'}S.tab='home';save();render();toast(p==='student'?'Student view · '+S.me.name:'Passenger view · '+S.me.name)}
 
 /* ---- Ride-along: student backride attached to an active TODA Express booking ---- */
-function alongTarget(r){return S.rides.filter(e=>isX(e)&&!e.buy&&e.pid&&['accepted','started'].includes(e.status)&&!(e.alongStu&&ride(e.alongStu)&&['pending','accepted','started'].includes(ride(e.alongStu).status))&&sameRoute(e,r)&&prov(e.pid).online&&prov(e.pid).status==='approved'&&!stuHeld(e.pid,r.id)).sort((a,b)=>km(P(a.from),P(r.from))-km(P(b.from),P(r.from)))[0]||null}
+function alongTarget(r){return S.rides.filter(e=>isX(e)&&!e.buy&&e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&!(e.alongStu&&ride(e.alongStu)&&['pending','accepted','started'].includes(ride(e.alongStu).status))&&sameRoute(e,r)&&prov(e.pid).online&&prov(e.pid).status==='approved'&&!stuHeld(e.pid,r.id)).sort((a,b)=>km(P(a.from),P(r.from))-km(P(b.from),P(r.from)))[0]||null}
 function attachAlong(r,e){r.attachTo=e.id;r.rideAlong=true;r.cands=[e.pid];r.offerIdx=0;r.offerAt=Date.now();r.status='pending';e.alongStu=r.id;
  notify('me','request',{ref:r.id},r.id);notify(e.pid,'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id);S.notifs[0].text=`LUNAD: Student backride ${r.id} added to your TODA Express trip ${e.id}. Accept within 3 min.`}
 function detachAlong(r){const e=ride(r.attachTo);if(e&&e.alongStu===r.id)e.alongStu=null;r.attachTo=null;r.rideAlong=false}
@@ -2768,7 +2771,26 @@ function alongBlock(e){const r=e.alongStu&&ride(e.alongStu);if(!r||!['pending','
  const btns=r.status==='pending'?`<button class="btn sm" id="alongAccept" onclick="accept('${r.id}')">Accept student</button><button class="btn sm ghost" id="alongDecline" onclick="decline('${r.id}')">Decline</button>`
   :r.status==='accepted'?`<button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>`
   :`<button class="btn sm" id="alongDrop" onclick="complete('${r.id}')">Dropped off student</button>`;
- return `<div class="banner info along-block" style="margin:6px 0"><b>${ic('grad')} Student backride added to this trip</b><br>${esc(r.stuName||'Student')} · ${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))} · ${r.id}<br><span class="muted">Free for the student · ${peso(r.sponsorFare||0)} paid to you by the student program</span>${r.status==='pending'?`<span class="st info" style="margin-left:4px">Respond in<span class="cd" data-id="${r.id}"></span></span>`:` <span class="st ${r.status==='started'?'info':'ok'}">${r.status==='started'?'Student on board':'Accepted'}</span>`}<div class="btns" style="margin-top:6px">${btns}</div></div>`}
+ return `<div class="banner info along-block" style="margin:6px 0"><b>${ic('grad')} Student backride added to this trip</b><br>${esc(r.stuName||'Student')} · ${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))} · ${r.id}<br><span class="muted">Free for the student · ${peso(r.sponsorFare||0)} ride-along fee paid to you by the student program</span>${r.status==='pending'?`<span class="st info" style="margin-left:4px">Respond in<span class="cd" data-id="${r.id}"></span></span>`:` <span class="st ${r.status==='started'?'info':'ok'}">${r.status==='started'?'Student on board':'Accepted'}</span>`}<div class="btns" style="margin-top:6px">${btns}</div></div>`}
+
+
+/* ---- Ride-along only: no matching delivery -> Wait / Paid ride / Cancel ---- */
+function stuWaiting(){return S.rides.find(r=>r.booker==='me'&&r.student&&r.status==='waiting')||null}
+function stuNoMatch(){const f=S.rideForm;const B=P(f.to);const n=B?B.n.replace(' (sample)',''):'your drop-off';
+ modal(`<div id="stuNoMatch"><h2>${ic('tricycle')} No ride-along right now</h2>
+ <p style="margin:0 0 6px">No TODA Express rider is heading to <b>${esc(n)}</b> right now.</p>
+ <p class="muted" style="margin:0 0 12px">Free student rides join a rider who’s already delivering your way. Your free ride isn’t used until you’re matched.</p>
+ <button class="btn block" id="stuWaitBtn" onclick="stuWait()">Wait for a ride-along (up to ${STU.waitMin} min)</button>
+ <button class="btn sec block" style="margin-top:8px" id="stuPaidBtn" onclick="stuPaid()">Book a paid ride instead</button>
+ <button class="btn ghost block" style="margin-top:8px;border:0" id="stuCancelBtn" onclick="closeModal();toast('No booking made')">Cancel</button></div>`)}
+function stuWait(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:'tricycle',pax:1,start:Date.now()});Object.assign(r,{student:true,pax:1,sponsorFare:STU.along,fare:0,pay:'sponsored',stuName:S.me.name,status:'waiting',waitUntil:Date.now()+STU.waitMin*MIN,cands:[]});
+ S.rides.push(r);closeModal();save();render();toast('Waiting for a TODA Express rider heading to '+P(f.to).n.replace(' (sample)','')+' — we’ll add you automatically')}
+function stuPaid(){S.rideForm.type='moto';S.rideForm.pax=1;S.rideMode='ride';closeModal();save();render();toast('Switched to a paid Moto Taxi ride — choose any vehicle')}
+function stuBackToWait(r){r.status='waiting';r.pid=null;r.cands=[];r.offerIdx=0;r.waitUntil=Math.max(r.waitUntil||0,Date.now()+10*MIN)}
+function stuWaitTick(now){let ch=false;for(const r of S.rides){if(r.status!=='waiting'||!r.student)continue;
+  if(now>r.waitUntil){r.status='no_match';r.why='No TODA Express rider headed that way in '+STU.waitMin+' minutes — your free ride wasn’t used';notify('me','nomatch',{ref:r.id,alt:'a paid ride'},r.id);ch=true;continue}
+  const e=alongTarget(r);if(e){attachAlong(r,e);if(r.booker==='me'&&S.role==='booker')toast('Matched! You’re riding along with '+drvInfo(prov(e.pid)).name+' ('+e.id+')');ch=true}}
+ return ch}
 
 /* ---- Driver Rewards Program ---- */
 const RW_RULES=[['ride','Completed ride',10],['delivery','Completed TODA Express delivery',12],['student','Student backride (social impact)',15],['five','5-star rating',5],['review','Positive review',5],['streak','Active 5+ days this week',30]];
@@ -2799,7 +2821,7 @@ function rwRedeem(pid,id){const it=RW_ITEMS.find(x=>x.id===id);const s=rwStats(p
 /* ---- Fresh start: each time the app opens, leftover trips on this phone are closed and it starts on Home. ---- */
 const FRESH={close:[],leave:[]};let BOOTED=false;
 function freshStart(keepJoins){
- for(const r of S.rides)if(['pending','accepted','started','queued'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
+ for(const r of S.rides)if(['pending','accepted','started','queued','waiting'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
  for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true;r.doneSeen=true}
  if(!keepJoins){for(const j of myJoins())FRESH.leave.push(j);setJoins([])}
  S.custom=S.custom.filter(p=>!p.mine);Object.assign(S.rideForm,{from:'catsu',to:'',pax:1,shared:false,pin:'to'});if(S.rideForm.type==='tricycle'&&!stuOK())S.rideForm.type='moto';S.rideMode='ride';
