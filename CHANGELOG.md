@@ -21,8 +21,12 @@ Previous version is preserved on branch `release/v0.26.2`.
 - **Pasabuy** (inside TODA Express) — the booker lists items, an estimated cost and where to buy. It goes to the nearest TODA Express or LUNAD Moto Taxi rider and is never batched. The rider pays up to ₱1,000 with their own cash, enters the receipt total and attaches a photo (it appears in chat), then delivers. The booker pays back the goods plus fee (delivery + ₱30 shopping fee) by QR after the receipt, or in cash on arrival.
 - **Chat** — direct messaging between the booker and the rider, with no phone numbers shown. It has pasabuy quick replies (e.g. "Out of stock — OK to substitute?") and is available from the booking card, the rider's job card and the arrival screen.
 
+- **Student persona** — the top toggle is now Passenger | Student | Driver. Student opens a ready-verified sample student (Mika Reyes, CatSU) with their own bookings and a student home. Switching back restores the tourist account.
+- **Ride-along attached to TODA Express** — when a student books a free backride and an active TODA Express delivery is on the same route, the student booking is attached to that delivery. The rider accepts the student inside the delivery job card (Accept → Picked up student → Dropped off student), and the sender sees "A student is riding along". If the rider declines or doesn't answer in time, the booking detaches and goes to the normal TODA rider queue.
+- The demo script beside the phone now includes the TODA Express and student ride-along steps.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 123 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload. Result: 123/123 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 143 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload. Result: 143/143 pass, no JavaScript errors.
