@@ -2769,7 +2769,7 @@ function setPersona(p){S.persona=S.persona||'tourist';if(p!==S.persona){if(!S.me
 function alongActive(e){return S.rides.filter(r=>r.attachTo===e.id&&['pending','accepted','started'].includes(r.status))}
 const FOUR_W=['car','minivan','van'];
 // LUNAD Moto Taxi never carries ride-alongs (1 seat, in-house fleet). Pasabuy trips are never joined either.
-function alongTarget(r){const ok=e=>e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&sameRoute(e,r)&&prov(e.pid)&&prov(e.pid).online&&prov(e.pid).status==='approved';
+function alongTarget(r){const ok=e=>e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&alongMatch(e,r)&&prov(e.pid)&&prov(e.pid).online&&prov(e.pid).status==='approved';
  const toda=S.rides.filter(e=>isX(e)&&!e.buy&&prov(e.pid||'')&&prov(e.pid).type==='tricycle'&&ok(e)&&!alongActive(e).length&&!stuHeld(e.pid,r.id));
  const four=S.rides.filter(e=>!isX(e)&&!e.student&&!e.live&&FOUR_W.includes(e.type)&&(e.shared||e.allowStu)&&ok(e)&&seatsFree(e)>0);
  return [...toda,...four].sort((a,b)=>km(P(a.from),P(r.from))-km(P(b.from),P(r.from)))[0]||null}
@@ -2806,7 +2806,8 @@ function stuWaitTick(now){let ch=false;for(const r of S.rides){if(r.status!=='wa
 
 
 /* Why a same-route trip can't take the student (shown in the no-match pop-up) */
-function stuWhyNot(f){const q={from:f.from,to:f.to};const near=S.rides.filter(e=>e.booker!=='other'&&!e.student&&['pending','accepted','started'].includes(e.status)&&P(e.from)&&P(e.to)&&sameRoute(e,q));const out=[];
+function stuWhyNot(f){const q={from:f.from,to:f.to};const near=S.rides.filter(e=>e.booker!=='other'&&!e.student&&['pending','accepted','started'].includes(e.status)&&P(e.from)&&P(e.to)&&alongMatch(e,q));const out=[];
+ for(const e of S.rides.filter(e=>e.booker!=='other'&&!e.student&&!near.includes(e)&&['accepted','started'].includes(e.status)&&(isX(e)&&!e.buy||FOUR_W.includes(e.type)&&(e.shared||e.allowStu)))){const i=alongInfo(e,q);if(!i)continue;const nm=P(e.from).n.replace(' (sample)',''),tn=P(e.to).n.replace(' (sample)','');if(!i.pickOK&&i.pickOff<6)out.push(`A ${isX(e)?'TODA Express delivery':'trip'} from ${nm} to ${tn} is running, but your pickup is ${i.pickOff.toFixed(1)} km off its route.`);else if(i.pickOK&&!i.dropOK)out.push(`A ${isX(e)?'TODA Express delivery':'trip'} from ${nm} passes your pickup, but it ends at ${tn} — not on the way to your drop-off.`)}
  if(near.some(e=>e.type==='moto'&&!isX(e)))out.push('Only a LUNAD Moto Taxi is going that way — Moto Taxi can’t take ride-alongs.');
  if(near.some(e=>FOUR_W.includes(e.type)&&!e.shared&&!e.allowStu&&!isX(e)))out.push('A car/van trip is going that way, but the passenger didn’t allow a student ride-along.');
  if(near.some(e=>e.buy))out.push('A Pasabuy trip is going that way — Pasabuy riders stop to shop, so they don’t take ride-alongs.');
@@ -2817,6 +2818,19 @@ function stuWhyNot(f){const q={from:f.from,to:f.to};const near=S.rides.filter(e=
 function actionDriver(){const mine=r=>String(r.booker).indexOf('me')===0;
  const stu=S.rides.filter(r=>r.student&&r.attachTo&&['pending','accepted','started'].includes(r.status)).sort((a,b)=>b.createdAt-a.createdAt)[0];if(stu)return holderOf(stu);
  const r=S.rides.filter(r=>mine(r)&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&holderOf(r)).sort((a,b)=>b.createdAt-a.createdAt)[0];return r?holderOf(r):null}
+
+
+/* ---- "On the way" matching for ride-alongs ----
+   A student can join a trip when their pickup lies along the trip's route (within 1.5 km of the line from the
+   trip's pickup to its drop-off, or within 2 km of its pickup) AND their drop-off is further along that route
+   (within 1.5 km of the line, after the pickup) or within 2 km of the trip's drop-off. */
+const ALONG={corridor:1.5,near:2};
+function segProj(A,B,X){const c=Math.cos(A.lat*Math.PI/180),kx=111.32*c,ky=110.57;const bx=(B.lng-A.lng)*kx,by=(B.lat-A.lat)*ky,px=(X.lng-A.lng)*kx,py=(X.lat-A.lat)*ky;const L=bx*bx+by*by||1e-9;const t=(px*bx+py*by)/L;const tc=Math.max(0,Math.min(1,t));return {t,d:Math.hypot(px-tc*bx,py-tc*by)}}
+function alongInfo(e,r){const A1=P(e.from),B1=P(e.to),A2=P(r.from),B2=P(r.to);if(!A1||!B1||!A2||!B2)return null;const p=segProj(A1,B1,A2),q=segProj(A1,B1,B2);
+ const pickOK=km(A1,A2)<=ALONG.near||(p.t>=-0.05&&p.t<=1&&p.d<=ALONG.corridor);
+ const dropOK=km(B1,B2)<=ALONG.near||(q.t>=p.t&&q.t<=1.05&&q.d<=ALONG.corridor);
+ return {pickOK,dropOK,pickOff:p.d,dropOff:q.d}}
+function alongMatch(e,r){if(sameRoute(e,r))return true;const i=alongInfo(e,r);return !!(i&&i.pickOK&&i.dropOK)}
 
 /* ---- Driver Rewards Program ---- */
 const RW_RULES=[['ride','Completed ride',10],['delivery','Completed TODA Express delivery',12],['student','Student backride (social impact)',15],['five','5-star rating',5],['review','Positive review',5],['streak','Active 5+ days this week',30]];

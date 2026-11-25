@@ -47,8 +47,13 @@ Previous version is preserved on branch `release/v0.26.2`.
 - **Shared rides reach drivers in the claude.ai viewer** — when live phone-to-phone sync isn't available, Shared car/van rides switch to demo mode automatically (sample co-passengers) and go straight to drivers, so students can join them.
 - **Driver toggle opens the right driver** — the driver holding the student's ride-along, or the newest booking/delivery waiting for action.
 
+- **"On the way" matching for ride-alongs** — fixes CatSU students not being matched to trips from Virac Public Market (2.4 km apart; the old rule needed the student within 2 km of the trip's *start*). A student now joins when:
+  - their pickup is along the trip's route (within 1.5 km of the line from its pickup to its drop-off) or within 2 km of its pickup; and
+  - their drop-off is further along that route or within 2 km of the trip's drop-off.
+  - The no-match pop-up also says when a running trip is close but off-route ("your pickup is 2.3 km off its route") or ends before the student's destination.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 190 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 190/190 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 193 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 193/193 pass, no JavaScript errors.
