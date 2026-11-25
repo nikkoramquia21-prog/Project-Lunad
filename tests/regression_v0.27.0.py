@@ -367,6 +367,20 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(1000)
     check('reload: state persists, app renders', 'LUNAD' in E("document.body.innerText"))
     check('no JS errors during whole run', not errors, errors[:5])
+    # ---------- 14. Splash + phone frame ----------
+    for (w, h) in [(1280, 900), (1280, 700), (360, 740)]:
+        q = b.new_page(viewport={'width': w, 'height': h}); q.on('pageerror', lambda e: errors.append(str(e)))
+        q.add_init_script("localStorage.clear()"); q.goto('file://' + FILE); q.wait_for_timeout(1000); q.evaluate("splashWelcome()"); q.wait_for_timeout(700)
+        if w > 820:
+            rad = q.evaluate("getComputedStyle(document.getElementById('lunadSplash')).borderTopRightRadius")
+            check(f'frame {w}x{h}: splash follows rounded phone corners', rad not in ('0px', ''), rad)
+            check(f'frame {w}x{h}: splash inside phone frame', q.evaluate("(()=>{const s=document.getElementById('lunadSplash').getBoundingClientRect(),f=document.querySelector('.iph').getBoundingClientRect();return s.left>=f.left&&s.right<=f.right&&s.top>=f.top})()"))
+        check(f'splash {w}x{h}: I\'m a student button', q.evaluate("!!document.getElementById('spStu')"))
+        q.click('#spStu'); q.wait_for_timeout(400)
+        check(f'splash {w}x{h}: student button opens Student view', q.evaluate("S.persona==='student'&&stuOK()&&!document.getElementById('lunadSplash')"))
+        check(f'header {w}x{h}: 3-way toggle + menu fit', q.evaluate("[...document.querySelectorAll('.mode button')].every(b=>b.scrollWidth<=b.clientWidth+1)&&document.querySelector('#top .iconbtn').getBoundingClientRect().right<=document.getElementById('phone').getBoundingClientRect().right+0.5"))
+        q.close()
+    check('no JS errors in splash/frame checks', not errors, errors[:5])
     b.close()
 
 fails = [r for r in results if not r[1]]

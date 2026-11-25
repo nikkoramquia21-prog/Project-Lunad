@@ -25,8 +25,11 @@ Previous version is preserved on branch `release/v0.26.2`.
 - **Ride-along attached to TODA Express** — when a student books a free backride and an active TODA Express delivery is on the same route, the student booking is attached to that delivery. The rider accepts the student inside the delivery job card (Accept → Picked up student → Dropped off student), and the sender sees "A student is riding along". If the rider declines or doesn't answer in time, the booking detaches and goes to the normal TODA rider queue.
 - The demo script beside the phone now includes the TODA Express and student ride-along steps.
 
+- **Welcome screen: "I’m a student"** — a new button between Get started and I’m a driver. It opens the Student view.
+- **Phone frame fix** — the welcome screen had square corners that stuck out past the rounded phone frame (a strip on the right). It now follows the frame. The header toggle (Passenger | Student | Driver) and the menu button fit inside the phone at every size, down to 320 px.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 143 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload. Result: 143/143 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 157 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 157/157 pass, no JavaScript errors.
