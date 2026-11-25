@@ -20,4 +20,4 @@ Previous version is preserved on branch `release/v0.26.2`.
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 93 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload. Result: 93/93 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 94 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload. Result: 94/94 pass, no JavaScript errors.

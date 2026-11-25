@@ -1882,7 +1882,7 @@ function rideCard(r,hl){if(isX(r))return xCard(r,hl);const p=r.pid?prov(r.pid):n
  if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
  if(['accepted','started'].includes(r.status)&&r.type!=='agency')btn.push(`<button class="btn sm sec" onclick="shareTrip('${r.id}')">${r.share&&r.share.on?ic('link')+' Sharing':'Share trip'}</button>`);
  if(r.status==='completed'&&!r.rated.b&&!r.student)btn.push(`<button class="btn sm" onclick="rateModal('${r.id}','b')">${ic('star-f')} Rate ride</button>`);
- if(r.student&&r.status==='completed'&&stu().shareOwed===r.id)btn.push(`<button class="btn sm" onclick="stuShare('${r.id}','fb')">Share on Facebook</button>`,`<button class="btn sm sec" onclick="stuShare('${r.id}','ig')">Share on Instagram</button>`);
+ if(r.student&&r.status==='completed'&&stu().shareOwed===r.id)btn.push(stuShareBtn(r.id,'fb','sm'),stuShareBtn(r.id,'ig','sm sec'));
  if(r.status==='completed'&&now-r.end<DISPUTE_MS&&!S.reports.find(x=>x.rideId===r.id))btn.push(`<button class="btn sm ghost" onclick="reportModal('${r.id}','Fare dispute')">Report an issue</button>`);
  const rp=S.reports.find(x=>x.rideId===r.id);if(rp)h+=`<div class="muted">${ic('file-text')} Reported (${esc(rp.type)}) — thanks, our team will follow up</div>`;
  if(btn.length)h+=`<div class="btns">${btn.join('')}</div>`;
@@ -2625,7 +2625,7 @@ function stuCard(){const s=stu();
  if(s.status==='verified'){const lk=stuLocked();return `<div class="card hl stu-card" id="stuCard"><div class="kv"><span><b>${ic('grad')} Student Mobility Program</b></span><span class="st ok" id="stuBadge">${ic('shield')} Verified Student</span></div>
   <div class="muted">${esc(s.school)} · ID ${esc(s.idNo)}</div>
   <div class="kv" style="margin-top:6px"><span>Free TODA backrides today</span><b id="stuLeft">${stuLeft()} of ${STU.daily} left</b></div>
-  ${lk?`<div class="banner bad" style="margin:6px 0">${ic('ban')} Next free ride locked — share your last free ride on Facebook or Instagram to unlock it.</div><div class="btns"><button class="btn sm" onclick="stuShare('${lk.id}','fb')">Share on Facebook</button><button class="btn sm sec" onclick="stuShare('${lk.id}','ig')">Share on Instagram</button></div>`:''}
+  ${lk?`<div class="banner bad" style="margin:6px 0">${ic('ban')} Next free ride locked — share your last free ride on Facebook or Instagram to unlock it.</div><div class="btns">${stuShareBtn(lk.id,'fb','sm')}${stuShareBtn(lk.id,'ig','sm sec')}</div>`:''}
   <p class="muted" style="margin:6px 0 0">Sponsored by ${esc(STU.sponsor)}.</p>
   <button class="btn sm block" style="margin-top:8px" onclick="S.rideMode='ride';S.rideForm.type='tricycle';S.rideForm.pax=1;go('ride')">Book a free TODA backride</button></div>`}
  if(s.status==='pending')return `<div class="card stu-card" id="stuCard"><div class="kv"><span><b>${ic('grad')} Student Mobility Program</b></span><span class="st wait" id="stuBadge">Pending review</span></div>
@@ -2651,10 +2651,12 @@ function stuFareKV(d){return `<div class="kv"><span>Fare · free student backrid
 function stuBlock(f){if(f.type!=='tricycle')return '';if(!stuOK())return 'Verify your student status first';if(stuLocked())return 'Share your last free ride to unlock this one';if(stuLeft()<1)return 'You’ve used today’s '+STU.daily+' free rides';if(f.pax>1)return 'Backride carries 1 student only';if(f.when!=='now')return 'Free backrides are booked for now, not scheduled';return ''}
 function stuBanner(f){const lk=stuLocked();const why=stuBlock(f);
  return `<div class="banner info">${ic('grad')} Free TODA backride for verified students · ${stuLeft()} of ${STU.daily} left today. You’re matched with a TODA Express rider already heading your way when possible. Sponsored by ${esc(STU.sponsor)}.</div>`+
- (lk?`<div class="banner bad" id="stuLockBanner">${ic('ban')} Your next free ride is locked. Share your last free ride to unlock it.<div class="btns" style="margin-top:6px"><button class="btn sm" onclick="stuShare('${lk.id}','fb')">Share on Facebook</button><button class="btn sm sec" onclick="stuShare('${lk.id}','ig')">Share on Instagram</button></div></div>`:why?`<p class="muted" id="stuWhy">${esc(why)}</p>`:'')}
+ (lk?`<div class="banner bad" id="stuLockBanner">${ic('ban')} Your next free ride is locked. Share your last free ride to unlock it.<div class="btns" style="margin-top:6px">${stuShareBtn(lk.id,'fb','sm')}${stuShareBtn(lk.id,'ig','sm sec')}</div></div>`:why?`<p class="muted" id="stuWhy">${esc(why)}</p>`:'')}
 function stuShareText(r){return `Free ride to ${P(r.to).n.replace(' (sample)','')} with LUNAD’s Student Mobility Program! TODA rides are free for students in Catanduanes. #LUNAD #Catanduanes #HappyIsland`}
-function stuShare(id,net){const r=ride(id);if(!r)return;const txt=stuShareText(r);
- try{if(net==='fb')window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(txt),'_blank','noopener');
+function stuShareUrl(r,net){return net==='fb'?'https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(stuShareText(r)):'https://www.instagram.com/'}
+function stuShareBtn(id,net,cls,elId){const r=ride(id);return `<a class="btn ${cls||''}" ${elId?'id="'+elId+'"':''} data-share="${net}" style="text-decoration:none;text-align:center" href="${esc(stuShareUrl(r,net))}" target="_blank" rel="noopener" onclick="stuShare('${id}','${net}',true)">${net==='fb'?'Share on Facebook':'Share on Instagram'}</a>`}
+function stuShare(id,net,viaLink){const r=ride(id);if(!r)return;const txt=stuShareText(r);
+ try{if(viaLink){if(net==='ig'&&navigator.clipboard)navigator.clipboard.writeText(txt).catch(()=>{})}else if(net==='fb')window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(txt),'_blank','noopener');
   else{if(navigator.clipboard)navigator.clipboard.writeText(txt).catch(()=>{});window.open('https://www.instagram.com/','_blank','noopener')}}catch(e){}
  r.social=net;r.socialAt=Date.now();if(stu().shareOwed===id)stu().shareOwed=null;r.doneSeen=true;save();const el=document.getElementById('doneLock');if(el)el.remove();closeModal();render();
  toast(net==='fb'?'Thanks for sharing on Facebook — next free ride unlocked':'Caption copied — post it on Instagram. Next free ride unlocked')}
@@ -2667,8 +2669,8 @@ function stuDoneHTML(r){const A=P(r.from),B=P(r.to),di=drvInfo(prov(r.pid));
  <div class="kv"><span>You pay</span><b style="font-size:18px">${peso(0)}</b></div></div>
  <div class="share-pop" id="stuSharePop"><h3 style="margin:14px 0 4px;text-align:center">Share your ride to unlock your next free ride</h3>
  <p class="muted" style="margin:0 0 8px;text-align:center">Post about your trip on Facebook or Instagram. Your next free ride stays locked until you share.</p>
- <button class="btn block" id="stuFb" onclick="stuShare('${r.id}','fb')">Share on Facebook</button>
- <button class="btn sec block" style="margin-top:8px" id="stuIg" onclick="stuShare('${r.id}','ig')">Share on Instagram</button>
+ ${stuShareBtn(r.id,'fb','block','stuFb')}
+ <div style="margin-top:8px">${stuShareBtn(r.id,'ig','sec block','stuIg')}</div>
  <button class="btn ghost block" style="margin-top:8px;border:0" id="stuLater" onclick="doneAck('${r.id}')">Later — keep next free ride locked</button></div></div>`}
 
 /* ---- Driver Rewards Program ---- */
