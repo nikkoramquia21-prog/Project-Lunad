@@ -24,7 +24,7 @@ with sync_playwright() as p:
     check('title is v0.27.0', 'v0.27.0' in pg.title(), pg.title())
     check('branding tagline unchanged', 'Book. Ride. Explore Catanduanes.' in E("document.querySelector('.logo').innerHTML"))
     check('home: TODA Express row', E("!!document.getElementById('qaExpress')"))
-    check('home: free student rides row', E("!!document.getElementById('qaStudent')"))
+    check('passenger: no free student rides row on Home', not E("!!document.getElementById('qaStudent')"))
     check('home: book-a-ride copy no longer lists tricycle', 'Moto, car or van' in main() and 'Tricycle, moto' not in main())
 
     # ---------- 2. TODA passenger rides removed ----------
@@ -34,7 +34,8 @@ with sync_playwright() as p:
     check('ride: no TODA route banner', 'TODA route' not in main())
     E("S.rideForm.type='tricycle';render()")
     check('ride: non-student forced off TODA', E("S.rideForm.type") == 'moto')
-    check('ride: student promo shown', 'Ride TODA free' in main())
+    check('passenger: no student promo / free option on Ride', 'Ride TODA free' not in main() and 'tricycle' not in E("[...document.querySelectorAll('.veh-card')].map(e=>e.dataset.veh).join()"))
+    E("go('me')"); check('passenger: no student card in Profile', not E("!!document.getElementById('stuCard')")); E("go('ride')")
     check('ride: mode bar has TODA Express', 'TODA Express' in main())
     names = E("S.providers.filter(p=>p.type==='tricycle').map(p=>p.n)")
     check('test data: TODA drivers renamed to TODA Express riders', names and all('TODA Express' in n for n in names), names)
@@ -225,8 +226,8 @@ with sync_playwright() as p:
     E(f"confirmPay('{pm['id']}',true)"); check('pasabuy: cash confirmed', E(f"ride('{pm['id']}').pay") == 'paid')
     E(f"ride('{pm['id']}').doneSeen=true;S.providers.filter(p=>p.type==='tricycle'&&p.id!=='p9'&&p.id!=='p10').forEach(p=>p.online=true);xF().svc='send';setRole('booker')")
 
-    # ---------- 10. Student verification ----------
-    E("S.rideMode='ride';go('me')")
+    # ---------- 10. Student verification (Student account) ----------
+    pg.click('#modeStu'); E("stu().status='none';stu().shareOwed=null;S.rideMode='ride';go('me')")
     check('student: program card (none)', E("!!document.getElementById('stuStart')"))
     pg.click('#stuStart')
     check('student: no school email field', 'email' not in E("document.getElementById('modalRoot').innerText").lower())
@@ -277,12 +278,14 @@ with sync_playwright() as p:
 
     # ---------- 11b. Student persona + ride-along attached to an active TODA Express booking ----------
     E("S.rides.filter(r=>['pending','accepted','started'].includes(r.status)).forEach(r=>{r.status='completed';r.doneSeen=true;r.end=Date.now()})")
-    E("closeModal();S.rides.forEach(r=>{if(r.booker==='me'){r.doneSeen=true;r.bizReviewShown=true}});S.providers.filter(p=>['p1','p2'].includes(p.id)).forEach(p=>p.online=true);setRole('booker')")
-    tour_n = E("S.rides.filter(r=>r.booker==='me').length")
+    E("closeModal();S.rides.forEach(r=>{if(String(r.booker).indexOf('me')===0){r.doneSeen=true;r.bizReviewShown=true}});S.providers.filter(p=>['p1','p2'].includes(p.id)).forEach(p=>p.online=true);setRole('booker')")
+    pg.click('#modePax')
+    tour_n = E("S.rides.filter(r=>r.booker==='me').length"); tour_ids = E("S.rides.filter(r=>r.booker==='me').map(r=>r.id)")
     pg.click('#modeStu')
+    E("S.rides.forEach(r=>{if(r.student)r.createdAt-=864e5});stu().shareOwed=null;render()")
     check('persona: Student toggle opens verified student account', E("S.persona") == 'student' and 'Mika' in E("S.me.name") and E("stuOK()") and E("document.getElementById('modeStu').classList.contains('on')"))
     check('persona: student home shows program card', E("!!document.getElementById('stuCard')") and 'Verified Student' in main())
-    check('persona: student has own bookings', E("S.rides.filter(r=>r.booker==='me').length") == 0)
+    check('persona: student has own bookings', not set(E("S.rides.filter(r=>r.booker==='me').map(r=>r.id)")) & set(tour_ids))
     pg.click('#modePax')
     check('persona: back to Passenger restores tourist + bookings', 'Juan' in E("S.me.name") and E("S.rides.filter(r=>r.booker==='me').length") == tour_n)
     # tourist sends a parcel; a TODA Express rider accepts it
@@ -395,7 +398,18 @@ with sync_playwright() as p:
     hm_ = E("S.rides.filter(r=>r.booker==='me'&&r.type==='moto').slice(-1)[0]"); E(f"accept('{hm_['id']}')")
     pg.click('#modeStu'); fresh_student(); stu_book('cath', 'catsu')
     check('4W: Moto Taxi never carries a ride-along', E("!!document.getElementById('stuNoMatch')"))
+    check('no-match: pop-up explains Moto Taxi rule', 'Moto Taxi can’t take ride-alongs' in E("(document.getElementById('stuWhy')||{}).innerText||''"))
     E("closeModal()"); E(f"ride('{hm_['id']}').status='completed';ride('{hm_['id']}').doneSeen=true")
+    # Shared rides without live sync go straight to drivers (demo mode); Driver toggle opens that driver
+    E("closeModal()"); pg.click('#modePax'); E("S.rideForm.from='cath';S.rideForm.to='catsu';S.rideForm.type='car';S.rideForm.shared=true;S.rideForm.pax=1;S.rideMode='ride';go('ride')"); pg.click('#reqBtn'); pg.click('#confirmReq')
+    hs = E("S.rides.filter(r=>r.booker==='me'&&r.type==='car'&&r.shared).slice(-1)[0]")
+    check('shared: falls back to demo mode (no live sync)', hs['live'] is False and hs['sampleCo'] is True and hs['status'] == 'pending')
+    pg.click('#modeDrv')
+    check('driver toggle: opens the driver with the offer', E("S.actingAs") == hs['cands'][hs['offerIdx']] and hs['id'] in main())
+    E(f"freeCancel('{hs['id']}')")
+    pg.click('#modePax'); E("S.rideForm.type='tricycle';go('ride')")
+    check('passenger: cannot book a free ride even if verified earlier', E("S.rideForm.type") == 'moto' and E("stuBlock({type:'tricycle',pax:1,when:'now'})") != '')
+    pg.click('#modeStu')
     # Shared van with a free seat
     pg.click('#modePax'); E("S.rideForm.from='cath';S.rideForm.to='catsu';S.rideForm.type='minivan';S.rideForm.shared=true;S.rideForm.pax=1;requestRide()")
     hv = E("S.rides.filter(r=>r.booker==='me'&&r.type==='minivan').slice(-1)[0]"); E(f"sampleRiders('{hv['id']}')")

@@ -42,8 +42,13 @@ Previous version is preserved on branch `release/v0.26.2`.
   - **LUNAD Moto Taxi never carries ride-alongs.** Pasabuy trips are never joined either.
   - Not yet for live multi-phone shared rides (QR join). Those still run on their own sync.
 
+- **Student features only in the Student account** — Passenger no longer shows the Home "Free student rides" row, the Ride-tab student promo, the free ride-along option or the Profile verification card. Students use the Student toggle.
+- **No-match pop-up explains why** — e.g. "Only a LUNAD Moto Taxi is going that way — Moto Taxi can’t take ride-alongs", "the passenger didn’t allow a student ride-along", "a Pasabuy trip…", "still waiting for a driver — tap Wait", or "the rider already has a student".
+- **Shared rides reach drivers in the claude.ai viewer** — when live phone-to-phone sync isn't available, Shared car/van rides switch to demo mode automatically (sample co-passengers) and go straight to drivers, so students can join them.
+- **Driver toggle opens the right driver** — the driver holding the student's ride-along, or the newest booking/delivery waiting for action.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 185 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 185/185 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 190 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 190/190 pass, no JavaScript errors.
