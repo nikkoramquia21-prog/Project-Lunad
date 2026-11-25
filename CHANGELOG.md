@@ -67,8 +67,15 @@ Previous version is preserved on branch `release/v0.26.2`.
   - **Matching:** a trip can pick the student up if it starts at the hub or passes within 300 m of it, and hasn't passed it yet. The student can get off anywhere within 300 m of the route, or at the trip's drop-off.
   - **What each side sees:** the student gets "Wait at the student hub: … your rider arrives in about X min"; the rider gets "Pick up at student hub …".
 
+- **Student ride-along pricing**:
+  - **TODA Express ride-along:** the student pays a **₱20 flat** fare to the rider (QR or cash); no sponsor. The rider sees "Student pays you ₱20 flat" and confirms payment like any fare.
+  - **Car/van empty seat:** free.
+  - The price is set when the student is matched. While waiting, the card shows "₱20 TODA or free car/van".
+  - The **2-per-day limit and share-to-unlock apply only to free car/van seats.** Paid TODA ride-alongs have no limit and no share pop-up; the student gets a normal completed screen with a Pay ₱20 button.
+  - While free seats are locked or used up, the student is only matched with TODA (₱20).
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 203 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 203/203 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 209 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 209/209 pass, no JavaScript errors.
