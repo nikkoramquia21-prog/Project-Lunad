@@ -35,8 +35,15 @@ Previous version is preserved on branch `release/v0.26.2`.
   - The free-ride count only goes down when the student is matched. Waiting, no match and cancelling don't use a ride.
   - The sponsor pays the rider a flat **₱20 ride-along fee** instead of the full tricycle fare.
 
+- **Free ride-along on 4-wheelers** — besides TODA Express deliveries, a verified student can take an empty seat on a car or van trip already going their way:
+  - **Shared** car/van trips that still have a free seat, or **Solo** trips where the paying passenger ticked "Allow a verified student to ride along free on an empty seat".
+  - The seat is free: no sponsor fee for 4-wheel drivers, who still earn student reward points. Paying passengers' fares don't change.
+  - The driver accepts the student inside the job card, like TODA riders do.
+  - **LUNAD Moto Taxi never carries ride-alongs.** Pasabuy trips are never joined either.
+  - Not yet for live multi-phone shared rides (QR join). Those still run on their own sync.
+
 ### Not changed
 - Branding (logo, tagline, splash) is unchanged on purpose.
 
 ### Testing
-- `tests/regression_v0.27.0.py` — 171 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 171/171 pass, no JavaScript errors.
+- `tests/regression_v0.27.0.py` — 185 headless-Chrome checks covering passenger rides, shared car/van rides, TODA Express (sender pays, recipient pays + COD, batching, cancel, driver cancel, timeout, offline queue, storm pause), typed place fields, pasabuy (cap, receipt, chat, moto rider, cash on arrival), student persona, ride-along attach / decline / timeout / different-route, student verification, free backride, share lock, daily cap, driver rewards, registration, the business-review prompt, reset and reload, plus welcome-screen student button and phone-frame/header fit at 1280×900, 1280×700 and 360×740. Result: 185/185 pass, no JavaScript errors.
