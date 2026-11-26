@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LUNAD — Catanduanes Ride Hub (Prototype v0.26.2 · Signal Sun)</title>
+<title>LUNAD — Catanduanes Ride Hub (Prototype v0.27.0 · Signal Sun)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -1096,7 +1096,7 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 .iph-di{position:absolute;top:23px;left:50%;margin-left:-63px;width:126px;height:37px;border-radius:20px;background:#000;z-index:81}
 .iph-hi{position:absolute;bottom:20px;left:50%;margin-left:-70px;width:140px;height:5px;border-radius:3px;background:#0D1B2A;z-index:81;pointer-events:none;transition:background .3s}
 .iph.dark .iph-hi{background:#fff}
-#lunadSplash{border-radius:0}
+#lunadSplash{border-radius:inherit}
 }
 @media(min-width:821px) and (max-height:940px){.iph{transform:scale(calc((100vh - 40px) / 898px));transform-origin:top center;margin-bottom:calc(898px * ((100vh - 40px) / 898px) - 898px)}}
 
@@ -1113,18 +1113,27 @@ body:has(#modalRoot .modalbg) .toast{bottom:auto;top:92px}
 .sb-done{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#E6F4EA;color:#1E6B34;font-size:13.5px;font-weight:600}.sb-done .ic{width:15px;height:15px;vertical-align:-3px}
 
 .trip-steps li{font-size:11.5px;letter-spacing:-.01em;min-width:0;white-space:nowrap}.trip-steps li:first-child{flex:1.25}
+
+/* v0.27.0: Passenger | Student | Driver toggle must fit next to the menu button */
+.top .row{min-width:0}.top .row .logo{flex:none}.mode{flex:0 1 auto;min-width:0}.mode button{padding:8px 10px;white-space:nowrap}.top .row .iconbtn{flex:none}
+@media(max-width:400px){.mode{padding:2px}.mode button{padding:8px 6px;font-size:12px}.top .row .logo{font-size:17px;letter-spacing:.04em}.top .row{gap:6px}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="side">
     <h1>LUNAD</h1>
-    <p><b>Book. Ride. Explore Catanduanes.</b> Book a Direct ride (car or van) or a TODA route (tricycle), see who is online, and pay the driver directly. Every operator is LGU-verified.</p>
+    <p><b>Book. Ride. Explore Catanduanes.</b> Book a ride (LUNAD Moto Taxi, car or van), send goods with TODA Express, and — for verified students — ride TODA free. Every operator is LGU-verified.</p>
     <div class="box"><b>Demo script</b>
       <p>1. <b>Passenger → Ride</b>: set pickup and drop-off, then request. The offer goes to the nearest online operator, who has 3 minutes to answer.</p>
       <p>2. Switch to <b>Driver</b> and accept, or decline to pass it to the next one. Then arrive → start → complete.</p>
       <p>3. Back as Passenger: pay by QR, upload proof, rate, or report an issue.</p>
       <p>4. Message the operator directly from an active trip — no phone numbers are shown.</p>
+      <p>5. <b>TODA Express</b>: as Passenger, Ride → TODA Express → send an item or Pasabuy. Switch to Driver and accept as the TODA rider.</p>
+      <p>6. <b>Student ride-along</b>: while that delivery is active, tap <b>Student</b> and book a free TODA backride on the same route — it attaches to the delivery. As Driver, accept the student inside the delivery job.</p>
+      <p>7. <b>No ride-along?</b> As Student, book a free backride where no delivery is heading — choose <b>Wait</b>. Then as Passenger send a parcel on that route and accept it as Driver: the student is added automatically.</p>
+      <p>8. <b>Free seat in a car/van</b>: as Passenger book a Solo car and tick “Allow a verified student to ride along”, accept it as Driver, then book a free ride as Student on the same route. Moto Taxi never takes ride-alongs.</p>
+      <p>9. <b>Student hubs</b>: free rides start only from a hub — Virac Public Market, Virac town proper, CatSU gate, Virac Port, the airport, San Andres Port, any town proper, or a verified partner business. As Student, pick a hub as pickup (chips under the form). A delivery that starts at or passes that hub (within 300 m) picks the student up; drop-off can be anywhere on the way.</p>
     </div>
     <div class="box"><b>Prototype notes</b>
       <p>All names, fares, permits and numbers are sample data. The map is stylized. SMS and Messenger are simulated in the Inbox. Data stays in this browser only.</p>
@@ -1198,9 +1207,9 @@ function starRow(n,cls){n=Math.round(n||0);let h='';for(let i=1;i<=5;i++)h+=ic(i
 
 /* =================== STATIC DATA =================== */
 function joinCodeFromUrl(){const q=new URLSearchParams(location.search).get('join');if(q)return q.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);if(location.hash.indexOf('#join-')===0)return location.hash.slice(6).toUpperCase();return ''}
-const PHONE=(new URLSearchParams(location.search).get('phone')||'').replace(/\W/g,'').slice(0,4);const SK=PHONE?'-p'+PHONE:'';const JOIN_ONLY=!!joinCodeFromUrl();const KEY='lunad-v3'+SK, MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
+const PHONE=(new URLSearchParams(location.search).get('phone')||'').replace(/\W/g,'').slice(0,4);const SK=PHONE?'-p'+PHONE:'';const JOIN_ONLY=!!joinCodeFromUrl();const KEY='lunad-v4'+SK, MIN=60000, OFFER_MS=3*MIN, BUFFER=15*MIN, PAY_MS=15*MIN, DISPUTE_MS=48*60*MIN;
 const TYPES={
- tricycle:{label:'Tricycle (TODA route)',e:'tricycle',kph:25,seats:3},
+ tricycle:{label:'Student ride-along',e:'tricycle',kph:25,seats:3},
  moto:{label:'Moto Taxi (LUNAD driver)',e:'moto',kph:35,seats:1,inhouse:true},
  car:{label:'Private car (Direct)',e:'car',kph:45,seats:4},
  minivan:{label:'Private van · 8-seater (Direct)',e:'van',kph:42,seats:8},
@@ -1402,7 +1411,7 @@ function saveBiz(){const r=ride(BZ.id);const spot=P(r.bizId);const rv=revStats(s
  <button class="btn block" style="margin-top:10px" onclick="closeModal();render()">Continue →</button>
  </div>`)}
 const MSG={
- en:{request:'LUNAD: {ref} requested. Finding a driver…',offer:'LUNAD: New ride {ref}: {route} at {time}. Accept within 3 min.',accepted:'LUNAD: {ref} accepted by {prov}. Pickup {time}.',arriving:'LUNAD: Your driver for {ref} is arriving.',started:'LUNAD: Trip {ref} started.',completed:'LUNAD: Trip {ref} done. Please rate your ride.',cancelled:'LUNAD: {ref} cancelled.{fee}',nomatch:'LUNAD: No driver for {ref}. Reply YES for {alt}.',rematch:'LUNAD: Driver cancelled {ref}. Finding another driver…',storm:'LUNAD: Storm signal in {town}. New bookings paused.',resume:'LUNAD: Signal lifted in {town}. Bookings resumed.',paid:'LUNAD: Payment for {ref} confirmed.',payrej:'LUNAD: Proof for {ref} rejected. Re-upload or pay another way.',noshow:'LUNAD: {ref} marked no-show. Late fee {fee}.',help:'LUNAD help: support 0917-000-0000 (sample).',stop:'LUNAD: SMS stopped. App notices continue.',otp:'LUNAD code {code}. Enter it to link Messenger.',share:'LUNAD: {name} shared a trip: {link}',sos:'LUNAD SOS: {name} needs help near {loc}. Trip {ref}.',dispute:'LUNAD: Fare dispute {ref}: {msg}'},
+ en:{xoffer:'LUNAD: New TODA Express delivery {ref}: {route}. Accept within 3 min.',xpicked:'LUNAD: Your item {ref} was picked up and is on the way.',xdone:'LUNAD: {ref} delivered to {rcpt}. Rate your delivery.',request:'LUNAD: {ref} requested. Finding a driver…',offer:'LUNAD: New ride {ref}: {route} at {time}. Accept within 3 min.',accepted:'LUNAD: {ref} accepted by {prov}. Pickup {time}.',arriving:'LUNAD: Your driver for {ref} is arriving.',started:'LUNAD: Trip {ref} started.',completed:'LUNAD: Trip {ref} done. Please rate your ride.',cancelled:'LUNAD: {ref} cancelled.{fee}',nomatch:'LUNAD: No driver for {ref}. Reply YES for {alt}.',rematch:'LUNAD: Driver cancelled {ref}. Finding another driver…',storm:'LUNAD: Storm signal in {town}. New bookings paused.',resume:'LUNAD: Signal lifted in {town}. Bookings resumed.',paid:'LUNAD: Payment for {ref} confirmed.',payrej:'LUNAD: Proof for {ref} rejected. Re-upload or pay another way.',noshow:'LUNAD: {ref} marked no-show. Late fee {fee}.',help:'LUNAD help: support 0917-000-0000 (sample).',stop:'LUNAD: SMS stopped. App notices continue.',otp:'LUNAD code {code}. Enter it to link Messenger.',share:'LUNAD: {name} shared a trip: {link}',sos:'LUNAD SOS: {name} needs help near {loc}. Trip {ref}.',dispute:'LUNAD: Fare dispute {ref}: {msg}'},
  fil:{request:'LUNAD: Na-request ang {ref}. Naghahanap ng driver…',accepted:'LUNAD: Tinanggap ni {prov} ang {ref}. Sundo {time}.',arriving:'LUNAD: Paparating na ang driver mo para sa {ref}.',started:'LUNAD: Nagsimula na ang biyahe {ref}.',completed:'LUNAD: Tapos na ang {ref}. I-rate ang biyahe.',cancelled:'LUNAD: Kanselado ang {ref}.{fee}',nomatch:'LUNAD: Walang driver para sa {ref}. Reply YES para sa {alt}.',rematch:'LUNAD: Nag-cancel ang driver ng {ref}. Naghahanap ng iba…',storm:'LUNAD: May storm signal sa {town}. Hinto muna ang bagong booking.',resume:'LUNAD: Wala nang signal sa {town}. Tuloy na ang booking.',paid:'LUNAD: Kumpirmado ang bayad sa {ref}.',payrej:'LUNAD: Hindi tinanggap ang proof ng {ref}. Mag-upload ulit o ibang paraan ng bayad.'}
 };
 
@@ -1415,12 +1424,12 @@ function mkProv(id,n,type,t,seats,status,phone,payM,online,docs,extra={}){return
 function seed(){
  const exp=o=>D(o);
  const provs=[
-  mkProv('p1','Virac TODA – Unit 12 (Mang Rudy)','tricycle','Virac',3,'approved','0917-000-0012','GCash',true,DOCS.tricycle.map(n=>doc(n,exp(200)))),
-  mkProv('p2','Virac TODA – Unit 07 (Aling Bing)','tricycle','Virac',3,'approved','0917-000-0007','Maya',true,DOCS.tricycle.map(n=>doc(n,exp(150)))),
+  mkProv('p1','Virac TODA Express – Unit 12 (Mang Rudy)','tricycle','Virac',3,'approved','0917-000-0012','GCash',true,DOCS.tricycle.map(n=>doc(n,exp(200)))),
+  mkProv('p2','Virac TODA Express – Unit 07 (Aling Bing)','tricycle','Virac',3,'approved','0917-000-0007','Maya',true,DOCS.tricycle.map(n=>doc(n,exp(150)))),
   mkProv('p5','Isla Van Rentals (12 seats)','van','Virac',12,'approved','0917-000-0305','Bank (Landbank)',true,DOCS.van.map(n=>doc(n,exp(180)))),
   mkProv('p6','Mario – Private Car (4 seats)','car','Virac',4,'approved','0917-000-0406','GCash',true,DOCS.car.map(n=>doc(n,exp(220)))),
-  mkProv('p9','Bato TODA – Unit 03 (Kuya Ben)','tricycle','Bato',3,'approved','0917-000-0703','GCash',false,DOCS.tricycle.map(n=>doc(n,exp(365)))),
-  mkProv('p10','San Andres TODA – Unit 05 (Leo)','tricycle','San Andres',3,'approved','0917-000-0810','GCash',true,DOCS.tricycle.map((n,i)=>doc(n,exp(i===1?-3:200)))),
+  mkProv('p9','Bato TODA Express – Unit 03 (Kuya Ben)','tricycle','Bato',3,'approved','0917-000-0703','GCash',false,DOCS.tricycle.map(n=>doc(n,exp(365)))),
+  mkProv('p10','San Andres TODA Express – Unit 05 (Leo)','tricycle','San Andres',3,'approved','0917-000-0810','GCash',true,DOCS.tricycle.map((n,i)=>doc(n,exp(i===1?-3:200)))),
   mkProv('p11','Elmer – 8-seater Van','minivan','Virac',8,'approved','0917-000-0811','GCash',true,DOCS.minivan.map(n=>doc(n,exp(190)))),
   // LUNAD-owned Moto Taxi fleet — in-house riders, always online, no public registration.
   mkProv('p12','LUNAD Driver – Jun','moto','Virac',1,'approved','0917-000-0901','GCash',true,DOCS.moto.map(n=>doc(n,exp(300))),{inhouse:true}),
@@ -1440,23 +1449,30 @@ function seed(){
  ];
  // synthetic history for analytics
  const R=rng(7),pl=PLACES.map(p=>p.id),hist=[];
- const tt=['tricycle','tricycle','tricycle','van','van','car'];
+ const tt=['moto','moto','car','van','van','minivan'];
  for(let i=0;i<46;i++){const d=new Date();d.setDate(d.getDate()-1-Math.floor(R()*7));const peak=[7,8,8,9,12,16,17,17,18][Math.floor(R()*9)];d.setHours(R()<.7?peak:6+Math.floor(R()*14),Math.floor(R()*60),0,0);
   const from=R()<.6?['air','vport','cath','market','catsu'][Math.floor(R()*5)]:pl[Math.floor(R()*pl.length)];let to=pl[Math.floor(R()*pl.length)];if(to===from)to='twin';
   const type=tt[Math.floor(R()*tt.length)];const nm=R()<.13;
   hist.push({id:'H-'+(500+i),booker:'other',type,pid:nm?null:provs.find(p=>p.type===type).id,cands:[],offerIdx:0,declined:[],from,to,start:d.getTime(),end:d.getTime()+25*MIN,pax:1+Math.floor(R()*3),fare:0,fee:0,status:nm?'no_match':'completed',pay:nm?'unpaid':'paid',sync:'synced',createdAt:d.getTime()})}
  hist.forEach(h=>h.fare=Math.round(fareCalc(h.type,routeKm(P(h.from),P(h.to)),FARES0)));
+ // sample TODA Express + student backride history (feeds the Driver Rewards demo)
+ const XS=[['market','catsu'],['vport','cath'],['b01','market'],['b13','b03'],['shop1','vport'],['market','twin'],['cath','air']],XI=[['Pili tarts','Pasalubong & local products'],['Fish & vegetables','Groceries'],['Enrollment papers','Documents'],['Abaca bag order','Clothing & abaca crafts'],['Packed lunch','Food & drinks']];
+ const ratings=[];
+ for(let i=0;i<22;i++){const d=new Date();d.setDate(d.getDate()-Math.floor(i/4));d.setHours(8+(i*3)%10,(i*17)%60,0,0);const pid=['p1','p1','p2','p10'][i%4];const st=i%6===5;const [f,t]=st?['catsu','cath']:XS[i%XS.length];const it=XI[i%XI.length];
+  const h={id:(st?'S-':'X-')+(600+i),booker:'other',type:'tricycle',pid,cands:[],offerIdx:0,declined:[],from:f,to:t,start:d.getTime(),end:d.getTime()+20*MIN,pax:1,fee:0,status:'completed',pay:st?'sponsored':'paid',sync:'synced',createdAt:d.getTime(),rated:{b:true,p:true}};
+  if(st){h.student=true;h.fare=0}else{h.kind='express';h.item={desc:it[0],cat:it[1]};h.rcpt={name:'Sample customer',mobile:'0917-555-0'+(100+i)};h.payBy='sender';h.fare=Math.round(40+10*routeKm(P(f),P(t)));h.fullFare=h.fare}
+  hist.push(h);if(i%3!==2)ratings.push({rideId:h.id,from:'b',to:pid,stars:i%5===4?4:5,reason:'',tags:i%2?['On time']:[],comment:i%2?'On time':'',at:h.end})}
  return {role:'booker',tab:'home',actingAs:'p1',
-  me:{name:'Juan (sample)',kind:'tourist',mobile:'0917-555-0101',channel:'app',lang:'en',msgr:false,otp:null,contacts:[{n:'Maria (sister)',m:'0917-555-0102'}],noShows:0,smsStop:false,pack:D(0)},
+  me:{name:'Juan (sample)',kind:'tourist',student:{status:'none'},mobile:'0917-555-0101',channel:'app',lang:'en',msgr:false,otp:null,contacts:[{n:'Maria (sister)',m:'0917-555-0102'}],noShows:0,smsStop:false,pack:D(0)},
   providers:provs,
-  rides:hist,notifs:[],reports:[],ratings:[],sos:[],signals:{Gigmoto:1},threads:{},
+  rides:hist,notifs:[],reports:[],ratings,rewards:{},rideMode:'ride',persona:'tourist',meOther:null,sos:[],signals:{Gigmoto:1},threads:{},
   fares:{active:JSON.parse(JSON.stringify(FARES0))},
-  rideForm:{from:'catsu',to:'',type:'tricycle',pax:1,when:'now',date:D(0),time:'14:00',pin:'from'},
+  rideForm:{from:'catsu',to:'',type:'moto',pax:1,when:'now',date:D(0),time:'14:00',pin:'from'},
   mapFilter:{spot:true,hub:true,stay:true,shop:true},custom:[],seq:1000};
 }
 const FARES0={tricycle:{base:30,km:15},moto:{base:25,km:12},car:{base:300,km:25},minivan:{base:400,km:28},van:{base:500,km:30},cancelFee:20,lateFee:30};
 let S;
-const PIDX=new Map();function P(id){let p=PIDX.get(id);if(!p){p=PLACES.find(x=>x.id===id);if(p)PIDX.set(id,p)}return p||(S&&S.custom.find(x=>x.id===id))}
+const PIDX=new Map();function P(id){let p=PIDX.get(id);if(!p){p=PLACES.find(x=>x.id===id);if(p)PIDX.set(id,p)}return p||(S&&(S.custom.find(x=>x.id===id)||(S.meet||[]).find(x=>x.id===id)))}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.me)S=seed();
 function save(){if(JOIN_ONLY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -1508,9 +1524,9 @@ function fakeQR(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;const R
 function tpl(key,v,lang){const t=(MSG[lang]&&MSG[lang][key])||MSG.en[key]||key;return t.replace(/\{(\w+)\}/g,(_,k)=>v[k]??'')}
 function townOf(p){return p.t}
 function paused(town){return (S.signals[town]||0)>0}
-function stChip(s){const m={queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to drivers'],no_match:['bad','No driver found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
-function payChip(r){if(['cancelled','no_match','queued'].includes(r.status)&&!r.fee)return '';const m={unpaid:['wait','Unpaid'],proof:['info','Proof sent'],paid:['ok','Paid'],rejected:['bad','Proof rejected'],cash:['info','Cash — awaiting driver'],escalated:['bad','Escalated to support']}[r.pay]||['mut',r.pay];return `<span class="st ${m[0]}">${ic('card')} ${m[1]}</span>`}
-function amount(r){return r.fare+(r.fee||0)}
+function stChip(s){const m={waiting:['wait',`${ic('clock')} Waiting for a ride-along`],queued:['wait',`${ic('clock')} Queued (offline)`],pending:['info','Offering to drivers'],no_match:['bad','No driver found'],accepted:['ok','Accepted'],started:['info','On trip'],completed:['ok','Completed'],cancelled:['mut','Cancelled'],noshow:['bad','No-show']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
+function payChip(r){if(['cancelled','no_match','queued'].includes(r.status)&&!r.fee)return '';const m={unpaid:['wait','Unpaid'],proof:['info','Proof sent'],paid:['ok','Paid'],rejected:['bad','Proof rejected'],cash:['info','Cash — awaiting driver'],free:['ok','Free seat'],buying:['wait','Pay after receipt'],recipient:['info','Cash on arrival'],sponsored:['ok','Free · sponsored'],escalated:['bad','Escalated to support']}[r.pay]||['mut',r.pay];return `<span class="st ${m[0]}">${ic('card')} ${m[1]}</span>`}
+function amount(r){return r.fare+(r.fee||0)+(r.goods||0)}
 
 /* =================== NOTIFICATIONS (Feature 1) =================== */
 function notify(to,key,v={},ref=''){
@@ -1524,33 +1540,34 @@ function notify(to,key,v={},ref=''){
  return text}
 
 /* =================== AVAILABILITY & DISPATCH (Module 1) =================== */
-function busy(pid,start,end,ignore){const p=prov(pid);
+function busy(pid,start,end,ignore){const p=prov(pid);const cx=compatReq(ignore);
  for(const b of p.blocks){const bs=new Date(b.date+'T'+b.from).getTime(),be=new Date(b.date+'T'+b.to).getTime();if(start<be&&end>bs)return 'Off duty'}
- for(const r of S.rides){if(r.id===ignore)continue;
+ for(const r of S.rides){if(r.id===ignore)continue;if(cx&&(isX(r)||r.student))continue;
   const holds=(r.pid===pid&&['accepted','started'].includes(r.status))||(r.status==='pending'&&r.cands[r.offerIdx]===pid);
   if(holds&&start<r.end+BUFFER&&end+BUFFER>r.start)return 'Booked '+hm(r.start)}
  return null}
 function eligible(type,pax,start,end,ignore,exclude=[]){
- return S.providers.filter(p=>p.status==='approved'&&p.online&&p.type===type&&p.seats>=pax&&!exclude.includes(p.id)&&!busy(p.id,start,end,ignore))}
-function rank(list,from){const a=P(from);return list.sort((x,y)=>km({lat:TOWNS[x.t][0],lng:TOWNS[x.t][1]},a)-km({lat:TOWNS[y.t][0],lng:TOWNS[y.t][1]},a))}
+ return S.providers.filter(p=>p.status==='approved'&&p.online&&p.type===type&&p.seats>=pax&&!exclude.includes(p.id)&&!busy(p.id,start,end,ignore)&&xCapOK(p,ignore))}
+function rank(list,from){const a=P(from);return list.sort((x,y)=>(km({lat:TOWNS[x.t][0],lng:TOWNS[x.t][1]},a)-rwEdge(x))-(km({lat:TOWNS[y.t][0],lng:TOWNS[y.t][1]},a)-rwEdge(y)))}
 function newRide(o){const a=P(o.from),b=P(o.to),d=routeKm(a,b);const start=o.start;const end=start+dur(d,o.type)*MIN;
  return Object.assign({id:nid('LN'),booker:'me',type:o.type,pid:null,cands:[],offerIdx:0,offerAt:0,declined:[],from:o.from,to:o.to,start,end,pax:o.pax,fare:Math.round(fareCalc(o.type,d)),fee:0,status:'pending',pay:'unpaid',proof:null,proofAt:0,alt:[],share:null,rated:{b:false,p:false},createdAt:Date.now(),tripId:o.tripId||null},o.extra||{})}
 function dispatch(r,silent){
  if(paused(P(r.from).t)){r.status='no_match';r.alt=[];r.why='Storm signal in '+P(r.from).t;notify('me','nomatch',{ref:r.id,alt:'a booking after the signal is lifted'},r.id);return}
- const c=rank(eligible(r.type,r.pax,r.start,r.end,r.id,r.declined),r.from);
+ const c=candFor(r);
  if(!c.length){noMatch(r);return}
+ if(isX(r)||r.student){const al=xAlong(r);c.sort((x,y)=>(al.has(y.id)?1:0)-(al.has(x.id)?1:0));if(isX(r)){r.batch=al.has(c[0].id);r.fare=r.batch?Math.round(r.fullFare*(1-XP.batchDisc)):r.fullFare}}
  r.cands=c.map(p=>p.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';
  if(!silent)notify('me','request',{ref:r.id},r.id);
  offerNotify(r)}
-function offerNotify(r){notify(r.cands[r.offerIdx],'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id)}
-function noMatch(r){r.status='no_match';r.alt=findAlt(r);r.why='No online driver free';
+function offerNotify(r){notify(r.cands[r.offerIdx],isX(r)?'xoffer':'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id)}
+function noMatch(r){r.status='no_match';r.alt=(isX(r)||r.student)?[]:findAlt(r);r.why=isX(r)?'No TODA Express rider free nearby — try again in a few minutes':r.student?'No TODA rider free nearby — try again in a few minutes':'No online driver free';
  notify('me','nomatch',{ref:r.id,alt:r.alt[0]?altLabel(r.alt[0]):'another time'},r.id)}
 function findAlt(r){const out=[],len=r.end-r.start;
  for(const m of [30,60,120]){const s=r.start+m*MIN;if(eligible(r.type,r.pax,s,s+len,r.id).length){out.push({k:'time',start:s});break}}
- for(const t of ONDEMAND){if(t===r.type)continue;if(eligible(t,r.pax,r.start,r.end,r.id).length){out.push({k:'type',type:t});if(out.length>=3)break}}
+ for(const t of PAX_TYPES){if(t===r.type)continue;if(eligible(t,r.pax,r.start,r.end,r.id).length){out.push({k:'type',type:t});if(out.length>=3)break}}
  return out}
 function altLabel(a){return a.k==='time'?'same vehicle at '+hm(a.start):TYPES[a.type].label+' now'}
-function advance(r,why){r.declined.push(r.cands[r.offerIdx]);r.offerIdx++;
+function advance(r,why){r.declined.push(r.cands[r.offerIdx]);if(r.attachTo||r.student){detachAlong(r);stuBackToWait(r);return}r.offerIdx++;
  while(r.offerIdx<r.cands.length){const pid=r.cands[r.offerIdx];const p=prov(pid);if(p.online&&p.status==='approved'&&!busy(pid,r.start,r.end,r.id))break;r.offerIdx++}
  if(r.offerIdx>=r.cands.length){noMatch(r)}else{r.offerAt=Date.now();offerNotify(r)}}
 function bookAlt(id,i){const r=ride(id),a=r.alt[i];if(!a)return;const o={from:r.from,to:r.to,pax:r.pax,type:a.k==='type'?a.type:r.type,start:a.k==='time'?a.start:r.start};
@@ -1559,7 +1576,7 @@ function activeCount(){return S.rides.filter(r=>r.booker==='me'&&['queued','pend
 function bookingLimit(){return S.me.noShows>=2?1:5}
 
 /* =================== CHECKS (timers, expiry, fares) =================== */
-function tick(){let changed=false;const now=Date.now();
+function tick(){let changed=false;const now=Date.now();if(stuWaitTick(now))changed=true;
  for(const r of S.rides)if(r.status==='pending'&&!(r.live&&r.shared)&&now-r.offerAt>OFFER_MS){advance(r,'timeout');changed=true}
  for(const r of S.rides)if(r.booker==='me'&&r.shared&&!r.coDone&&now-(r.lastJoin||r.createdAt)>SHARE.gap&&coJoin(r))changed=true;
  if(S.role==='booker'&&!($('#modalRoot')||{}).innerHTML){const w=S.rides.find(r=>waitDue(r,now));if(w){if(changed){save();render()}waitModal(w.id);return}}
@@ -1582,7 +1599,7 @@ function navFor(){return NAV[S.role]}
 function render(){const nav=navFor();
  if(!nav.some(n=>n[0]===S.tab))S.tab=nav[0][0];
  $('#top').innerHTML=`<div class="row"><div class="logo">LUNAD<small>Book. Ride. Explore Catanduanes.</small></div>
-  <div class="mode" role="group" aria-label="Mode"><button class="${S.role==='booker'?'on':''}" onclick="setRole('booker')">Passenger</button><button class="${S.role==='provider'?'on':''}" onclick="setRole('provider')">Driver</button></div>
+  <div class="mode" role="group" aria-label="Mode"><button id="modePax" class="${S.role==='booker'&&S.persona!=='student'?'on':''}" onclick="setPersona('tourist')">Passenger</button><button id="modeStu" class="${S.role==='booker'&&S.persona==='student'?'on':''}" onclick="setPersona('student')">Student</button><button id="modeDrv" class="${S.role==='provider'?'on':''}" onclick="setRole('provider')">Driver</button></div>
   <button class="iconbtn" aria-label="Menu" onclick="openAbout()">${ic('menu')}</button></div>
   <div class="net">${online()?'':`<span class="pill off" style="cursor:pointer" onclick="toggleNet()" title="Tap to simulate signal returning (demo)">${ic('wifi-off')} No signal</span>`}
   ${activeCount()&&S.rides.some(r=>r.booker==='me'&&r.status==='queued')?`<span class="pill off">${ic('clock')} Queued request pending signal</span>`:''}
@@ -1609,7 +1626,7 @@ function holdBanner(){const r=myHeld();const hid=holderOf(r);const h=hid&&prov(h
  if(S.actingAs===hid)return `<div class="hold-bn">${ic('user')}<span><b>Your booking ${r.id} is with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)} · ${route}. ${what}</span></div>`;
  return `<div class="hold-bn alt">${ic('user')}<span><b>Your booking ${r.id} is now with ${esc(di.name)}</b>${esc(di.op)} · Plate ${esc(di.plate)}</span><button class="btn sm" onclick="S.actingAs='${hid}';save();render()">Switch to ${esc(di.name)}</button></div>`}
 
-function setRole(r){if(r==='provider'&&S.role!=='provider'){const h=holderOf(myHeld());if(h)S.actingAs=h}if(r!==S.role&&$('#modalRoot').innerHTML){const t=$('#modalRoot').innerText;if(typeof RT!=='undefined'&&RT&&RT.side==='b'&&/Ride completed/.test(t)){const x=ride(RT.id);if(x&&!x.rated.b)x.reviewShown=false}if(typeof BZ!=='undefined'&&BZ&&/stop by|How was your visit/i.test(t)){const x=ride(BZ.id);if(x)x.bizReviewShown=false}closeModal()}S.role=r;S.tab=NAV[r][0][0];save();render()}
+function setRole(r){if(r==='provider'&&S.role!=='provider'){const h=actionDriver();if(h)S.actingAs=h}if(r!==S.role&&$('#modalRoot').innerHTML){const t=$('#modalRoot').innerText;if(typeof RT!=='undefined'&&RT&&RT.side==='b'&&/Ride completed/.test(t)){const x=ride(RT.id);if(x&&!x.rated.b)x.reviewShown=false}if(typeof BZ!=='undefined'&&BZ&&/stop by|How was your visit/i.test(t)){const x=ride(BZ.id);if(x)x.bizReviewShown=false}closeModal()}S.role=r;S.tab=NAV[r][0][0];save();render()}
 function go(t){S.tab=t;save();render();$('#main').scrollTop=0}
 
 /* =================== MAP (Module 8) =================== */
@@ -1694,22 +1711,22 @@ function wtOnMap(){S.rideForm.pin='to';save();closeModal();go('ride');toast('Tap
 /* =================== CURRENT LOCATION (real GPS, island-bounded) =================== */
 const GEO_BOUNDS={lat0:13.45,lat1:14.15,lng0:123.95,lng1:124.47};
 function nearestTown(lat,lng){let best='Virac',bd=1e9;for(const [n,c] of Object.entries(TOWNS)){const d=km({lat,lng},{lat:c[0],lng:c[1]});if(d<bd){bd=d;best=n}}return best}
-function setMyLocation(lat,lng,label,msg){const f=S.rideForm;S.custom=S.custom.filter(p=>!p.mine);const id='pin-'+(S.seq++);
- S.custom.push({id,n:label,t:nearestTown(lat,lng),lat,lng,k:'pin',e:'target',mine:true});f.from=id;f.pin='to';
+function setMyLocation(lat,lng,label,msg,which){which=which||'from';const f=S.rideForm;S.custom=S.custom.filter(p=>!p.mine);const id='pin-'+(S.seq++);
+ S.custom.push({id,n:label,t:nearestTown(lat,lng),lat,lng,k:'pin',e:'target',mine:true});fSet(which,id);f.pin='to';
  MAPVIEW['map-ride']={center:[lat,lng],zoom:15};save();render();toast(msg)}
-function useMyLocation(){const sample=()=>setMyLocation(13.588,124.226,'My location (sample, near Virac)','Sample location used near Virac');
+function useMyLocation(which){which=which||'from';const sample=()=>setMyLocation(13.588,124.226,'My location (sample, near Virac)','Sample location used near Virac',which);
  if(!navigator.geolocation){sample();return}
  toast('Finding your location…');
  navigator.geolocation.getCurrentPosition(pos=>{const {latitude:lat,longitude:lng}=pos.coords;
-  if(lat>=GEO_BOUNDS.lat0&&lat<=GEO_BOUNDS.lat1&&lng>=GEO_BOUNDS.lng0&&lng<=GEO_BOUNDS.lng1)setMyLocation(lat,lng,'My location','Pickup set to your current location');
-  else setMyLocation(13.588,124.226,'My location (sample, near Virac)','You\'re outside Catanduanes — using a sample spot near Virac for the demo')},
+  if(lat>=GEO_BOUNDS.lat0&&lat<=GEO_BOUNDS.lat1&&lng>=GEO_BOUNDS.lng0&&lng<=GEO_BOUNDS.lng1)setMyLocation(lat,lng,'My location','Pickup set to your current location',which);
+  else setMyLocation(13.588,124.226,'My location (sample, near Virac)','You\'re outside Catanduanes — using a sample spot near Virac for the demo',which)},
   ()=>sample(),{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
 function pickByText(which,text){text=(text||'').trim();if(!text)return;
  const all=[...PLACES,...S.custom];const exact=all.find(p=>p.n.toLowerCase()===text.toLowerCase());
- if(exact){S.rideForm[which]=exact.id;save();render();return}
- const town=Object.keys(TOWNS).find(t=>text.toLowerCase().includes(t.toLowerCase()))||P(S.rideForm[which])?.t||'Virac';
+ if(exact){fSet(which,exact.id);save();render();return}
+ const town=Object.keys(TOWNS).find(t=>text.toLowerCase().includes(t.toLowerCase()))||P(fGet(which))?.t||'Virac';
  const id='cu-'+(S.seq++);S.custom.push({id,n:text,t:town,lat:TOWNS[town][0],lng:TOWNS[town][1],k:'pin',e:'pin'});S.custom=S.custom.slice(-8);
- S.rideForm[which]=id;save();render();toast(`Using "${text}" near ${town}`)}
+ fSet(which,id);save();render();toast(`Using "${text}" near ${town} — drag the map or type a landmark to be more exact`)}
 function openPlace(id){const p=P(id);
  modal(`${PHOTOS[id]?`<img class="place-ph" src="${PHOTOS[id]}" alt="${esc(p.n)}">`:`<div style="font-size:32px">${ic(p.e)}</div>`}<h2>${esc(p.n)}</h2><div class="muted">${esc(p.t)}, Catanduanes · ${p.cat?esc(p.cat):({spot:'Tourist spot',hub:'Transport hub / landmark',stay:'Stay',shop:'Shop',town:'Town',pin:'Pin'})[p.k]}</div>${BIZ[id]?`<div class="banner" style="margin-top:10px"><b>${ic('shield')} Verified local business</b>${p.hours?'<br>Open '+esc(p.hours):''}${BIZ[id].offer?'<br>'+ic('gift')+' Passenger offer: '+esc(BIZ[id].offer):''}</div>`:''}
  ${p.k==='spot'?`<p class="muted">Full attraction details (fees, hours${PHOTOS[id]?'':', photos'}) are on the roadmap.</p>`:''}
@@ -1722,7 +1739,7 @@ function placeOpts(sel){const sp=sel&&P(sel);const osmOpt=sp&&sp.osm?`<option va
  let o=osmOpt+S.custom.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('');
  for(const [k,l] of groups)o+=`<optgroup label="${l}">${PLACES.filter(p=>p.k===k).map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${esc(p.n)}</option>`).join('')}</optgroup>`;return o}
 function formStart(){const f=S.rideForm;if(f.when==='now')return Date.now()+5*MIN;return new Date(f.date+'T'+f.time).getTime()}
-function activeCard(){const a=S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((x,y)=>y.createdAt-x.createdAt)[0];
+function activeCard(){const a=S.rides.filter(r=>r.booker==='me'&&!isX(r)&&['waiting','queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((x,y)=>y.createdAt-x.createdAt)[0];
  return a?rideCard(a,true):''}
 // ============ Home dashboard — hero, search, quick access, featured spots ============
 function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['queued','pending','accepted','started'].includes(r.status)).length;
@@ -1730,9 +1747,11 @@ function vHome(){const m=S.me;const active=S.rides.filter(r=>r.booker==='me'&&['
  const featured=FEATURED.map(P).filter(Boolean);
  return `<div class="hero"><h2>Welcome to the<br>Happy Island, ${esc((m.name||'traveler').split(' ')[0])}</h2>
  <button class="search-bar" style="width:100%;border:0;text-align:left" onclick="openWhereTo()">${ic('search')} Where to?</button></div>
- ${activeCard()}
+ ${S.persona==='student'?stuCard():''}${activeCard()}${xActiveCards()}
  <div class="qa-list">
- <button class="qa-row lead" onclick="go('ride')"><span class="tile">${ic('car')}</span><span class="tx"><b>Book a ride</b><span>Tricycle, moto, car or van</span></span>${ic('chevron','chev')}</button>
+ <button class="qa-row lead" onclick="go('ride')"><span class="tile">${ic('car')}</span><span class="tx"><b>Book a ride</b><span>Moto, car or van</span></span>${ic('chevron','chev')}</button>
+ <button class="qa-row" id="qaExpress" onclick="goExpress()"><span class="tile">${ic('pkg')}</span><span class="tx"><b>TODA Express</b><span>Deliveries &amp; pasabuy</span></span>${ic('chevron','chev')}</button>
+ ${S.persona==='student'?`<button class="qa-row" id="qaStudent" onclick="stuOK()?(S.rideMode='ride',S.rideForm.type='tricycle',S.rideForm.pax=1,go('ride')):go('me')"><span class="tile">${ic('grad')}</span><span class="tx"><b>Free student rides</b><span>${stuOK()?'TODA ₱20 flat · '+stuLeft()+' of '+STU.daily+' free car/van seats left':'Verify your school ID'}</span></span>${ic('chevron','chev')}</button>`:''}
  <button class="qa-row" onclick="go('map')"><span class="tile">${ic('compass')}</span><span class="tx"><b>Explore destinations</b><span>Beaches, falls &amp; landmarks</span></span>${ic('chevron','chev')}</button>
  <button class="qa-row" onclick="S.me.pack=D(0);save();render();toast('Offline pack updated')"><span class="tile">${ic('pkg')}</span><span class="tx"><b>Offline maps</b><span>Updated ${fmtD(m.pack)}</span></span>${ic('chevron','chev')}</button>
  <button class="qa-row" onclick="go('mytrips')"><span class="tile">${ic('clock')}</span><span class="tx"><b>Recent trips</b><span>${recent?fmtT(recent.createdAt):'No trips yet'}</span></span>${ic('chevron','chev')}</button>
@@ -1758,19 +1777,17 @@ function acInput(which,el){const box=el.nextElementSibling;const q=el.value;if(!
  if(!q.trim()){box.innerHTML='';box.hidden=true;return}
  const l=acMatch(q,6);box.hidden=false;
  box.innerHTML=l.map(p=>acRow(p,q,`acPick('${which}','${p.id}')`)).join('')+`<button type="button" class="ac-item" onmousedown="event.preventDefault()" data-q="${esc(q)}" onclick="pickByText('${which}',this.dataset.q)"><span class="tile">${ic('search')}</span><span class="tx"><b>Use “${esc(q)}”</b><span>${l.length?'Not listed? Pin it near the matching town':'No match — pin it near the matching town'}, then adjust on the map</span></span></button>`+(l.some(p=>p.osm)?`<p class="ac-credit">Barangays &amp; local places © OpenStreetMap contributors</p>`:'')}
-function acPick(which,id){S.rideForm[which]=id;if(which==='from')S.rideForm.pin='to';save();render();toast((which==='from'?'Pickup':'Drop-off')+' set to '+P(id).n.replace(' (sample)',''))}
+function acPick(which,id){fSet(which,id);if(which==='from')S.rideForm.pin='to';save();render();toast(({from:'Pickup',to:'Drop-off',xfrom:xF().svc==='buy'?'Buy from':'Pickup',xto:'Delivery'})[which]+' set to '+P(id).n.replace(' (sample)',''))}
 function acKey(which,el,e){if(e.key==='Enter'){e.preventDefault();const l=acMatch(el.value,1);if(l.length)acPick(which,l[0].id);else pickByText(which,el.value)}else if(e.key==='Escape'){el.value='';acInput(which,el)}}
 function acField(which){return `<div class="ac"><input class="inp" style="margin-top:6px" placeholder="${which==='from'?'Search pickup — landmark, place or town':'Search drop-off — landmark, place or town'}" autocomplete="off" autocapitalize="words" aria-label="${which==='from'?'Search pickup':'Search drop-off'}" oninput="acInput('${which}',this)" onkeydown="acKey('${which}',this,event)" onblur="setTimeout(()=>{const b=this.nextElementSibling;if(b)b.hidden=true},180)" onfocus="const m=$('#main'),r=this.getBoundingClientRect(),mr=m.getBoundingClientRect();m.scrollTop+=r.top-mr.top-12;if(this.value)acInput('${which}',this)"><div class="ac-list" role="listbox" hidden></div></div>`}
 
-function vRideNoDrop(a){const f=S.rideForm;if(f.pin!=='from')f.pin='to';let h=activeCard();
+function vRideNoDrop(a){const f=S.rideForm;if(f.pin!=='from')f.pin='to';let h=activeCard()+rideModeBar();
  h+=`<h2>Book a ride</h2>
  <datalist id="placeList">${[...PLACES,...S.custom].map(p=>`<option value="${esc(p.n)}">`).join('')}${Object.keys(TOWNS).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
  <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('pin')} Drop-off</span></div>
  ${mapView('map-ride',{route:[a,a],marks:[[a,'pickup','#0D1B2A',esc(a.n)]],drop:true,h:230})}
- <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
- ${acField('from')}
- <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()"><option value="" selected disabled>Where are you going?</option>${placeOpts('')}</select>
- ${acField('to')}
+ ${placeInput('from','Pickup')}
+ ${placeInput('to','Drop-off')}
  <p class="muted" style="margin:12px 0 8px">Choose a drop-off to see vehicles and fares.</p>
  <button class="btn block" disabled>Request ride</button></div>`;return h}
 function autoGPS(){if(JOIN_ONLY||!navigator.geolocation)return;
@@ -1778,47 +1795,47 @@ function autoGPS(){if(JOIN_ONLY||!navigator.geolocation)return;
   if(lat>=GEO_BOUNDS.lat0&&lat<=GEO_BOUNDS.lat1&&lng>=GEO_BOUNDS.lng0&&lng<=GEO_BOUNDS.lng1&&S.rideForm.from==='catsu')setMyLocation(lat,lng,'My location','Pickup set to your current location')},
   ()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}
 
-function vRide(){const f=S.rideForm;const a=P(f.from),b=P(f.to);if(!a){f.from='catsu';return vRide()}if(!b)return vRideNoDrop(a);
+function vRide(){if(S.rideMode==='express')return vExpress();const f=S.rideForm;if(!rideTypes().includes(f.type))f.type='moto';if(f.type==='tricycle')f.pax=1;const a=P(f.from),b=P(f.to);if(!a){f.from='catsu';return vRide()}if(!b)return vRideNoDrop(a);
  const d=routeKm(a,b),start=formStart(),end=start+dur(d,f.type)*MIN,storm=paused(a.t)||paused(b.t);
- const lim=activeCount()>=bookingLimit();
+ const lim=activeCount()>=bookingLimit();const sb=stuBlock(f);
  const marks=[[a,'pickup','#0D1B2A',esc(a.n)],[b,'dropoff','#F5B544',esc(b.n)]];
- let h=activeCard();
+ let h=activeCard()+rideModeBar();
  if(S.me.noShows>=2)h+=`<div class="banner bad">${ic('warn')} ${S.me.noShows} no-shows on record. You can hold only 1 active booking until reviewed.</div>`;
  if(storm)h+=`<div class="banner bad">${ic('storm')} Storm signal in ${paused(a.t)?a.t:b.t}. New road bookings there are paused.</div>`;
  h+=`<h2>Book a ride</h2>
  <datalist id="placeList">${[...PLACES,...S.custom].map(p=>`<option value="${esc(p.n)}">`).join('')}${Object.keys(TOWNS).map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
  <div class="card"><p class="muted" style="margin:0 0 6px">Tap a pin mode, then tap the map to place it:</p><div class="chips" style="margin-bottom:6px"><span class="chip ${f.pin==='from'?'on':''}" onclick="S.rideForm.pin='from';save();render()">${ic('pin')} Pickup</span><span class="chip ${f.pin==='to'?'on':''}" onclick="S.rideForm.pin='to';save();render()">${ic('flag')} Drop-off</span></div>
  ${mapView('map-ride',{route:[a,b],marks,drop:true,h:230})}
- <label class="f">Pin your location:</label><div style="display:flex;gap:6px"><select class="inp" onchange="S.rideForm.from=this.value;save();render()">${placeOpts(f.from)}</select><button class="btn sm ghost" onclick="useMyLocation()" title="Use my current location" aria-label="Use my current location">${ic('target')}</button></div>
- ${acField('from')}
- <label class="f">Drop-off</label><select class="inp" onchange="S.rideForm.to=this.value;save();render()">${placeOpts(f.to)}</select>
- ${acField('to')}
+ ${placeInput('from','Pickup')}
+ ${placeInput('to','Drop-off')}
  ${attractionCard(b)}
- <label class="f">Vehicle</label>${ONDEMAND.map(k=>`<div class="veh-card ${f.type===k?'on':''}" onclick="S.rideForm.type='${k}';save();render()">
+ <label class="f">Vehicle</label>${rideTypes().map(k=>`<div class="veh-card ${f.type===k?'on':''}" data-veh="${k}" onclick="S.rideForm.type='${k}';if('${k}'==='tricycle'){S.rideForm.pax=1;S.rideForm.when='now';S.rideForm.shared=false}save();render()">
   <div class="ic-badge">${ic(TYPES[k].e)}</div>
-  <div class="meta"><b>${TYPES[k].label}</b><span>${TYPES[k].seats} seat${TYPES[k].seats>1?'s':''} · ${peso(fareCalc(k,d))}</span></div>
+  <div class="meta"><b>${TYPES[k].label}</b><span>${k==='tricycle'?'TODA '+peso(STU.along)+' flat · car/van free'+(stuLocked()?' (free seats locked — share your last free ride)':' ('+stuLeft()+' of '+STU.daily+' left today)'):TYPES[k].seats+' seat'+(TYPES[k].seats>1?'s':'')+' · '+peso(fareCalc(k,d))}</span></div>
   <div class="check">${f.type===k?ic('check'):''}</div>
  </div>`).join('')}
  ${SHARE_CAP[f.type]?(()=>{const q=sharedQuote(f.type,d,f.pax,f.pax);const ok=mySeats(f)<seatsOf(f);return `<label class="f">Ride type</label><div class="share-opts" role="group" aria-label="Ride type"><button class="share-opt ${!shareOn(f)?'on':''}" aria-pressed="${!shareOn(f)}" onclick="S.rideForm.shared=false;save();render()"><b>Solo</b><span>Whole ${vehW(f.type)} · ${peso(q.whole)}</span></button><button class="share-opt ${shareOn(f)?'on':''}" aria-pressed="${shareOn(f)}" ${ok?'':'disabled'} onclick="S.rideForm.shared=true;save();render()"><b>Shared</b><span>${ok?shareRange(d,mySeats(f),1,f.type)+' per seat · drops as passengers join':'Not available for '+mySeats(f)+' seats'}</span></button></div>${f.shared?`<label class="lug"><input type="checkbox" ${f.lug?'checked':''} onchange="S.rideForm.lug=this.checked;save();render()"> With luggage <span class="muted">· a big bag takes a seat</span></label>`:''}${shareOn(f)?`<p class="muted" style="margin:6px 0 0">Passengers within 500 m can see and join your ride — it shows where it’s going so they can decide. ${leaveTxt(f)}. Your fare only goes down. Sample fare: ₱15 + ₱5/km per seat.</p>`:''}`})():(f.type==='moto'?`<p class="muted" style="margin:10px 0 0">${ic('moto')} Moto Taxi carries 1 passenger, so sharing isn't available.</p>`:'')}
  <div class="two"><div><label class="f">Passengers</label><input class="inp" type="number" min="1" max="12" value="${f.pax}" onchange="S.rideForm.pax=Math.max(1,+this.value);save();render()"></div>
  <div><label class="f">When</label><select class="inp" onchange="S.rideForm.when=this.value;save();render()"><option value="now" ${f.when==='now'?'selected':''}>Now</option><option value="later" ${f.when==='later'?'selected':''}>Schedule</option></select></div></div>
+ ${FOUR_W.includes(f.type)&&!shareOn(f)?`<label class="lug" id="allowStuRow"><input type="checkbox" id="allowStu" ${f.allowStu?'checked':''} onchange="S.rideForm.allowStu=this.checked;save()"> Allow a verified student to ride along free on an empty seat <span class="muted">· your fare doesn’t change</span></label>`:''}
  ${f.when==='later'?`<div class="two"><div><label class="f">Date</label><input class="inp" type="date" value="${f.date}" onchange="S.rideForm.date=this.value;save();render()"></div><div><label class="f">Time</label><input class="inp" type="time" value="${f.time}" onchange="S.rideForm.time=this.value;save();render()"></div></div>`:''}
  <div class="sep"></div>
  <div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,f.type)} min</b></div>
- ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${mySeats(f)} seat${mySeats(f)>1?'s':''}${f.lug?', incl. luggage':''})</span><b>${shareRange(d,mySeats(f),mySeats(f),f.type)}</b></div>`:`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`}
- <button class="btn block" style="margin-top:8px" ${f.from===f.to||storm||lim?'disabled':''} onclick="confirmRequest()">Request ride</button>
+ ${shareOn(f)?`<div class="kv"><span>Your fare (shared · ${mySeats(f)} seat${mySeats(f)>1?'s':''}${f.lug?', incl. luggage':''})</span><b>${shareRange(d,mySeats(f),mySeats(f),f.type)}</b></div>`:(f.type==='tricycle'?stuFareKV(d):`<div class="kv"><span>Fare (LGU fare matrix)</span><b>${peso(fareCalc(f.type,d))}</b></div>`)}
+ <button class="btn block" id="reqBtn" style="margin-top:8px" ${f.from===f.to||storm||lim||sb?'disabled':''} onclick="confirmRequest()">${f.type==='tricycle'?'Request ride-along':'Request ride'}</button>
  ${lim?'<p class="muted">Booking limit reached — finish or cancel an active booking first.</p>':''}</div>`;
  
  h+=`<p class="muted">Your request goes to the nearest available driver first. If they don't accept within 3 minutes, it moves to the next one.</p>`;
- if(f.type==='tricycle')h+=`<div class="banner info">${ic('tricycle')} TODA route: tricycles currently run between Virac and San Andres only. Outside that corridor, choose a car or van (Direct booking).</div>`;
+ if(f.type==='tricycle')h+=stuBanner(f);
  if(f.type==='moto')h+=`<div class="banner info">${ic('moto')} Moto Taxi is LUNAD's own driver fleet — always online, 1 passenger only, no helmet-less pillion.</div>`;
  return h}
 function confirmRequest(){const f=S.rideForm;const F=S.fares.active;
  modal(`<h2>Confirm request</h2><div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
  <div class="kv"><span>${ic(TYPES[f.type].e)} ${TYPES[f.type].label} · ${f.pax} pax</span><b>${f.when==='now'?'Now':fmtT(formStart())}</b></div>
- ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more passengers join.</p>`})():`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
- <button class="btn block" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
-function requestRide(){const f=S.rideForm;const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
+ ${shareOn(f)?(()=>{const q=sharedQuote(f.type,routeKm(P(f.from),P(f.to)),mySeats(f),mySeats(f));return `<div class="kv"><span>Shared ride${f.lug?' (incl. luggage)':''}</span><b>${mySeats(f)} of ${seatsOf(f)} seats</b></div><div class="kv"><span>You pay (${peso(q.per)}/seat)</span><b>${peso(q.you)}</b></div><p class="muted" style="margin:4px 0 0">${leaveTxt(f)}.</p><p class="muted" style="margin:4px 0 0">Your fare only goes down if more passengers join.</p>`})():f.type==='tricycle'?`<div class="kv"><span>Fare</span><b>TODA ${peso(STU.along)} flat · car/van free</b></div><p class="muted" style="margin:4px 0 0">We’ll add you to a TODA Express delivery or a car/van trip already heading your way. After a free car/van ride you’ll be asked to share it on Facebook or Instagram to unlock your next free ride.</p>`:`<div class="kv"><span>Fare</span><b>${peso(fareCalc(f.type,routeKm(P(f.from),P(f.to))))}</b></div>`}
+ <button class="btn block" id="confirmReq" style="margin-top:12px" onclick="requestRide()">Confirm & request</button>`)}
+function requestRide(){const f=S.rideForm;if(stuBlock(f)){toast(stuBlock(f));closeModal();return}const r=newRide({from:f.from,to:f.to,type:f.type,pax:f.pax,start:formStart()});if(FOUR_W.includes(r.type)&&!shareOn(f)&&f.allowStu)r.allowStu=true;if(r.type==='tricycle'){r.from=hubOf(f.from)||r.from;r.student=true;r.pax=1;r.sponsorFare=0;r.fare=0;r.pay='free';r.stuName=S.me.name;r.paidOnly=stuLeft()<1||!!stuLocked()}
+ if(r.student){const e=alongTarget(r);if(e){S.rides.push(r);attachAlong(r,e);closeModal();save();render();toast('Added to '+drvInfo(prov(e.pid)).name+'’s TODA Express trip '+e.id+' — riding along');return}stuNoMatch();return}if(shareOn(f)){r.shared=true;r.lug=!!f.lug;r.co=[];r.waitFrom=Date.now();applyShared(r);if(!LIVE.db){r.live=false;r.sampleCo=true;r.coDone=false}else if(!livePublish(r)){r.live=true;r.livePending=true}}S.rides.push(r);
  if(!online()){r.status='queued';closeModal();save();render();toast('No signal — request queued, will send automatically once you\'re back online');return}
  dispatch(r);
  closeModal();save();render();toast(r.status==='pending'?'Request sent to '+prov(r.cands[0]).n:'No driver available — see options')}
@@ -1839,7 +1856,7 @@ function coCancel(){const r=S.rides.filter(x=>x.booker==='me'&&x.shared&&['pendi
 function shareRange(d,pax,mult,type){type=type||'tricycle';const hi=sharedQuote(type,d,pax,pax).per*mult,lo=sharedQuote(type,d,pax,SHARE_CAP[type]||3).per*mult;return lo<hi?peso(lo)+'–'+peso(hi):'Up to '+peso(hi)}
 
 /* ---- Shared rides by vehicle: seats per vehicle, minimum riders before 'Leave now', per-seat cap (sample rates). ---- */
-const SHARE_CAP={tricycle:3,car:4,minivan:8,van:12};
+const SHARE_CAP={car:4,minivan:8,van:12};
 const MIN_GO={car:3,minivan:5,van:8};
 const SEATRATE={tricycle:[15,5],car:[60,10],minivan:[40,6],van:[40,6]};
 const VEHW={tricycle:'tricycle',moto:'moto',car:'car',minivan:'van',van:'van'};
@@ -1854,13 +1871,15 @@ function shareOn(f){return !!SHARE_CAP[f.type]&&!!f.shared&&mySeats(f)<seatsOf(f
 function sharedSeats(r){return mySeats(r)+(r.co||[]).reduce((a,c)=>a+c.pax,0)}
 function applyShared(r){const d=routeKm(P(r.from),P(r.to));const n=sharedSeats(r);const q=sharedQuote(r.type,d,mySeats(r),n);if(r.seatFare==null||q.per<r.seatFare){r.seatFare=q.per;r.fare=q.per*mySeats(r)}r.tripTotal=Math.max(r.seatFare*n,r.protect||0);r.lunadCover=r.tripTotal-r.seatFare*n}
 function coJoin(r){if(r.live||!r.sampleCo)return false;if(!r.shared||r.coDone||S.shareAuto===false)return false;if(!['pending','accepted'].includes(r.status))return false;r.co=r.co||[];const next=SHARE.co[r.co.length];if(seatsOf(r)-sharedSeats(r)<1||!next){r.coDone=true;return false}const before=r.fare;r.co.push({n:next.n,pax:1});r.lastJoin=Date.now();r.waitFrom=Date.now();if(sharedSeats(r)>=seatsOf(r)||!SHARE.co[r.co.length])r.coDone=true;applyShared(r);const full=sharedSeats(r)>=seatsOf(r);toast(`${next.n} joined from the same pickup · ${sharedSeats(r)} of ${seatsOf(r)} seats · you pay ${peso(r.fare)}${r.fare<before?' (was '+peso(before)+')':''}${full?` · ${vehW(r.type)} full, ready to leave`:''}`);return true}
-function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
- let h=`<div class="card ${hl?'hl':''}"><div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
- <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample passengers':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
+function rideCard(r,hl){if(isX(r))return xCard(r,hl);const p=r.pid?prov(r.pid):null;const now=Date.now();const host=r.attachTo&&ride(r.attachTo);
+ let h=`<div class="card ${hl?'hl':''}">${host&&r.meet&&['pending','accepted'].includes(r.status)?meetCard(r,host):''}${host?`<div class="share-line" id="alongStu">${isX(host)?`${ic('tricycle')} Riding along on TODA Express trip ${esc(r.attachTo)} · ${esc(host.item.desc)} on board`:`${ic(TYPES[host.type].e)} Free seat on ${esc(TYPES[host.type].label)} trip ${esc(r.attachTo)}`}</div>`:''}${!r.student&&alongActive(r).length?`<div class="share-line" id="alongHost">${ic('grad')} A verified student is riding along free on an empty seat — your fare doesn’t change</div>`:''}<div class="kv"><span><b>${ic(TYPES[r.type].e)} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
+ <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.student?(r.fare?'Student ride-along · '+peso(r.fare)+' flat':r.status==='waiting'?'Student ride-along · ₱20 TODA or free car/van':'Free student ride-along'):peso(amount(r))}${r.fee?` (incl. ${peso(r.fee)} fee)`:''}${p?' · '+esc(p.n)+' '+verifBadge(r.type,'sm'):''}</div>${r.shared?`<div class="share-line">${ic('user')} Shared · ${sharedSeats(r)} of ${seatsOf(r)} seats${r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):''} · ${sharedSeats(r)>=seatsOf(r)?'full, ready to leave':'leaves when full'}${r.lunadCover?' · fare protected':''}${r.livePending?' · connecting to live…':r.live?' · live':r.sampleCo?' · sample passengers':''}</div>${r.live&&r.liveCode&&['pending','accepted'].includes(r.status)&&sharedSeats(r)<seatsOf(r)?liveQR(r):''}${['pending','accepted'].includes(r.status)&&!(r.co&&r.co.length)&&!r.sampleCo?`<button class="btn sec block" style="margin-top:8px" onclick="sampleRiders('${r.id}')">View sample shared ride (demo)</button>`:''}`:''}
  ${r.booker==='me'&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?soloSteps(r):''}${p&&r.booker==='me'&&['accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&!r.joinCode?drvCard(drvInfo(p),'r:'+r.id):''}${p&&['accepted','started'].includes(r.status)?`<div class="btns" style="margin:4px 0"><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message ${esc(p.n.split(' ')[0])}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button></div>`:''}
  <div class="statrow" style="margin:5px 0">${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)&&['accepted','pending'].includes(r.status)?`<span class="st bad">${ic('storm')} Storm warning in area</span>`:''}</div>`;
  if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(prov(r.cands[r.offerIdx]).n)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more driver(s) in line</div>`;
  if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`+(r.alt.length?`<div class="btns">${r.alt.map((a,i)=>`<button class="btn sm sec" onclick="bookAlt('${r.id}',${i})">Try ${esc(altLabel(a))}</button>`).join('')}</div>`:'')}
+ if(r.status==='waiting')h+=`<div class="banner info" id="stuWaitBanner" style="margin:6px 0">${ic('clock')} We’ll add you to the first TODA Express delivery or car/van trip heading to ${esc(P(r.to).n.replace(' (sample)',''))} — waiting until ${clock(r.waitUntil)}. Your free ride isn’t used until you’re matched.</div>`;
+ if(r.status==='no_match'&&r.student)h+=`<div class="btns"><button class="btn sm sec" onclick="S.rideForm.type='moto';S.rideForm.from='${r.from}';S.rideForm.to='${r.to}';S.rideMode='ride';go('ride')">Book a paid ride instead</button></div>`;
  if(r.status==='queued')h+=`<div class="banner info" style="margin:6px 0">${ic('wifi-off')} No signal — this request will send automatically once you're back online. <button class="btn sm sec" style="margin-top:6px" onclick="toggleNet()">Simulate: back online</button></div>`;
  if(r.status==='accepted'&&r.arriving)h+=`<div class="banner info" style="margin:6px 0">${ic('tricycle')} Your driver is arriving.</div>`;
  if(r.rated.b){const rv=S.ratings.find(x=>x.rideId===r.id&&x.from==='b');if(rv)h+=`<div class="muted" style="margin:4px 0">Your review: ${starRow(rv.stars,'sm')}${rv.tags&&rv.tags.length?' · '+rv.tags.map(esc).join(', '):''}${rv.comment?' — '+esc(rv.comment):''}</div>`}
@@ -1869,9 +1888,10 @@ function rideCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();
  if(r.status==='completed'&&['unpaid','rejected'].includes(r.pay))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">Pay now</button>`);
  if(r.pay==='proof'&&now-r.proofAt>PAY_MS)btn.push(`<button class="btn sm warn" onclick="reportModal('${r.id}','Payment not confirmed')">No response — report issue</button>`);
  if(r.pay==='proof'&&now-r.proofAt<=PAY_MS)btn.push(`<button class="btn sm ghost" onclick="ride('${r.id}').proofAt-=${PAY_MS+1000};save();render()">Demo: 15 min pass</button>`);
- if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
+ if(r.status==='waiting')btn.push(`<button class="btn sm ghost" id="stuWaitCancel" onclick="freeCancel('${r.id}')">Stop waiting</button>`);else if(['queued','pending','accepted','no_match'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
  if(['accepted','started'].includes(r.status)&&r.type!=='agency')btn.push(`<button class="btn sm sec" onclick="shareTrip('${r.id}')">${r.share&&r.share.on?ic('link')+' Sharing':'Share trip'}</button>`);
- if(r.status==='completed'&&!r.rated.b)btn.push(`<button class="btn sm" onclick="rateModal('${r.id}','b')">${ic('star-f')} Rate ride</button>`);
+ if(r.status==='completed'&&!r.rated.b&&!r.student)btn.push(`<button class="btn sm" onclick="rateModal('${r.id}','b')">${ic('star-f')} Rate ride</button>`);
+ if(r.student&&r.status==='completed'&&stu().shareOwed===r.id)btn.push(stuShareBtn(r.id,'fb','sm'),stuShareBtn(r.id,'ig','sm sec'));
  if(r.status==='completed'&&now-r.end<DISPUTE_MS&&!S.reports.find(x=>x.rideId===r.id))btn.push(`<button class="btn sm ghost" onclick="reportModal('${r.id}','Fare dispute')">Report an issue</button>`);
  const rp=S.reports.find(x=>x.rideId===r.id);if(rp)h+=`<div class="muted">${ic('file-text')} Reported (${esc(rp.type)}) — thanks, our team will follow up</div>`;
  if(btn.length)h+=`<div class="btns">${btn.join('')}</div>`;
@@ -1993,7 +2013,7 @@ function vMap(){const f=S.mapFilter;const ec=S.exploreCat||'all';const cats=[['s
 function vMyTrips(){const mine=S.rides.filter(r=>r.booker==='me').sort((a,b)=>b.createdAt-a.createdAt);
  return `<h2>${ic('ticket')} Bookings</h2>`+(mine.length?mine.map(r=>rideCard(r,['pending','accepted','started'].includes(r.status))).join(''):'<div class="card muted">No bookings yet.</div>')}
 function vMe(){const m=S.me;const inbox=S.notifs.filter(n=>n.to==='me'||n.to==='contacts');
- return `<h2>${ic('user')} ${esc(m.name)}</h2>
+ return `<h2>${ic('user')} ${esc(m.name)}</h2>${S.persona==='student'?stuCard():''}
  <div class="card"><div class="two"><div><label class="f">I am a</label><select class="inp" onchange="S.me.kind=this.value;save()"><option value="tourist" ${m.kind==='tourist'?'selected':''}>Local tourist</option><option value="resident" ${m.kind==='resident'?'selected':''}>Local resident</option></select></div>
  <div><label class="f">Mobile</label><input class="inp" value="${esc(m.mobile)}" onchange="S.me.mobile=this.value;save()"></div></div>
  <label class="f">Get notifications by</label><div class="chips">${[['app',`${ic('phone')} App`],['sms',`${ic('sms')} SMS`],['messenger',`${ic('send')} Messenger`]].map(([k,l])=>`<span class="chip ${m.channel===k?'on':''}" onclick="setChannel('${k}')">${l}</span>`).join('')}</div>
@@ -2009,10 +2029,10 @@ function vMe(){const m=S.me;const inbox=S.notifs.filter(n=>n.to==='me'||n.to==='
  <h3>${ic('mail')} Inbox (app / SMS / Messenger)</h3><div class="card"><label class="f">Reply by SMS keyword</label><div style="display:flex;gap:6px"><input class="inp" id="kw" placeholder="YES, CANCEL, HELP or STOP"><button class="btn sm" onclick="smsReply()">Send</button></div></div>
  ${inbox.slice(0,25).map(n=>msgHTML(n)).join('')||'<p class="muted">No messages yet.</p>'}`}
 function msgHTML(n){return `<div class="msg"><div class="h"><span>${n.to==='contacts'?'To emergency contacts':n.to==='lgu'?'To LGU hotline':''} · ${esc(n.ch)}</span><span>${new Date(n.at).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'})} · ${esc(n.status)}</span></div>${esc(n.text)}</div>`}
-function messageModal(id){const r=ride(id);const th=S.threads[id]||[];const them=S.role==='booker'?'Operator':'Passenger';
+function messageModal(id){const r=ride(id);const th=S.threads[id]||[];const them=S.role==='booker'?(isX(r)?'Rider':'Operator'):(isX(r)?'Customer':'Passenger');
  modal(`<h2>${ic('mail')} Message · ${r.id}</h2><p class="muted">No phone numbers are shared — all coordination happens here.</p>
- <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${th.map(m=>`<div class="msg"><div class="h"><span>${m.from===S.role?'You':them}</span><span>${fmtT(m.at)}</span></div>${esc(m.text)}</div>`).join('')||'<p class="muted">No messages yet — say hello.</p>'}</div>
- <div style="display:flex;gap:6px"><input class="inp" id="mtxt" placeholder="Type a message" onkeydown="if(event.key==='Enter'){sendMsg('${id}')}"><button class="btn sm" onclick="sendMsg('${id}')">Send</button></div>`)}
+ <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:8px">${th.map(m=>`<div class="msg"><div class="h"><span>${m.from===S.role?'You':them}</span><span>${fmtT(m.at)}</span></div>${esc(m.text)}${m.img?`<img class="proof" src="${m.img}" alt="Receipt photo">`:m.receipt?pbReceiptSample(r):''}</div>`).join('')||'<p class="muted">No messages yet — say hello.</p>'}</div>
+ ${r&&r.buy?pbQuick(r):''}<div style="display:flex;gap:6px"><input class="inp" id="mtxt" placeholder="Type a message" onkeydown="if(event.key==='Enter'){sendMsg('${id}')}"><button class="btn sm" id="msend" onclick="sendMsg('${id}')">Send</button></div>`)}
 function sendMsg(id){const el=$('#mtxt');if(!el)return;const txt=el.value.trim();if(!txt)return;S.threads[id]=S.threads[id]||[];
  S.threads[id].push({from:S.role,text:txt,at:Date.now()});save();messageModal(id);render()}
 function setChannel(k){S.me.channel=k;if(k==='sms')S.me.smsStop=false;if(k==='messenger'&&!S.me.msgr){S.me.otp=String(100000+Math.floor(Math.random()*899999));S.notifs.unshift({to:'me',ch:'sms',text:tpl('otp',{code:S.me.otp}),at:Date.now(),status:'delivered'})}save();render()}
@@ -2031,19 +2051,19 @@ function smsReply(){const k=$('#kw').value.trim().toUpperCase();S.notifs.unshift
 function provPick(){return `<label class="f">Acting as (demo)</label><select class="inp" style="margin-bottom:10px" onchange="S.actingAs=this.value;save();render()">${S.providers.map(p=>`<option value="${p.id}" ${S.actingAs===p.id?'selected':''}>${esc(p.n)} — ${p.status}</option>`).join('')}</select>`}
 function provBanner(p){if(p.status==='approved')return '';const m={suspended:['bad',`${ic('ban')} Suspended: `+p.reason+'. You are hidden from search until your documents are renewed.']}[p.status]||['','Account under review.'];return `<div class="banner ${m[0]}">${esc(m[1])}</div>`}
 function vOffers(){const p=prov(S.actingAs);const now=Date.now();
- const offers=S.rides.filter(r=>r.status==='pending'&&!(r.live&&r.shared)&&r.cands[r.offerIdx]===p.id);
- const jobs=S.rides.filter(r=>r.pid===p.id&&!(r.live&&r.shared)&&['accepted','started'].includes(r.status)).sort((a,b)=>a.start-b.start);
+ const offers=S.rides.filter(r=>r.status==='pending'&&!(r.live&&r.shared)&&!r.attachTo&&r.cands[r.offerIdx]===p.id);
+ const jobs=S.rides.filter(r=>r.pid===p.id&&!(r.live&&r.shared)&&!(r.attachTo&&ride(r.attachTo)&&['accepted','started'].includes(ride(r.attachTo).status))&&['accepted','started'].includes(r.status)).sort((a,b)=>a.start-b.start);
  const autoShared=S.rides.filter(r=>r.booker==='me'&&r.live&&r.shared&&!r.tripDone&&['pending','accepted','started'].includes(r.status));
  const payq=S.rides.filter(r=>r.pid===p.id&&['proof','cash'].includes(r.pay));
- const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed');
- let h=`<h2>${ic('file-text')} Offers & jobs</h2>${holdBanner()}${provPick()}${provBanner(p)}
+ const done=S.rides.filter(r=>r.pid===p.id&&r.booker==='me'&&r.status==='completed'&&!isX(r));
+ let h=`<h2>${ic('file-text')} Offers & jobs</h2>${holdBanner()}${provPick()}${provBanner(p)}${rwPill(p)}
  <div class="card"><div class="kv"><span><b>${p.online?ic('dot-on')+' Online':ic('dot-off')+' Offline'}</b> · ${avgRating(p.id)}${p.reliability?` · ${p.reliability} driver cancel(s)`:''}</span><button class="btn sm ${p.online?'ghost':''}" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?'Go offline':'Go online'}</button></div></div>`;
  if(autoShared.length)h+=autoShared.map(shDrvCard).join('');
- h+=`<h3>New offers</h3>`+(offers.map(r=>`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.type==='tricycle'?ic('tricycle')+' TODA tricycle':ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all passengers)</span><b>${peso(r.tripTotal)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
+ h+=`<h3>New offers</h3>`+(offers.map(r=>isX(r)?xOfferCard(r):`<div class="card hl"><div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Drop-off</span><b>${esc(P(r.to).n)}</b></div><div class="kv"><span>Route type</span><b>${r.student?ic('grad')+' Student ride-along'+(xActive(p.id).length?' · rides along your deliveries':''):ic(TYPES[r.type].e)+' Direct'}</b></div>${r.shared?`<div class="kv"><span>Shared ride</span><b>${sharedSeats(r)} of ${seatsOf(r)} seats</b></div><div class="kv"><span>Trip total (all passengers)</span><b>${peso(r.tripTotal)}</b></div>`:r.student?`<div class="kv"><span>Student pays you</span><b>${peso(r.fare||0)}</b></div>`:`<div class="kv"><span>Estimated fare</span><b>${peso(r.fare)}</b></div>`}
   <div class="muted">${fmtT(r.start)} · ${r.pax} pax · ${r.id}</div>
   <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
   <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept ride</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`).join('')||'<div class="card muted">No offers right now.</div>');
- h+=`<h3>My jobs</h3>`+(jobs.map(r=>{const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+seatsOf(r)+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>
+ h+=`<h3>My jobs</h3>`+(jobs.map(r=>{if(isX(r))return xJobCard(r);const late=now>=r.start+10*MIN;return `<div class="card"><b>${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b><div class="muted">${fmtT(r.start)} · ${r.shared?sharedSeats(r)+' of '+seatsOf(r)+' seats shared'+(r.lug?' (1 luggage)':'')+(r.co&&r.co.length?' · with '+esc(r.co.map(c=>c.n).join(', ')):'')+' · '+peso(r.tripTotal)+(r.lunadCover?' (LUNAD covers '+peso(r.lunadCover)+')':''):r.pax+' pax · '+peso(r.fare)} · ${r.id}</div><div>${stChip(r.status)} ${payChip(r)} ${paused(P(r.from).t)?`<span class="st bad">${ic('storm')} Storm warning</span>`:''}</div>${alongBlock(r)}
   <div class="btns">${r.status==='accepted'?`${r.type!=='agency'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' Arrived · passenger notified':'Arrived at pickup'}</button>`:''}${r.shared&&!r.goNow&&sharedSeats(r)<seatsOf(r)?`<button class="btn sm" disabled>Waiting for passengers · ${sharedSeats(r)} of ${seatsOf(r)}</button>`:`<button class="btn sm" onclick="startTrip('${r.id}')">Start trip</button>`}
    <button class="btn sm ghost" ${late?'':'disabled'} onclick="noShow('${r.id}')">Mark no-show</button>${late?'':`<button class="btn sm ghost" onclick="ride('${r.id}').start=Date.now()-11*${MIN};save();render()">Demo: waited 10 min</button>`}
    <button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Complete ride</button>`}
@@ -2052,22 +2072,22 @@ function vOffers(){const p=prov(S.actingAs);const now=Date.now();
   <div class="btns"><button class="btn sm" onclick="confirmPay('${r.id}',true)">${ic('check')} ${r.pay==='cash'?'Cash received':'Payment received'}</button>${r.pay==='proof'?`<button class="btn sm warn" onclick="confirmPay('${r.id}',false)">✕ Not received</button>`:''}</div></div>`).join('');
  const unr=done.filter(r=>!r.rated.p);if(unr.length)h+=`<h3>Rate your passengers</h3>`+unr.map(r=>`<div class="card"><div class="kv"><span>${r.id} · ${esc(P(r.to).n)}</span><button class="btn sm" onclick="rateModal('${r.id}','p')">${ic('star-f')} Rate</button></div></div>`).join('');
  return h}
-function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast('Accepted — slot locked')}
-function decline(id){advance(ride(id),'declined');save();render();toast('Declined — offered to the next driver')}
+function accept(id){const r=ride(id);r.pid=r.cands[r.offerIdx];if(r.buy)r.type=prov(r.pid).type;if(isX(r)){r.batch=!r.buy&&xActive(r.pid).some(j=>j.id!==r.id&&!j.buy&&sameRoute(j,r));r.fare=r.batch?Math.round(r.fullFare*(1-XP.batchDisc)):r.fullFare}if(r.student)r.rideAlong=xActive(r.pid).length>0;r.status='accepted';r.acceptedAt=Date.now();notify('me','accepted',{ref:r.id,prov:prov(r.pid).n,time:hm(r.start)},r.id);save();render();toast(r.buy?'Pasabuy accepted — head to the store':isX(r)?(r.batch?'Delivery added to your trip — same route':'Delivery accepted — head to the pickup'):'Accepted — slot locked')}
+function decline(id){const r=ride(id);const was=!!r.attachTo;advance(r,'declined');save();render();toast(was?'Student backride declined — the student waits for another ride-along':'Declined — offered to the next driver')}
 function arriving(id){const r=ride(id);if(r.arriving){toast('Passenger already notified — tap Start trip when they’re on board');return}r.arriving=true;notify('me','arriving',{ref:r.id},r.id);save();render();toast('Passenger notified: you’ve arrived at '+P(r.from).n.replace(' (sample)','')+'. Tap Start trip when they’re on board.')}
-function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{setPickupReviews(r);}notify('me','started',{ref:r.id},r.id);save();render()}
+function startTrip(id){const r=ride(id);r.startedAt=Date.now();liveStatus(r,'started');r.status='started';r.start=Math.min(r.start,Date.now());{if(!isX(r))setPickupReviews(r);}notify('me',isX(r)?'xpicked':'started',{ref:r.id},r.id);save();render();if(isX(r))toast('Item picked up — recipient notified')}
 function complete(id){const r=ride(id);liveStatus(r,'closed');r.status='completed';r.end=Date.now();if(r.share)r.share.on=false;
- 
- notify('me','completed',{ref:r.id},r.id);save();render();toast('Trip completed — rating and payment requests sent')}
+ xOnComplete(r);
+ notify('me',isX(r)?'xdone':'completed',{ref:r.id,rcpt:r.rcpt?r.rcpt.name:''},r.id);save();render();toast(isX(r)?'Delivered — sender notified'+(r.payBy==='recipient'?'. Confirm the cash you collected.':''):r.student?'Student ride completed — paid by the student program':'Trip completed — rating and payment requests sent')}
 function noShow(id){const r=ride(id);r.status='noshow';r.fee=S.fares.active.lateFee;r.fare=0;r.pay='unpaid';S.me.noShows++;notify('me','noshow',{ref:r.id,fee:peso(r.fee)},r.id);save();render();toast('No-show recorded · late fee applies')}
-function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);
- const c=rank(eligible(r.type,r.pax,r.start,r.end,r.id,r.declined),r.from);if(c.length){r.cands=c.map(x=>x.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';offerNotify(r)}else noMatch(r);
+function driverCancel(id){const r=ride(id);const p=prov(r.pid);p.reliability++;r.declined.push(r.pid);r.pid=null;notify('me','rematch',{ref:r.id},r.id);if(r.student){detachAlong(r);stuBackToWait(r);save();render();toast('Student is back on the ride-along waiting list');return}
+ const c=candFor(r);if(c.length){r.cands=c.map(x=>x.id);r.offerIdx=0;r.offerAt=Date.now();r.status='pending';offerNotify(r)}else noMatch(r);
  save();render();toast('Passenger is being rematched · reliability note added')}
 function confirmPay(id,ok){const r=ride(id);if(ok){r.pay='paid';notify('me','paid',{ref:r.id},r.id)}else{r.pay='rejected';notify('me','payrej',{ref:r.id},r.id)}save();render()}
 function vStatus(){const p=prov(S.actingAs);
  return `<h2>${ic('dot-on')} Status & availability</h2>${provPick()}
  <div class="card"><div class="kv"><span><b>${ic(TYPES[p.type].e)} ${esc(p.n)}</b><br><span class="muted">${esc(p.t)} · ${p.seats} seats</span></span><span>${avgRating(p.id)}<br>${p.status==='approved'?verifBadge(p.type):''}</span></div></div>
- ${provBanner(p)}
+ ${provBanner(p)}${rwCard(p)}
  <div class="card"><div class="kv"><span>Go online to receive offers</span><button class="btn sm" ${p.status!=='approved'?'disabled':''} onclick="prov('${p.id}').online=!prov('${p.id}').online;save();render()">${p.online?ic('dot-on')+' Online — tap to go offline':ic('dot-off')+' Offline — tap to go online'}</button></div></div>
  <div class="card"><b>Block time off</b><div class="muted">No offers are sent during blocked hours.</div><label class="f">Date</label><input class="inp" type="date" id="bd" value="${D(0)}">
  <div class="two"><div><label class="f">From</label><input class="inp" type="time" id="bf" value="12:00"></div><div><label class="f">To</label><input class="inp" type="time" id="bt" value="13:00"></div></div>
@@ -2089,9 +2109,9 @@ function vPaySet(){const p=prov(S.actingAs);
 let REG={type:'tricycle',docs:{}};
 function vRegister(){const req=DOCS[REG.type];const have=req.filter(n=>REG.docs[n]&&REG.docs[n].file&&REG.docs[n].exp).length;
  return `<h2>${ic('file-text')} Become a LUNAD provider</h2><div class="banner info">Submit your documents to get your LGU-verified badge — checked automatically against your required permits.</div>
- <div class="card"><label class="f">Name / business</label><input class="inp" id="rn" placeholder="e.g. Viga TODA – Unit 21">
+ <div class="card"><label class="f">Name / business</label><input class="inp" id="rn" placeholder="e.g. Viga TODA Express – Unit 21">
  <label class="f">Contact number</label><input class="inp" id="rp" placeholder="09xx-xxx-xxxx">
- <label class="f">Vehicle / provider type</label><select class="inp" onchange="REG.type=this.value;REG.docs={};render()">${Object.entries(TYPES).filter(([k,T])=>!T.inhouse).map(([k,T])=>`<option value="${k}" ${REG.type===k?'selected':''}>${T.label}</option>`).join('')}</select>
+ <label class="f">Vehicle / provider type</label><select class="inp" onchange="REG.type=this.value;REG.docs={};render()">${Object.entries(TYPES).filter(([k,T])=>!T.inhouse).map(([k,T])=>`<option value="${k}" ${REG.type===k?'selected':''}>${k==='tricycle'?'TODA Express rider (tricycle)':T.label}</option>`).join('')}</select>
  <p class="muted" style="margin-top:2px">Moto Taxi isn't listed here — it's LUNAD's own in-house driver fleet, not a self-registered provider.</p>
  <div class="two"><div><label class="f">Operating area</label><select class="inp" id="ra">${Object.keys(TOWNS).map(t=>`<option>${t}</option>`).join('')}</select></div><div><label class="f">Seats</label><input class="inp" id="rs" type="number" value="${TYPES[REG.type].seats}"></div></div>
  <h3>Documents (${have}/${req.length})</h3>${req.map((n,i)=>`<div style="border-top:1px solid var(--line);padding:6px 0"><b style="font-size:12.5px">${esc(n)}</b> ${REG.docs[n]&&REG.docs[n].file?'<span class="st ok">Uploaded</span>':'<span class="st bad">Required</span>'}
@@ -2378,7 +2398,7 @@ function dropEta(key){const now=Date.now();
 function soloSteps(r){const st=r.status==='pending'?0:r.status==='accepted'?(r.arriving?2:1):r.status==='started'?3:4;
  const L=['Driver','On the way','Pickup','Trip','Arrived'];const T=['Finding a driver…','Driver on the way','Driver is at your pickup','On the trip','Arrived'];
  return `<div class="solo-steps"><ol class="trip-steps">${L.map((x,k)=>`<li class="${k<st?'done':k===st?'now':''}"><span></span>${x}</li>`).join('')}</ol><b class="solo-now">${T[st]}</b></div>`}
-function doneHTML(r){const A=P(r.from),B=P(r.to),p=prov(r.pid),di=drvInfo(p);const km_=routeKm(A,B);const mins=dur(km_,r.type);
+function doneHTML(r){if(isX(r))return xDoneHTML(r);if(r.student)return stuDoneHTML(r);const A=P(r.from),B=P(r.to),p=prov(r.pid),di=drvInfo(p);const km_=routeKm(A,B);const mins=dur(km_,r.type);
  const paid=r.pay&&r.pay!=='unpaid';
  return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Trip completed</span></div>
  <div class="join-body"><ol class="trip-steps">${['Driver','On the way','Pickup','Trip','Arrived'].map(x=>`<li class="done"><span></span>${x}</li>`).join('')}</ol>
@@ -2449,15 +2469,461 @@ function joinRide(code){let key=null;
  (err,ok)=>{if(ok&&key){JOINKEY=key;try{sessionStorage.setItem('lunad-joined'+SK+'-'+code,key);localStorage.setItem('lunad-joined'+SK+'-'+code,key)}catch(e){}addJoin(code,key);toast('You joined the shared ride');setTimeout(goJoined,600);return}else{JOINKEY=null;toast(err?'Could not join — check your connection':'This ride is full or closed')}LIVE.db.ref('rides/'+code).get().then(s=>{const bx=document.getElementById('joinScreen');if(bx)drawJoin(bx,`<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Shared tricycle</span></div>`,code,s.val())})})}
 function leaveRide(code){if(!JOINKEY)return;LIVE.db.ref('rides/'+code+'/members/'+JOINKEY).remove().then(()=>{try{sessionStorage.removeItem('lunad-joined'+SK+'-'+code);localStorage.removeItem('lunad-joined'+SK+'-'+code)}catch(e){}JOINKEY=null;setJoins(myJoins().filter(j=>j.code!==code));toast('You left the ride');if(!document.getElementById('joinScreen'))render()})}
 window.addEventListener('hashchange',()=>{if(location.hash.indexOf('#join-')===0&&LIVE.ready)joinScreen(location.hash.slice(6).toUpperCase())});
+/* =================== v0.27.0 — TODA EXPRESS · STUDENT MOBILITY · DRIVER REWARDS =================== */
+// TODA tricycles no longer take regular passenger bookings. TODA riders now do two things:
+//  1) TODA Express — same-day local deliveries for micro-businesses and home sellers, batched up to
+//     3 per rider when the bookings share a route (pickups within 2 km, same direction).
+//  2) Free student backride — verified students (school ID) ride the TODA backride seat for free,
+//     2 rides a day, ideally riding along with a rider already delivering on the same route.
+const PAX_TYPES=['moto','car','minivan','van'];
+const XP={base:40,km:10,batchDisc:0.2,cap:3,near:2,ang:45}; // sample delivery rates & batching rules
+const X_CATS=[['Food & drinks','utensils'],['Pasalubong & local products','bag'],['Groceries','fish'],['Documents','file-text'],['Clothing & abaca crafts','gift'],['Fragile','warn'],['Other','pkg']];
+const STU={daily:2,along:20,waitMin:30,walk:0.3,noShowMin:2,sponsor:'Catanduanes LGU · school partners · local business CSR (sample)',
+ schools:['Catanduanes State University (CatSU) – Virac','CatSU – Panganiban Campus','Catanduanes College','Virac National High School','San Andres Vocational School','Bato Rural Development High School','Other school']};
+const LUNAD_URL='https://github.com/nikkoramquia21-prog/Project-Lunad';
+function isX(r){return !!r&&r.kind==='express'}
+function xFare(d){return Math.round(XP.base+XP.km*d)}
+function xF(){S.xForm=S.xForm||{from:'market',to:'',desc:'',cat:X_CATS[0][0],rName:'',rMobile:'',payBy:'sender',cod:false,codAmt:'',svc:'send',list:'',est:'',subs:true};return S.xForm}
+function stu(){S.me.student=S.me.student||{status:'none'};return S.me.student}
+function stuOK(){return stu().status==='verified'}
+function today0(){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}
+function stuUsed(){return S.rides.filter(r=>r.booker==='me'&&r.student&&!r.fare&&r.type!=='tricycle'&&r.createdAt>=today0()&&!['cancelled','no_match','waiting'].includes(r.status)).length}
+function stuLeft(){return Math.max(0,STU.daily-stuUsed())}
+function stuLocked(){const o=stu().shareOwed;const r=o&&ride(o);return r||null}
+function stuMode(){return S.persona==='student'&&stuOK()}
+function rideTypes(){return stuMode()?['tricycle',...PAX_TYPES]:PAX_TYPES}
+function bearing(a,b){const r=x=>x*Math.PI/180;const y=Math.sin(r(b.lng-a.lng))*Math.cos(r(b.lat));const x=Math.cos(r(a.lat))*Math.sin(r(b.lat))-Math.sin(r(a.lat))*Math.cos(r(b.lat))*Math.cos(r(b.lng-a.lng));return (Math.atan2(y,x)*180/Math.PI+360)%360}
+function angDiff(a,b){const d=Math.abs(a-b)%360;return d>180?360-d:d}
+// Same route: pickups within 2 km of each other AND drop-offs within 2 km or heading the same way (±45°).
+function sameRoute(j,r){const A1=P(j.from),B1=P(j.to),A2=P(r.from),B2=P(r.to);if(!A1||!B1||!A2||!B2)return false;if(km(A1,A2)>XP.near)return false;return km(B1,B2)<=XP.near||angDiff(bearing(A1,B1),bearing(A2,B2))<=XP.ang}
+function xActive(pid){return S.rides.filter(r=>isX(r)&&r.pid===pid&&['accepted','started'].includes(r.status))}
+function xHeld(pid,ignore){return S.rides.filter(r=>isX(r)&&r.id!==ignore&&((r.pid===pid&&['accepted','started'].includes(r.status))||(r.status==='pending'&&r.cands[r.offerIdx]===pid)))}
+function stuHeld(pid,ignore){return S.rides.some(r=>r.student&&r.id!==ignore&&((r.pid===pid&&['accepted','started'].includes(r.status))||(r.status==='pending'&&r.cands[r.offerIdx]===pid)))}
+// Deliveries and student backrides can share one TODA rider; capacity is checked in eligible().
+function compatReq(id){const r=ride(id);return !!(r&&(isX(r)||r.student))}
+function xCapOK(p,ignore){const q=ride(ignore);if(!q)return true;if(q.buy)return xHeld(p.id,ignore).length<XP.cap&&!xHeld(p.id,ignore).some(j=>j.buy);if(isX(q))return xHeld(p.id,ignore).length<XP.cap;if(q.student)return !stuHeld(p.id,ignore);return true}
+function xAlong(r){const s=new Set();if(r.buy)return s;for(const p of S.providers)if(p.type==='tricycle'&&xActive(p.id).some(j=>j.id!==r.id&&!j.buy&&sameRoute(j,r)))s.add(p.id);return s}
+function xBatchPreview(f){if(!f.to)return null;const q={from:f.from,to:f.to};const p=S.providers.find(p=>p.type==='tricycle'&&p.status==='approved'&&p.online&&xHeld(p.id).length<XP.cap&&xActive(p.id).some(j=>!j.buy&&sameRoute(j,q)));return p?drvInfo(p):null}
+function rwEdge(p){const w=(S.rewards||{})[p.id];const n=Date.now();return w&&((w.prioUntil||0)>n||(w.boostUntil||0)>n)?3:0}
+
+/* ---- Ride tab: Ride / TODA Express switch ---- */
+function rideModeBar(){const x=S.rideMode==='express';return `<div class="share-opts mode-bar" role="group" aria-label="Booking type" style="margin:0 0 12px"><button class="share-opt ${x?'':'on'}" aria-pressed="${!x}" onclick="setRideMode('ride')"><b>${ic('car')} Ride</b><span>${stuMode()?'Moto, car, van · free ride-along for students':'Moto, car or van'}</span></button><button class="share-opt ${x?'on':''}" aria-pressed="${x}" onclick="setRideMode('express')"><b>${ic('pkg')} TODA Express</b><span>Same-day delivery</span></button></div>`}
+function setRideMode(m){S.rideMode=m;save();render();$('#main').scrollTop=0}
+function goExpress(){S.rideMode='express';go('ride')}
+
+/* ---- TODA Express: sender booking ---- */
+function xSet(k,v){const f=xF();if(k==='cat')v=X_CATS[v][0];f[k]=v;save();render()}
+function xActiveCards(){return S.rides.filter(r=>isX(r)&&r.booker==='me'&&['queued','pending','accepted','started','no_match'].includes(r.status)&&(r.status!=='no_match'||Date.now()-r.createdAt<6*60*MIN)).sort((a,b)=>b.createdAt-a.createdAt).map(r=>xCard(r,true)).join('')}
+function vExpress(){const f=xF();const buy=f.svc==='buy';const a=P(f.from)||P('market'),b=f.to?P(f.to):null;if(!P(f.from))f.from='market';
+ const d=b?routeKm(a,b):0,full=b?xFare(d)+(buy?PB.fee:0):0,bp=b&&!buy?xBatchPreview(f):null,fee=bp?Math.round(full*(1-XP.batchDisc)):full;
+ const storm=paused(a.t)||(b&&paused(b.t));
+ let h=xActiveCards()+rideModeBar();
+ if(storm)h+=`<div class="banner bad">${ic('storm')} Storm signal in ${paused(a.t)?a.t:b.t}. TODA Express is paused there.</div>`;
+ h+=`<h2>${ic('pkg')} Book TODA Express</h2><p class="muted" style="margin:-4px 0 8px">${buy?'Pasabuy — a rider buys what you need from a nearby store and brings it to you. Chat with your rider while they shop.':'Same-day local delivery by verified TODA riders — for micro-businesses, home-based sellers and anyone sending goods around the island.'}</p>
+ <div class="share-opts" role="group" aria-label="Service" style="margin:0 0 10px"><button class="share-opt ${buy?'':'on'}" id="xSvcSend" onclick="xSet('svc','send')"><b>${ic('pkg')} Send an item</b><span>Pickup → delivery</span></button><button class="share-opt ${buy?'on':''}" id="xSvcBuy" onclick="xSet('svc','buy')"><b>${ic('bag')} Pasabuy</b><span>Rider buys it for you</span></button></div>
+ <div class="card">
+ ${b?mapView('map-x',{route:[a,b],marks:[[a,'pickup','#0D1B2A',esc(a.n)],[b,'dropoff','#F5B544',esc(b.n)]],h:190}):''}
+ ${buy?placeInput('xfrom','Buy from (store or area)'):placeInput('xfrom','Pickup location')}
+ ${placeInput('xto',buy?'Deliver to':'Delivery location')}
+ ${buy?xBuyFields(f):`<label class="f">Item description</label><input class="inp" id="xDesc" maxlength="80" placeholder="e.g. 2 boxes of pili tarts" value="${esc(f.desc)}" oninput="S.xForm.desc=this.value;save()">
+ <label class="f">Item category</label><div class="chips" id="xCats">${X_CATS.map(([c,i],k)=>`<span class="chip ${f.cat===c?'on':''}" onclick="xSet('cat',${k})">${ic(i)} ${esc(c)}</span>`).join('')}</div>
+ <h3 style="margin:12px 0 0">Recipient</h3>
+ <div class="two"><div><label class="f">Name</label><input class="inp" id="xRn" maxlength="40" placeholder="Full name" value="${esc(f.rName)}" oninput="S.xForm.rName=this.value;save()"></div>
+ <div><label class="f">Mobile</label><input class="inp" id="xRm" inputmode="tel" maxlength="13" placeholder="09xx-xxx-xxxx" value="${esc(f.rMobile)}" oninput="S.xForm.rMobile=this.value;save()"></div></div>`}
+ <label class="f">${buy?'How will you pay the rider back?':'Who pays the delivery fee?'}</label><div class="share-opts" role="group" aria-label="Who pays"><button class="share-opt ${f.payBy==='sender'?'on':''}" id="xPaySender" onclick="xSet('payBy','sender')"><b>${ic('card')} ${buy?'QR after receipt':'I pay now'}</b><span>${buy?'Goods + fee · GCash / Maya':'QR · GCash / Maya'}</span></button><button class="share-opt ${f.payBy==='recipient'?'on':''}" id="xPayRcpt" onclick="xSet('payBy','recipient')"><b>${ic('user')} ${buy?'Cash on arrival':'Recipient pays'}</b><span>${buy?'Goods + fee in cash':'Cash on arrival'}</span></button></div>
+ ${buy?'':`<label class="lug"><input type="checkbox" id="xCod" ${f.cod?'checked':''} onchange="xSet('cod',this.checked)"> Collect item payment on delivery (COD) <span class="muted">· for sellers</span></label>
+ ${f.cod?`<input class="inp" id="xCodAmt" inputmode="numeric" maxlength="6" placeholder="Item price to collect, e.g. 350" value="${esc(f.codAmt)}" oninput="S.xForm.codAmt=this.value.replace(/[^0-9]/g,'');save()">`:''}`}
+ <div class="sep"></div>
+ ${b?`<div class="kv"><span>Distance / travel time</span><b>${d.toFixed(1)} km · ${dur(d,'tricycle')} min</b></div>
+ ${bp?`<div class="banner info" id="xBatchNote" style="margin:6px 0">${ic('tricycle')} Shared route: <b>${esc(bp.name)}</b> is already delivering this way — your item rides along, 20% off.</div>`:''}
+ <div class="kv"><span>${buy?'Delivery + ₱'+PB.fee+' shopping fee':'Delivery fee'}${bp?' (shared route)':''}</span><b id="xFee">${bp?`<s class="muted">${peso(full)}</s> `:''}${peso(fee)}</b></div>${buy&&+f.est?`<div class="kv"><span>Goods (estimate, paid back with receipt)</span><b>${peso(+f.est)}</b></div><div class="kv"><span>Estimated total</span><b>${peso(fee+(+f.est))}</b></div>`:''}${f.cod&&+f.codAmt?`<div class="kv"><span>Rider collects for you (COD)</span><b>${peso(+f.codAmt)}</b></div>`:''}`:'<p class="muted" style="margin:6px 0">Choose a delivery location to see the fee.</p>'}
+ <button class="btn block" id="xBookBtn" style="margin-top:8px" ${!b||f.from===f.to||storm?'disabled':''} onclick="xConfirm()">${buy?'Book Pasabuy':'Book TODA Express'}</button></div>
+ ${buy?`<p class="muted">Pasabuy goes to the nearest TODA Express or LUNAD Moto Taxi rider. They pay for your items (up to ${peso(PB.cap)}), send the receipt in chat, and you pay them back on delivery.</p>`:''}<p class="muted">Your delivery goes to the nearest available TODA Express rider. Riders already heading the same way (pickups within 2 km, same direction) can carry up to 3 deliveries at once — you get a shared-route discount.</p>`;
+ return h}
+function xValid(){const f=xF();if(f.svc==='buy'){if((f.list||'').trim().length<3)return 'Add what the rider should buy';if(!(+f.est>0))return 'Enter an estimated cost of the items';if(+f.est>PB.cap)return 'Pasabuy is up to '+peso(PB.cap)+' of goods per booking';return ''}const digits=(f.rMobile||'').replace(/\D/g,'');
+ if((f.desc||'').trim().length<3)return 'Describe the item (at least 3 characters)';
+ if((f.rName||'').trim().length<2)return 'Enter the recipient’s name';
+ if(digits.length<10||digits.length>11)return 'Enter the recipient’s 10–11 digit mobile number';
+ if(f.cod&&!(+f.codAmt>0))return 'Enter the item price to collect (COD)';
+ return ''}
+function xConfirm(){const err=xValid();if(err){toast(err);return}const f=xF();if(f.svc==='buy'){pbConfirm();return}const d=routeKm(P(f.from),P(f.to));const bp=xBatchPreview(f);const full=xFare(d),fee=bp?Math.round(full*(1-XP.batchDisc)):full;
+ modal(`<h2>${ic('pkg')} Confirm TODA Express</h2>
+ <div class="kv"><span>${esc(P(f.from).n)} → ${esc(P(f.to).n)}</span></div>
+ <div class="kv"><span>Item</span><b>${esc(f.desc.trim())} · ${esc(f.cat)}</b></div>
+ <div class="kv"><span>Recipient</span><b>${esc(f.rName.trim())} · ${esc(f.rMobile.trim())}</b></div>
+ <div class="kv"><span>Delivery fee${bp?' (shared route, est.)':''}</span><b>${peso(fee)}</b></div>
+ <div class="kv"><span>Paid by</span><b>${f.payBy==='sender'?'You — QR after a rider accepts':'Recipient — cash on arrival'}</b></div>
+ ${f.cod?`<div class="kv"><span>COD (rider collects for you)</span><b>${peso(+f.codAmt)}</b></div>`:''}
+ <p class="muted" style="margin:6px 0 0">The recipient gets an SMS with the rider’s name and plate when the item is picked up.</p>
+ <button class="btn block" id="xConfirmBtn" style="margin-top:12px" onclick="xBook()">Confirm & book</button>`)}
+function xBook(){if(xValid())return;const f=xF();if(f.svc==='buy'){pbBook();return}const d=routeKm(P(f.from),P(f.to));
+ const r=newRide({from:f.from,to:f.to,type:'tricycle',pax:1,start:Date.now()+5*MIN,extra:{kind:'express',item:{desc:f.desc.trim(),cat:f.cat},rcpt:{name:f.rName.trim(),mobile:f.rMobile.trim()},payBy:f.payBy,cod:f.cod?+f.codAmt:0}});
+ r.id=nid('EX');r.fullFare=xFare(d);r.fare=r.fullFare;if(r.payBy==='recipient')r.pay='recipient';S.rides.push(r);
+ Object.assign(f,{desc:'',rName:'',rMobile:'',cod:false,codAmt:'',to:''});
+ if(!online()){r.status='queued';closeModal();save();render();toast('No signal — delivery queued, will send automatically');return}
+ dispatch(r);closeModal();save();render();
+ toast(r.status==='pending'?(r.batch?'Shared route found — offered to '+drvInfo(prov(r.cands[0])).name:'Delivery sent to '+drvInfo(prov(r.cands[0])).name):'No TODA rider available — see options')}
+function xSteps(r){const st=r.status==='pending'?0:r.status==='accepted'?(r.arriving?2:1):r.status==='started'?3:4;
+ const L=['Rider','To pickup','Picked up','In transit','Delivered'];const T=['Finding a TODA Express rider…','Rider on the way to pickup','Rider is at the pickup','Item picked up · on the way','Delivered'];
+ return `<div class="solo-steps"><ol class="trip-steps">${L.map((x,k)=>`<li class="${k<st?'done':k===st?'now':''}"><span></span>${x}</li>`).join('')}</ol><b class="solo-now">${T[st]}</b></div>`}
+function xPayLine(r){return r.payBy==='recipient'?'Recipient pays '+peso(r.fare)+' on arrival':'You pay '+peso(amount(r))}
+function xCard(r,hl){const p=r.pid?prov(r.pid):null;const now=Date.now();const mates=r.pid?xActive(r.pid).filter(j=>j.id!==r.id).length:0;
+ let h=`<div class="card ${hl?'hl':''} x-card" data-x="${r.id}"><div class="kv"><span><b>${ic(r.buy?'bag':'pkg')} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b></span><span class="muted">${r.id}</span></div>
+ ${r.buy?pbInfo(r):`<div class="muted">TODA Express · ${esc(r.item.desc)} (${esc(r.item.cat)}) · to ${esc(r.rcpt.name)}</div>`}
+ <div class="muted">${xPayLine(r)}${r.batch?` · shared route (saved ${peso((r.fullFare||r.fare)-r.fare)})`:''}${r.cod?' · COD '+peso(r.cod):''}${p?' · '+esc(drvInfo(p).name)+' '+verifBadge(r.type,'sm'):''}</div>
+ ${r.alongStu&&ride(r.alongStu)&&['pending','accepted','started'].includes(ride(r.alongStu).status)?`<div class="share-line" id="alongSender">${ic('grad')} A student is riding along on this trip (free backride)</div>`:''}${r.batch&&mates&&['accepted','started'].includes(r.status)?`<div class="share-line">${ic('tricycle')} Riding with ${mates} other deliver${mates>1?'ies':'y'} on the same route</div>`:''}
+ ${['pending','accepted','started'].includes(r.status)?xSteps(r):''}${p&&['accepted','started'].includes(r.status)?drvCard(drvInfo(p),'r:'+r.id):''}
+ <div class="statrow" style="margin:5px 0">${xChip(r.status)} ${payChip(r)}</div>`;
+ if(r.status==='pending')h+=`<div class="muted">Offered to <b>${esc(drvInfo(prov(r.cands[r.offerIdx])).name)}</b><span class="cd" data-id="${r.id}"></span> · ${r.cands.length-r.offerIdx-1} more rider(s) in line</div>`;
+ if(r.status==='no_match'){h+=`<div class="muted">${esc(r.why||'')}</div>`}
+ if(r.status==='queued')h+=`<div class="banner info" style="margin:6px 0">${ic('wifi-off')} No signal — this delivery sends automatically once you're back online. <button class="btn sm sec" style="margin-top:6px" onclick="toggleNet()">Simulate: back online</button></div>`;
+ const btn=[];
+ if(r.payBy==='sender'&&['accepted','started','completed'].includes(r.status)&&['unpaid','rejected'].includes(r.pay)&&(!r.buy||r.goods))btn.push(`<button class="btn sm" onclick="payModal('${r.id}')">${r.buy?'Pay '+peso(amount(r))+' (goods + fee)':'Pay delivery fee'}</button>`);
+ if(['queued','pending','accepted'].includes(r.status))btn.push(`<button class="btn sm ghost" onclick="cancelModal('${r.id}')">Cancel</button>`);
+ if(p&&['accepted','started'].includes(r.status))btn.push(`<button class="btn sm ${r.buy?'':'sec'}" onclick="messageModal('${r.id}')">${ic('mail')} ${r.buy?'Chat with rider':'Message rider'}${S.threads[r.id]?.length?` (${S.threads[r.id].length})`:''}</button>`);
+ if(r.status==='completed'&&!r.rated.b)btn.push(`<button class="btn sm" onclick="xReviewOpen('${r.id}')">${ic('star-f')} Review delivery</button>`);
+ if(r.rated.b){const rv=S.ratings.find(x=>x.rideId===r.id&&x.from==='b');if(rv)h+=`<div class="muted">Your review: ${starRow(rv.stars,'sm')}${rv.comment?' — '+esc(rv.comment):''}</div>`}
+ if(btn.length)h+=`<div class="btns">${btn.join('')}</div>`;
+ return h+'</div>'}
+function xChip(s){const m={queued:['wait','Queued (offline)'],pending:['info','Finding a rider'],no_match:['bad','No rider found'],accepted:['ok','Rider assigned'],started:['info','In transit'],completed:['ok','Delivered'],cancelled:['mut','Cancelled']}[s]||['mut',s];return `<span class="st ${m[0]}">${m[1]}</span>`}
+/* Delivery confirmation + review (full-screen, like the ride-completed screen) */
+let XR={id:null,stars:0,comment:''};
+const X_TAGS=['On time','Item in good condition','Friendly rider','Good communication'];
+function xDoneHTML(r){if(r.buy)return pbDoneWrap(r);if(XR.id!==r.id)XR={id:r.id,stars:0,tags:[],comment:''};const A=P(r.from),B=P(r.to),di=drvInfo(prov(r.pid));const paid=!['unpaid','rejected'].includes(r.pay);
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">TODA Express</span></div>
+ <div class="join-body"><ol class="trip-steps">${['Rider','To pickup','Picked up','In transit','Delivered'].map(x=>`<li class="done"><span></span>${x}</li>`).join('')}</ol>
+ <div class="done-ic" aria-hidden="true">${ic('check')}</div><h2 style="margin:6px 0 4px;text-align:center" id="xDoneTitle">Delivered!</h2><p class="muted" style="margin:0 0 14px;text-align:center">${esc(r.item.desc)} was delivered to ${esc(r.rcpt.name)} at ${esc(B.n.replace(' (sample)',''))}.</p>
+ <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))}</b></div>
+ <div class="kv"><span>Delivered</span><b>${clock(r.end||Date.now())}</b></div>
+ ${di?`<div class="kv"><span>TODA Express rider</span><b>${esc(di.name)} · ${esc(di.plate)}</b></div>`:''}
+ <div class="kv"><span>Delivery fee</span><b>${peso(r.fare)}${r.batch?' (shared route)':''}</b></div>
+ <div class="kv"><span>Payment</span><b>${r.payBy==='recipient'?'Recipient paid on arrival':paid?'Paid':'Unpaid'}</b></div>
+ ${r.cod?`<div class="kv"><span>COD collected for you</span><b>${peso(r.cod)}</b></div>`:''}</div>
+ ${r.payBy==='sender'&&!paid?`<button class="btn block" style="margin-top:12px" onclick="payModal('${r.id}')">Pay delivery fee · ${peso(r.fare)}</button>`:''}
+ ${r.rated.b?`<p class="muted" style="text-align:center;margin:12px 0 0">${ic('check')} Thanks for your review</p>`:`<h3 style="margin:14px 0 4px;text-align:center">Rate this delivery</h3>
+ <div class="stars" style="justify-content:center" id="xStars">${[1,2,3,4,5].map(i=>`<span class="${i<=XR.stars?'on':''}" onclick="XR.stars=${i};doneTick()">${ic('star-f')}</span>`).join('')}</div>
+ <div class="chips" style="margin:8px 0;justify-content:center">${X_TAGS.map((t,k)=>`<span class="chip ${XR.tags.includes(t)?'on':''}" onclick="xTag(${k})">${t}</span>`).join('')}</div>
+ <button class="btn block" id="xReviewBtn" ${XR.stars?'':'disabled'} onclick="xReviewSave('${r.id}')">Submit review</button>`}
+ <button class="btn sec block" style="margin-top:8px" id="xDoneBtn" onclick="doneAck('${r.id}')">Done</button></div>`}
+function xTag(k){const t=X_TAGS[k];const i=XR.tags.indexOf(t);if(i>=0)XR.tags.splice(i,1);else XR.tags.push(t);doneTick()}
+function xReviewSave(id){const r=ride(id);if(!r||!XR.stars)return;S.ratings.push({rideId:r.id,from:'b',to:r.pid,stars:XR.stars,reason:'',tags:XR.tags.slice(),comment:XR.tags.join(', '),at:Date.now()});r.rated.b=true;save();doneTick();toast('Thanks — your review helps TODA Express riders')}
+function xReviewOpen(id){const r=ride(id);if(!r)return;r.doneSeen=false;save();doneTick()}
+
+/* ---- TODA Express: rider side ---- */
+function xOfferCard(r){if(r.buy)return pbOfferCard(r);const along=xActive(r.cands[r.offerIdx]).filter(j=>j.id!==r.id&&sameRoute(j,r)).length;
+ return `<div class="card hl x-offer" data-x="${r.id}"><div class="share-line">${ic('pkg')} TODA Express delivery${along?` · ${ic('tricycle')} same route as ${along} of your deliveries`:''}</div>
+ <div class="kv"><span>Pickup</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Deliver to</span><b>${esc(P(r.to).n)}</b></div>
+ <div class="kv"><span>Item</span><b>${esc(r.item.desc)} · ${esc(r.item.cat)}</b></div><div class="kv"><span>Recipient</span><b>${esc(r.rcpt.name)}</b></div>
+ <div class="kv"><span>Delivery fee</span><b>${peso(r.fare)}${r.batch?' (shared route)':''}</b></div>
+ <div class="kv"><span>Payment</span><b>${r.payBy==='recipient'?'Collect '+peso(r.fare)+' from recipient':'Sender pays by QR'}</b></div>
+ ${r.cod?`<div class="kv"><span>COD to collect for sender</span><b>${peso(r.cod)}</b></div>`:''}
+ <div class="muted">${fmtT(r.start)} · ${r.id}</div>
+ <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
+ <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept delivery</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`}
+function xJobCard(r){if(r.buy)return pbJobCard(r);const n=xActive(r.pid).length;
+ return `<div class="card x-job" data-x="${r.id}"><b>${ic('pkg')} ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b>
+ <div class="muted">${esc(r.item.desc)} (${esc(r.item.cat)}) · to ${esc(r.rcpt.name)} · ${esc(r.rcpt.mobile)} · ${r.id}</div>
+ <div class="muted">${r.payBy==='recipient'?'Collect '+peso(r.fare)+' fee from recipient':'Fee '+peso(r.fare)+' · sender pays by QR'}${r.cod?' · COD '+peso(r.cod)+' for sender':''}${n>1?` · ${n} of ${XP.cap} deliveries on this trip`:''}</div>
+ <div>${xChip(r.status)} ${payChip(r)}</div>${alongBlock(r)}
+ <div class="btns">${r.status==='accepted'?`<button class="btn sm sec" onclick="arriving('${r.id}')">${r.arriving?ic('check')+' At pickup · sender notified':'Arrived at pickup'}</button><button class="btn sm" onclick="startTrip('${r.id}')">Picked up item</button><button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button>`:`<button class="btn sm" onclick="complete('${r.id}')">Mark delivered</button>`}
+ <button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Message sender</button></div></div>`}
+function xOnComplete(r){if(r.buy){if(r.payBy==='recipient')r.pay='cash';else if(r.pay==='buying')r.pay='unpaid';return}if(isX(r)){if(r.payBy==='recipient')r.pay='cash';S.notifs.unshift({to:'contacts',ch:'sms',text:`LUNAD: Hi ${r.rcpt.name}, your TODA Express package (${r.id}) was delivered.${r.cod?' COD paid: '+peso(r.cod)+'.':''}`,ref:r.id,at:Date.now(),status:'delivered'})}
+ if(r.student&&!r.fare){stu().shareOwed=r.id}}
+
+/* ---- Student Mobility Program ---- */
+let STUF={idFile:false,reg:false};
+function stuCard(){const s=stu();
+ if(s.status==='verified'){const lk=stuLocked();return `<div class="card hl stu-card" id="stuCard"><div class="kv"><span><b>${ic('grad')} Student Mobility Program</b></span><span class="st ok" id="stuBadge">${ic('shield')} Verified Student</span></div>
+  <div class="muted">${esc(s.school)} · ID ${esc(s.idNo)}</div>
+  <div class="kv" style="margin-top:6px"><span>TODA Express ride-along</span><b>${peso(STU.along)} flat</b></div><div class="kv"><span>Free car/van seats today</span><b id="stuLeft">${stuLeft()} of ${STU.daily} left</b></div>
+  ${lk?`<div class="banner bad" style="margin:6px 0">${ic('ban')} Next free ride locked — share your last free ride on Facebook or Instagram to unlock it.</div><div class="btns">${stuShareBtn(lk.id,'fb','sm')}${stuShareBtn(lk.id,'ig','sm sec')}</div>`:''}
+  <p class="muted" style="margin:6px 0 0">Sponsored by ${esc(STU.sponsor)}.</p>
+  <button class="btn sm block" style="margin-top:8px" onclick="S.rideMode='ride';S.rideForm.type='tricycle';S.rideForm.pax=1;go('ride')">Book a free TODA backride</button></div>`}
+ if(s.status==='pending')return `<div class="card stu-card" id="stuCard"><div class="kv"><span><b>${ic('grad')} Student Mobility Program</b></span><span class="st wait" id="stuBadge">Pending review</span></div>
+  <div class="muted">${esc(s.school)} · ID ${esc(s.idNo)} · submitted ${clock(s.at)}. Your school ID is being checked — usually within 1 school day.</div>
+  <button class="btn sm sec block" style="margin-top:8px" id="stuApprove" onclick="stuApprove()">Demo: approve now</button></div>`;
+ return `<div class="card stu-card" id="stuCard"><b>${ic('grad')} Students ride TODA free</b><p class="muted" style="margin:4px 0 8px">Verified students get ${STU.daily} free TODA backrides a day — to school, home, anywhere on the island. Sponsored by the LGU, schools and local businesses.</p>
+  <button class="btn block" id="stuStart" onclick="stuForm()">Verify student status</button></div>`}
+function stuPromo(){return `<div class="card stu-promo" style="margin-top:8px"><div class="kv"><span>${ic('grad')} <b>Student?</b> Ride TODA free — ${STU.daily} rides a day.</span><button class="btn sm sec" onclick="stuForm()">Verify</button></div></div>`}
+function stuForm(){STUF={idFile:false,reg:false};const s=stu();
+ modal(`<h2>${ic('grad')} Verify student status</h2><p class="muted" style="margin:0 0 6px">Upload your school ID. We use it only to confirm you’re enrolled.</p>
+ <label class="f">School</label><select class="inp" id="stuSchool">${STU.schools.map(x=>`<option ${s.school===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
+ <label class="f">Student ID number</label><input class="inp" id="stuIdNo" maxlength="20" placeholder="e.g. 2024-01234" value="${esc(s.idNo||'')}">
+ <label class="f">Valid school ID (photo) <span class="st bad" id="stuIdSt">Required</span></label><input class="inp" type="file" accept="image/*,.pdf" id="stuIdFile" onchange="STUF.idFile=!!this.files[0];stuFormSt()">
+ <button class="btn sm ghost" style="margin-top:4px" id="stuSample" onclick="STUF.idFile=true;stuFormSt();toast('Sample school ID attached (demo)')">Use sample ID photo (demo)</button>
+ <label class="f">School registration / enrollment form <span class="muted">(optional)</span></label><input class="inp" type="file" accept="image/*,.pdf" id="stuRegFile" onchange="STUF.reg=!!this.files[0]">
+ <button class="btn block" style="margin-top:12px" id="stuSubmit" onclick="stuSubmit()">Submit for verification</button>
+ <p class="muted" style="margin-top:6px">Free rides start once your ID is approved.</p>`)}
+function stuFormSt(){const e=$('#stuIdSt');if(e){e.className='st '+(STUF.idFile?'ok':'bad');e.textContent=STUF.idFile?'Attached':'Required'}}
+function stuSubmit(){const no=($('#stuIdNo').value||'').trim();if(no.length<4){toast('Enter your student ID number');return}if(!STUF.idFile){toast('Upload a photo of your school ID');return}
+ Object.assign(stu(),{status:'pending',school:$('#stuSchool').value,idNo:no,reg:STUF.reg,at:Date.now()});save();closeModal();render();toast('Submitted — your school ID is under review')}
+function stuApprove(){const s=stu();if(s.status!=='pending')return;s.status='verified';s.verifiedAt=Date.now();save();render();toast('You’re a Verified Student — free TODA backrides unlocked')}
+function stuFareKV(d){return `<div class="kv"><span>Fare · student ride-along</span><b>TODA ${peso(STU.along)} flat · car/van ${peso(0)}</b></div><p class="muted" style="margin:2px 0 0">You pay ${peso(STU.along)} if you’re matched with a TODA Express rider, or nothing for an empty car/van seat${stuLeft()<1||stuLocked()?' — free seats are '+(stuLocked()?'locked until you share your last free ride':'used up today')+', so you’ll be matched with TODA only':''}.</p>`}
+function stuBlock(f){if(f.type!=='tricycle')return '';if(S.persona!=='student')return 'Free rides are for the Student account';if(!stuOK())return 'Verify your student status first';if(!hubOf(f.from))return 'Free rides start from a student hub — walk to one of the hubs below';if(stuWaiting())return 'You’re already waiting for a ride-along';if(stuActive())return 'You already have a free ride in progress';if(!online())return 'Free backrides need a signal to find a ride-along';if(f.pax>1)return 'Backride carries 1 student only';if(f.when!=='now')return 'Free backrides are booked for now, not scheduled';return ''}
+function stuBanner(f){const lk=stuLocked();const why=stuBlock(f);
+ return hubPicker(f)+`<div class="banner info">${ic('grad')} Student ride-along: ride with a TODA Express rider for a flat ${peso(STU.along)}, or take an empty car/van seat for free (${stuLeft()} of ${STU.daily} free seats left today). Drivers don’t make separate trips — you join one already going your way. Not available on Moto Taxi.</div>`+
+ (lk?`<div class="banner bad" id="stuLockBanner">${ic('ban')} Free car/van seats are locked until you share your last free ride. TODA ride-alongs (${peso(STU.along)}) still work.<div class="btns" style="margin-top:6px">${stuShareBtn(lk.id,'fb','sm')}${stuShareBtn(lk.id,'ig','sm sec')}</div></div>`:why?`<p class="muted" id="stuWhy">${esc(why)}</p>`:'')}
+function stuShareText(r){return `Free ride to ${P(r.to).n.replace(' (sample)','')} with LUNAD’s Student Mobility Program! TODA rides are free for students in Catanduanes. #LUNAD #Catanduanes #HappyIsland`}
+function stuShareUrl(r,net){return net==='fb'?'https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(stuShareText(r)):'https://www.instagram.com/'}
+function stuShareBtn(id,net,cls,elId){const r=ride(id);return `<a class="btn ${cls||''}" ${elId?'id="'+elId+'"':''} data-share="${net}" style="text-decoration:none;text-align:center" href="${esc(stuShareUrl(r,net))}" target="_blank" rel="noopener" onclick="stuShare('${id}','${net}',true)">${net==='fb'?'Share on Facebook':'Share on Instagram'}</a>`}
+function stuShare(id,net,viaLink){const r=ride(id);if(!r)return;const txt=stuShareText(r);
+ try{if(viaLink){if(net==='ig'&&navigator.clipboard)navigator.clipboard.writeText(txt).catch(()=>{})}else if(net==='fb')window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(LUNAD_URL)+'&quote='+encodeURIComponent(txt),'_blank','noopener');
+  else{if(navigator.clipboard)navigator.clipboard.writeText(txt).catch(()=>{});window.open('https://www.instagram.com/','_blank','noopener')}}catch(e){}
+ r.social=net;r.socialAt=Date.now();if(stu().shareOwed===id)stu().shareOwed=null;r.doneSeen=true;save();const el=document.getElementById('doneLock');if(el)el.remove();closeModal();render();
+ toast(net==='fb'?'Thanks for sharing on Facebook — next free ride unlocked':'Caption copied — post it on Instagram. Next free ride unlocked')}
+function stuDoneHTML(r){if(r.fare)return stuPaidDoneHTML(r);const A=P(r.from),B=P(r.to),di=drvInfo(prov(r.pid));
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Free student ride</span></div>
+ <div class="join-body"><div class="done-ic" aria-hidden="true">${ic('check')}</div><h2 style="margin:6px 0 4px;text-align:center">Ride completed — it’s on us!</h2>
+ <p class="muted" style="margin:0 0 12px;text-align:center">You’ve arrived at ${esc(B.n.replace(' (sample)',''))}. This ride-along was free — an empty seat on a trip already going your way.</p>
+ <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))}</b></div>
+ ${di?`<div class="kv"><span>${r.type==='tricycle'?'TODA rider':'Driver'}</span><b>${esc(di.name)} · ${esc(di.plate)}</b></div>`:''}
+ <div class="kv"><span>You pay</span><b style="font-size:18px">${peso(0)}</b></div></div>
+ <div class="share-pop" id="stuSharePop"><h3 style="margin:14px 0 4px;text-align:center">Share your ride to unlock your next free ride</h3>
+ <p class="muted" style="margin:0 0 8px;text-align:center">Post about your trip on Facebook or Instagram. Your next free ride stays locked until you share.</p>
+ ${stuShareBtn(r.id,'fb','block','stuFb')}
+ <div style="margin-top:8px">${stuShareBtn(r.id,'ig','sec block','stuIg')}</div>
+ <button class="btn ghost block" style="margin-top:8px;border:0" id="stuLater" onclick="doneAck('${r.id}')">Later — keep next free ride locked</button></div></div>`}
+
+
+/* ---- Typed place fields (Ride + TODA Express): type a place, barangay or landmark; suggestions as you type ---- */
+function fGet(w){return w==='xfrom'?xF().from:w==='xto'?xF().to:S.rideForm[w]}
+function fSet(w,id){if(w==='xfrom')xF().from=id;else if(w==='xto')xF().to=id;else S.rideForm[w]=id}
+function placeInput(which,label){const cur=P(fGet(which));const pick=which==='from'||which==='xfrom';
+ const ph={from:'Type pickup — place, barangay or landmark',to:'Where are you going?',xfrom:xF().svc==='buy'?'Type a store or area, e.g. Virac Public Market':'Type pickup — store, home or landmark',xto:'Where should it go?'}[which];
+ return `<label class="f" for="pf-${which}">${esc(label)}</label><div style="display:flex;gap:6px"><div class="ac" style="flex:1"><input class="inp pf" id="pf-${which}" value="${cur?esc(cur.n.replace(' (sample)','')):''}" placeholder="${esc(ph)}" autocomplete="off" autocapitalize="words" aria-label="${esc(label)}" oninput="acInput('${which}',this)" onkeydown="acKey('${which}',this,event)" onfocus="this.select();const m=$('#main'),r=this.getBoundingClientRect(),mr=m.getBoundingClientRect();m.scrollTop+=r.top-mr.top-12;if(this.value)acInput('${which}',this)" onblur="setTimeout(()=>{const b=this.nextElementSibling;if(b)b.hidden=true;const c=P(fGet('${which}'));if(document.activeElement!==this)this.value=c?c.n.replace(' (sample)',''):''},200)"><div class="ac-list" role="listbox" hidden></div></div>${pick?`<button class="btn sm ghost" onclick="useMyLocation('${which}')" title="Use my current location" aria-label="Use my current location">${ic('target')}</button>`:''}</div>`}
+
+/* ---- Pasabuy (TODA Express): a TODA Express or LUNAD Moto Taxi rider buys items and delivers them ---- */
+const PB={fee:30,cap:1000};
+function xBuyFields(f){return `<label class="f" for="pbList">What should the rider buy?</label><textarea class="inp" id="pbList" rows="3" maxlength="300" placeholder="One item per line, e.g.&#10;2 kg rice (any brand)&#10;1 tray eggs&#10;Pancit canton x3" oninput="S.xForm.list=this.value;save()">${esc(f.list||'')}</textarea>
+ <div class="two"><div><label class="f" for="pbEst">Estimated cost of items</label><input class="inp" id="pbEst" inputmode="numeric" maxlength="4" placeholder="e.g. 450" value="${esc(f.est||'')}" oninput="S.xForm.est=this.value.replace(/[^0-9]/g,'');save()"></div><div><label class="f">Rider spends up to</label><div class="inp" style="display:flex;align-items:center">${peso(PB.cap)}</div></div></div>
+ <label class="lug"><input type="checkbox" id="pbSubs" ${f.subs!==false?'checked':''} onchange="S.xForm.subs=this.checked;save()"> OK to substitute if out of stock <span class="muted">· rider asks you in chat first</span></label>`}
+function pbConfirm(){const f=xF();const d=routeKm(P(f.from),P(f.to));const fee=xFare(d)+PB.fee;
+ modal(`<h2>${ic('bag')} Confirm Pasabuy</h2>
+ <div class="kv"><span>Buy from</span><b>${esc(P(f.from).n)}</b></div><div class="kv"><span>Deliver to</span><b>${esc(P(f.to).n)}</b></div>
+ <div class="kv"><span>Shopping list</span><b style="white-space:pre-line;text-align:right">${esc(f.list.trim())}</b></div>
+ <div class="kv"><span>Items (estimate)</span><b>${peso(+f.est)}</b></div><div class="kv"><span>Delivery + shopping fee</span><b>${peso(fee)}</b></div>
+ <div class="kv"><span>You pay back</span><b>${f.payBy==='sender'?'By QR, after the rider sends the receipt':'In cash on arrival'}</b></div>
+ <p class="muted" style="margin:6px 0 0">The rider pays at the store with their own cash (up to ${peso(PB.cap)}) and sends a photo of the receipt in chat. You pay back the exact receipt amount plus the fee.</p>
+ <button class="btn block" id="xConfirmBtn" style="margin-top:12px" onclick="xBook()">Confirm & book</button>`)}
+function candFor(r){const ex=r.declined||[];let l=eligible(r.type,r.pax,r.start,r.end,r.id,ex);if(r.buy)l=[...eligible('tricycle',1,r.start,r.end,r.id,ex),...eligible('moto',1,r.start,r.end,r.id,ex)];return rank(l,r.from)}
+function pbBook(){const f=xF();const d=routeKm(P(f.from),P(f.to));const list=f.list.trim();
+ const r=newRide({from:f.from,to:f.to,type:'tricycle',pax:1,start:Date.now()+5*MIN,extra:{kind:'express',buy:{list,est:+f.est,subs:f.subs!==false},item:{desc:list.split('\n')[0]+(list.includes('\n')?' + more':''),cat:'Pasabuy'},rcpt:{name:S.me.name,mobile:S.me.mobile},payBy:f.payBy,cod:0}});
+ r.id=nid('PB');r.fullFare=xFare(d)+PB.fee;r.fare=r.fullFare;r.pay=r.payBy==='recipient'?'recipient':'buying';S.rides.push(r);
+ Object.assign(f,{list:'',est:'',to:''});
+ if(!online()){r.status='queued';closeModal();save();render();toast('No signal — pasabuy queued, will send automatically');return}
+ dispatch(r);closeModal();save();render();toast(r.status==='pending'?'Pasabuy sent to '+drvInfo(prov(r.cands[0])).name:'No rider available for pasabuy right now')}
+function pbInfo(r){return `<div class="muted">Pasabuy · ${r.goods?'bought '+peso(r.goods)+' · receipt in chat':'est. '+peso(r.buy.est)+' of items'}${r.buy.subs?' · substitutes OK':''}</div><div class="pb-list" style="white-space:pre-line;font-size:13px;margin:4px 0">${esc(r.buy.list)}</div>`}
+function pbOfferCard(r){const p=prov(r.cands[r.offerIdx]);
+ return `<div class="card hl x-offer pb-offer" data-x="${r.id}"><div class="share-line">${ic('bag')} Pasabuy — buy &amp; deliver</div>
+ <div class="kv"><span>Buy from</span><b>${esc(P(r.from).n)}</b></div><div class="kv"><span>Deliver to</span><b>${esc(P(r.to).n)}</b></div>
+ <div class="kv"><span>Shopping list</span><b style="white-space:pre-line;text-align:right">${esc(r.buy.list)}</b></div>
+ <div class="kv"><span>Items (estimate)</span><b>${peso(r.buy.est)} · you advance up to ${peso(PB.cap)}</b></div>
+ <div class="kv"><span>Your fee</span><b>${peso(r.fare)}</b></div>
+ <div class="kv"><span>Paid back</span><b>${r.payBy==='recipient'?'Cash on arrival':'QR after receipt'}</b></div>
+ <div class="muted">${fmtT(r.start)} · ${r.id}${p&&p.type==='moto'?' · LUNAD Moto Taxi':''}</div>
+ <div style="margin:4px 0"><span class="st info">Respond in<span class="cd" data-id="${r.id}"></span></span></div>
+ <div class="btns"><button class="btn sm" onclick="accept('${r.id}')">Accept pasabuy</button><button class="btn sm ghost" onclick="decline('${r.id}')">Decline</button><button class="btn sm ghost" onclick="ride('${r.id}').offerAt-=${OFFER_MS};tick()">Demo: let it time out</button></div></div>`}
+let PBF={img:null};
+function pbJobCard(r){const msgs=(S.threads[r.id]||[]).length;
+ return `<div class="card x-job pb-job" data-x="${r.id}"><b>${ic('bag')} Pasabuy · ${esc(P(r.from).n)} → ${esc(P(r.to).n)}</b>
+ <div class="pb-list" style="white-space:pre-line;font-size:13px;margin:4px 0">${esc(r.buy.list)}</div>
+ <div class="muted">Est. ${peso(r.buy.est)} · fee ${peso(r.fare)} · ${r.payBy==='recipient'?'cash on arrival':'QR after receipt'}${r.buy.subs?' · substitutes OK (ask first)':''} · ${r.id}</div>
+ <div>${xChip(r.status)} ${payChip(r)}${r.goods?` <span class="st ok">Bought ${peso(r.goods)}</span>`:''}</div>
+ ${r.status==='accepted'?`<div class="pb-buy" style="margin-top:6px"><label class="f" for="pbAmt">Receipt total</label><div style="display:flex;gap:6px"><input class="inp" id="pbAmt" inputmode="numeric" maxlength="4" placeholder="e.g. 438"><input class="inp" type="file" accept="image/*" id="pbRcpt" onchange="if(this.files[0])readImg(this.files[0],d=>{PBF.img=d;toast('Receipt photo attached')})"></div>
+  <div class="btns"><button class="btn sm" id="pbBoughtBtn" onclick="pbBought('${r.id}')">Items bought · send receipt</button><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Chat with customer${msgs?` (${msgs})`:''}</button><button class="btn sm warn" onclick="driverCancel('${r.id}')">Cancel</button></div></div>`
+ :`<div class="btns"><button class="btn sm" onclick="complete('${r.id}')">Mark delivered</button><button class="btn sm sec" onclick="messageModal('${r.id}')">${ic('mail')} Chat with customer${msgs?` (${msgs})`:''}</button></div>`}</div>`}
+function pbBought(id){const r=ride(id);const el=$('#pbAmt');const amt=+((el&&el.value)||'').replace(/[^0-9]/g,'');
+ if(!(amt>0)){toast('Enter the receipt total');return}if(amt>PB.cap){toast('Pasabuy covers up to '+peso(PB.cap)+' — message the customer before spending more');return}
+ r.goods=amt;r.receiptAt=Date.now();S.threads[id]=S.threads[id]||[];S.threads[id].push({from:'provider',text:`Bought everything on your list — receipt total ${peso(amt)}. On my way!`,img:PBF.img,receipt:true,at:Date.now()});PBF={img:null};
+ if(r.pay==='buying')r.pay='unpaid';startTrip(id);toast('Receipt sent to the customer — on the way')}
+function pbReceiptSample(r){return `<div class="pb-rcpt" style="margin-top:6px;border:1px dashed var(--line);border-radius:8px;padding:8px;font-size:12.5px"><b>Receipt (sample)</b><br>${esc(P(r.from).n.replace(' (sample)',''))}<br>${esc(r.buy.list).replace(/\n/g,'<br>')}<br><b>Total ${peso(r.goods||0)}</b></div>`}
+const PB_QUICK={booker:['Any brand is fine','Please get the cheapest one','Skip it if out of stock','Thank you po!'],provider:['Nasa store na po ako','Out of stock — OK to substitute?','Price is higher than listed — continue?','On my way po']};
+function pbQuick(r){const q=PB_QUICK[S.role]||[];return `<div class="chips" style="margin:0 0 6px">${q.map((t,k)=>`<span class="chip" onclick="pbSay('${r.id}',${k})">${esc(t)}</span>`).join('')}</div>`}
+function pbSay(id,k){const t=(PB_QUICK[S.role]||[])[k];if(!t)return;S.threads[id]=S.threads[id]||[];S.threads[id].push({from:S.role,text:t,at:Date.now()});save();messageModal(id);render()}
+function pbDoneWrap(r){if(XR.id!==r.id)XR={id:r.id,stars:0,tags:[],comment:''};const A=P(r.from),B=P(r.to),di=drvInfo(prov(r.pid));const paid=!['unpaid','rejected','buying'].includes(r.pay);
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Pasabuy</span></div>
+ <div class="join-body"><div class="done-ic" aria-hidden="true">${ic('check')}</div><h2 style="margin:6px 0 4px;text-align:center" id="xDoneTitle">Your pasabuy has arrived!</h2>
+ <p class="muted" style="margin:0 0 14px;text-align:center">${esc(di?di.name:'Your rider')} bought your items at ${esc(A.n.replace(' (sample)',''))} and delivered them to ${esc(B.n.replace(' (sample)',''))}.</p>
+ <div class="trip-box"><div class="kv"><span>Items (receipt)</span><b>${peso(r.goods||0)}</b></div><div class="kv"><span>Delivery + shopping fee</span><b>${peso(r.fare)}</b></div>
+ <div class="kv"><span>${paid?'Paid':'You pay back'}</span><b style="font-size:18px">${peso(amount(r))}</b></div>
+ <div class="kv"><span>Payment</span><b>${r.payBy==='recipient'?'Cash on arrival':paid?'Paid':'QR'}</b></div></div>
+ <button class="btn sec block" style="margin-top:10px" onclick="messageModal('${r.id}')">${ic('mail')} View chat &amp; receipt</button>
+ ${r.payBy==='sender'&&!paid?`<button class="btn block" style="margin-top:8px" onclick="payModal('${r.id}')">Pay back ${peso(amount(r))}</button>`:''}
+ ${r.rated.b?`<p class="muted" style="text-align:center;margin:12px 0 0">${ic('check')} Thanks for your review</p>`:`<h3 style="margin:14px 0 4px;text-align:center">Rate your rider</h3>
+ <div class="stars" style="justify-content:center" id="xStars">${[1,2,3,4,5].map(i=>`<span class="${i<=XR.stars?'on':''}" onclick="XR.stars=${i};doneTick()">${ic('star-f')}</span>`).join('')}</div>
+ <div class="chips" style="margin:8px 0;justify-content:center">${X_TAGS.map((t,k)=>`<span class="chip ${XR.tags.includes(t)?'on':''}" onclick="xTag(${k})">${t}</span>`).join('')}</div>
+ <button class="btn block" id="xReviewBtn" ${XR.stars?'':'disabled'} onclick="xReviewSave('${r.id}')">Submit review</button>`}
+ <button class="btn sec block" style="margin-top:8px" id="xDoneBtn" onclick="doneAck('${r.id}')">Done</button></div>`}
+
+
+/* ---- Student persona (demo): Passenger | Student | Driver ---- */
+function stuPersonaMe(){return {name:'Mika Reyes (sample student)',kind:'resident',student:{status:'verified',school:'Catanduanes State University (CatSU) – Virac',idNo:'2024-01234',reg:true,at:Date.now(),verifiedAt:Date.now()},mobile:'0917-555-0202',channel:'app',lang:'en',msgr:false,otp:null,contacts:[{n:'Nanay (mother)',m:'0917-555-0203'}],noShows:0,smsStop:false,pack:D(0)}}
+function setPersona(p){S.persona=S.persona||'tourist';if(p!==S.persona){if(!S.meOther)S.meOther=p==='student'?stuPersonaMe():null;
+  const other=S.meOther||{};const cur=S.me;
+  // each persona keeps its own bookings: park the current one's rides, bring back the other's
+  for(const r of S.rides){if(r.booker==='me')r.booker='me@'+S.persona;else if(r.booker==='me@'+p)r.booker='me'}
+  S.me=other.name?other:S.me;S.meOther=cur;S.persona=p;
+  if(p==='student'){S.rideForm.type='tricycle';S.rideForm.pax=1;S.rideForm.when='now';S.rideMode='ride'}else if(S.rideForm.type==='tricycle')S.rideForm.type='moto'}
+ closeModal();if(S.role!=='booker'){S.role='booker'}S.tab='home';save();render();toast(p==='student'?'Student view · '+S.me.name:'Passenger view · '+S.me.name)}
+
+/* ---- Ride-along: student backride attached to an active TODA Express booking ---- */
+function alongActive(e){return S.rides.filter(r=>r.attachTo===e.id&&['pending','accepted','started'].includes(r.status))}
+const FOUR_W=['car','minivan','van'];
+// LUNAD Moto Taxi never carries ride-alongs (1 seat, in-house fleet). Pasabuy trips are never joined either.
+function alongTarget(r){const ok=e=>e.pid&&!(r.declined||[]).includes(e.pid)&&['accepted','started'].includes(e.status)&&meetCalc(e,r).ok&&prov(e.pid)&&prov(e.pid).online&&prov(e.pid).status==='approved';
+ const toda=S.rides.filter(e=>isX(e)&&!e.buy&&prov(e.pid||'')&&prov(e.pid).type==='tricycle'&&ok(e)&&!alongActive(e).length&&!stuHeld(e.pid,r.id));
+ const four=r.paidOnly?[]:S.rides.filter(e=>!isX(e)&&!e.student&&!e.live&&FOUR_W.includes(e.type)&&(e.shared||e.allowStu)&&ok(e)&&seatsFree(e)>0);
+ return [...toda,...four].sort((a,b)=>km(P(a.from),P(r.from))-km(P(b.from),P(r.from)))[0]||null}
+function seatsFree(e){const used=(e.shared?sharedSeats(e):e.pax)+alongActive(e).length;return (e.shared?seatsOf(e):TYPES[e.type].seats)-used}
+function attachAlong(r,e){setMeet(r,e);r.attachTo=e.id;r.rideAlong=true;r.type=isX(e)?'tricycle':e.type;r.sponsorFare=0;r.fare=isX(e)?STU.along:0;r.pay=isX(e)?'unpaid':'free';r.cands=[e.pid];r.offerIdx=0;r.offerAt=Date.now();r.status='pending';e.alongStu=r.id;
+ notify('me','request',{ref:r.id},r.id);notify(e.pid,'offer',{ref:r.id,route:P(r.from).n+' → '+P(r.to).n,time:hm(r.start)},r.id);S.notifs[0].text=isX(e)?`LUNAD: Student backride ${r.id} added to your TODA Express trip ${e.id}. Accept within 3 min.`:`LUNAD: A student (${r.id}) asks for a free seat on your trip ${e.id}. Accept within 3 min.`}
+function detachAlong(r){const e=ride(r.attachTo);if(e&&e.alongStu===r.id)e.alongStu=null;r.attachTo=null;r.rideAlong=false}
+function alongBlock(e){return alongActive(e).map(r=>alongOne(e,r)).join('')}
+function alongOne(e,r){const A=P(r.from),B=P(r.to);const late=r.arriving&&Date.now()-(r.arrivedAt||0)>=STU.noShowMin*MIN;
+ const btns=r.status==='pending'?`<button class="btn sm" id="alongAccept" onclick="accept('${r.id}')">Accept student</button><button class="btn sm ghost" id="alongDecline" onclick="decline('${r.id}')">Decline</button>`
+  :r.status==='accepted'?(r.arriving?`<button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>${late?`<button class="btn sm warn" id="alongNoShow" onclick="stuNoShow('${r.id}')">Student not there — continue</button>`:`<button class="btn sm ghost" id="alongWaited" onclick="ride('${r.id}').arrivedAt-=${STU.noShowMin}*MIN;save();render()">Demo: waited ${STU.noShowMin} min</button>`}`
+   :`<button class="btn sm sec" id="alongAtMeet" onclick="meetArrive('${r.id}')">At meeting point</button><button class="btn sm" id="alongPick" onclick="startTrip('${r.id}');closeModal()">Picked up student</button>`)
+  :`<button class="btn sm" id="alongDrop" onclick="complete('${r.id}')">Dropped off student</button>`;
+ return `<div class="banner info along-block" style="margin:6px 0"><b>${ic('grad')} ${isX(e)?'Student backride added to this trip':'Student ride-along · free seat'}</b><br>${esc(r.stuName||'Student')} · ${r.id}<br>${ic('flag')} Pick up at student hub <b>${esc(hubName(A.id)||A.n)}</b> — on your way${r.arriving&&r.status==='accepted'?` · waiting max ${STU.noShowMin} min`:''}<br>${ic('pin')} Let them off at <b>${esc(B.n)}</b><br><span class="muted">${isX(e)?'Student pays you '+peso(STU.along)+' flat (QR or cash)':'Free seat for the student · no fee · +15 reward points for you'}</span>${r.status==='pending'?`<span class="st info" style="margin-left:4px">Respond in<span class="cd" data-id="${r.id}"></span></span>`:` <span class="st ${r.status==='started'?'info':'ok'}">${r.status==='started'?'Student on board':'Accepted'}</span>`}<div class="btns" style="margin-top:6px">${btns}</div></div>`}
+
+
+/* ---- Ride-along only: no matching delivery -> Wait / Paid ride / Cancel ---- */
+function stuActive(){return S.rides.find(r=>r.booker==='me'&&r.student&&['pending','accepted','started'].includes(r.status))||null}
+function stuWaiting(){return S.rides.find(r=>r.booker==='me'&&r.student&&r.status==='waiting')||null}
+function stuNoMatch(){const f=S.rideForm;const B=P(f.to);const n=B?B.n.replace(' (sample)',''):'your drop-off';
+ modal(`<div id="stuNoMatch"><h2>${ic('tricycle')} No ride-along right now</h2>
+ <p style="margin:0 0 6px">No TODA Express rider or car/van trip is heading to <b>${esc(n)}</b> right now.</p>
+ ${stuWhyNot(f)}<p class="muted" style="margin:0 0 12px">Free student rides join a TODA Express delivery or a car/van trip already going your way. Your free ride isn’t used until you’re matched.</p>
+ <button class="btn block" id="stuWaitBtn" onclick="stuWait()">Wait for a ride-along (up to ${STU.waitMin} min)</button>
+ <button class="btn sec block" style="margin-top:8px" id="stuPaidBtn" onclick="stuPaid()">Book a paid ride instead</button>
+ <button class="btn ghost block" style="margin-top:8px;border:0" id="stuCancelBtn" onclick="closeModal();toast('No booking made')">Cancel</button></div>`)}
+function stuWait(){const f=S.rideForm;const r=newRide({from:hubOf(f.from)||f.from,to:f.to,type:'tricycle',pax:1,start:Date.now()});Object.assign(r,{student:true,pax:1,sponsorFare:0,fare:0,pay:'free',paidOnly:stuLeft()<1||!!stuLocked(),stuName:S.me.name,status:'waiting',waitUntil:Date.now()+STU.waitMin*MIN,cands:[]});
+ S.rides.push(r);closeModal();save();render();toast('Waiting for a TODA Express rider heading to '+P(f.to).n.replace(' (sample)','')+' — we’ll add you automatically')}
+function stuPaid(){S.rideForm.type='moto';S.rideForm.pax=1;S.rideMode='ride';closeModal();save();render();toast('Switched to a paid Moto Taxi ride — choose any vehicle')}
+function stuBackToWait(r){clearMeet(r);r.fare=0;r.pay='free';r.type='tricycle';r.status='waiting';r.pid=null;r.cands=[];r.offerIdx=0;r.waitUntil=Math.max(r.waitUntil||0,Date.now()+10*MIN)}
+function stuWaitTick(now){let ch=false;for(const r of S.rides){if(r.status!=='waiting'||!r.student)continue;
+  if(now>r.waitUntil){r.status='no_match';r.why='No TODA Express rider headed that way in '+STU.waitMin+' minutes — your free ride wasn’t used';notify('me','nomatch',{ref:r.id,alt:'a paid ride'},r.id);ch=true;continue}
+  const e=alongTarget(r);if(e){attachAlong(r,e);if(r.booker==='me'&&S.role==='booker')toast('Matched! You’re riding along with '+drvInfo(prov(e.pid)).name+' ('+e.id+')');ch=true}}
+ return ch}
+
+
+/* Why a same-route trip can't take the student (shown in the no-match pop-up) */
+function stuWhyNot(f){const q={from:f.from,to:f.to};const out=[];const add=t=>{if(!out.includes(t))out.push(t)};
+ for(const e of S.rides.filter(e=>e.booker!=='other'&&!e.student&&['pending','accepted','started'].includes(e.status)&&P(e.from)&&P(e.to))){const m=meetCalc(e,q);if(!m)continue;
+  const nm=P(e.from).n.replace(' (sample)',''),tn=P(e.to).n.replace(' (sample)','');const kind=isX(e)?(e.buy?'Pasabuy trip':'TODA Express delivery'):(TYPES[e.type].label.split(' (')[0]+' trip');
+  const elig=isX(e)?!e.buy:FOUR_W.includes(e.type)&&(e.shared||e.allowStu);
+  if(m.geoOK){if(e.type==='moto'&&!isX(e))add('Only a LUNAD Moto Taxi is going your way — Moto Taxi can’t take ride-alongs.');
+   else if(e.buy)add('A Pasabuy trip is going your way — Pasabuy riders stop to shop, so they don’t take ride-alongs.');
+   else if(FOUR_W.includes(e.type)&&!isX(e)&&!e.shared&&!e.allowStu)add('A car/van trip is going your way, but the passenger didn’t allow a student ride-along.');
+   else if(e.status==='pending')add('A trip going your way is still waiting for a driver — tap Wait and you’ll be added once a driver accepts it.');
+   else if(!m.ahead)add(`The ${kind} from ${nm} has already passed your hub.`);
+   else if(isX(e)&&alongActive(e).length)add('The TODA Express rider going your way already has a student on the backride.')}
+  else if(elig&&['accepted','started'].includes(e.status)){if(!m.pickOK&&m.pick.walk<3)add(`A ${kind} from ${nm} to ${tn} is running, but it doesn’t pass your hub (${hubName(m.pick.hub)}) — it’s ${Math.round(m.pick.walk*1000)} m away; the limit is ${STU.walk*1000} m.`);
+   else if(m.pickOK&&!m.dropOK)add(`A ${kind} from ${nm} passes near you, but it doesn’t go within ${STU.walk*1000} m of your drop-off (it ends at ${tn}).`)}}
+ return out.length?`<div class="banner info" id="stuWhy" style="margin:0 0 10px">${out.slice(0,3).map(esc).join('<br>')}</div>`:''}
+/* Driver toggle opens the driver who has something to do */
+function actionDriver(){const mine=r=>String(r.booker).indexOf('me')===0;
+ const stu=S.rides.filter(r=>r.student&&r.attachTo&&['pending','accepted','started'].includes(r.status)).sort((a,b)=>b.createdAt-a.createdAt)[0];if(stu)return holderOf(stu);
+ const r=S.rides.filter(r=>mine(r)&&['pending','accepted','started'].includes(r.status)&&!(r.live&&r.shared)&&holderOf(r)).sort((a,b)=>b.createdAt-a.createdAt)[0];return r?holderOf(r):null}
+
+
+/* ---- "On the way" matching for ride-alongs ----
+   A student can join a trip when their pickup lies along the trip's route (within 1.5 km of the line from the
+   trip's pickup to its drop-off, or within 2 km of its pickup) AND their drop-off is further along that route
+   (within 1.5 km of the line, after the pickup) or within 2 km of the trip's drop-off. */
+const ALONG={corridor:1.5,near:2};
+function segProj(A,B,X){const c=Math.cos(A.lat*Math.PI/180),kx=111.32*c,ky=110.57;const bx=(B.lng-A.lng)*kx,by=(B.lat-A.lat)*ky,px=(X.lng-A.lng)*kx,py=(X.lat-A.lat)*ky;const L=bx*bx+by*by||1e-9;const t=(px*bx+py*by)/L;const tc=Math.max(0,Math.min(1,t));return {t,d:Math.hypot(px-tc*bx,py-tc*by)}}
+function alongInfo(e,r){const A1=P(e.from),B1=P(e.to),A2=P(r.from),B2=P(r.to);if(!A1||!B1||!A2||!B2)return null;const p=segProj(A1,B1,A2),q=segProj(A1,B1,B2);
+ const pickOK=km(A1,A2)<=ALONG.near||(p.t>=-0.05&&p.t<=1&&p.d<=ALONG.corridor);
+ const dropOK=km(B1,B2)<=ALONG.near||(q.t>=p.t&&q.t<=1.05&&q.d<=ALONG.corridor);
+ return {pickOK,dropOK,pickOff:p.d,dropOff:q.d}}
+function alongMatch(e,r){if(sameRoute(e,r))return true;const i=alongInfo(e,r);return !!(i&&i.pickOK&&i.dropOK)}
+
+
+/* ---- Meet on the route (ride-alongs) ----
+   The rider never detours. The app finds the point on the rider's route closest to the student (snapped to the
+   nearest named place within 150 m). The student must be within 300 m walking of it, and the rider must not have
+   passed it yet. Drop-off works the same way: the point on the route closest to the destination, within 300 m.
+   Prototype routes are straight lines between places; production would use real road routes. */
+function lerpLL(A,B,t){return {lat:A.lat+(B.lat-A.lat)*t,lng:A.lng+(B.lng-A.lng)*t}}
+function routeProg(e){if(e.status!=='started')return 0;return Math.max(0,Math.min(1,(Date.now()-(e.startedAt||Date.now()))/90000))}
+function meetCalc(e,r){const A1=P(e.from),B1=P(e.to),hid=hubOf(r.origFrom||r.from),H=hid&&P(hid),B2=P(r.origTo||r.to);if(!A1||!B1||!H||!B2)return {ok:false,geoOK:false,noHub:!H,pick:{walk:99},drop:{walk:99}};
+ const p=segProj(A1,B1,H),q=segProj(A1,B1,B2);const pt=Math.max(0,Math.min(1,p.t)),qt=Math.max(0,Math.min(1,q.t));
+ const atStart=km(A1,H)<=STU.walk;const pick={lat:H.lat,lng:H.lng,t:atStart?0:pt,walk:atStart?km(A1,H):p.d,hub:hid},drop={...lerpLL(A1,B1,qt),t:qt,walk:q.d};
+ const pickOK=atStart||(p.t>=0&&p.t<=1&&p.d<=STU.walk),dropOK=(drop.walk<=STU.walk&&qt>pick.t+0.02)||km(B1,B2)<=STU.walk;const geoOK=pickOK&&dropOK;
+ const ahead=e.status!=='started'||pick.t>routeProg(e)+0.02;return {ok:geoOK&&ahead,geoOK,ahead,pickOK,dropOK,pick,drop}}
+function snapName(ll){let best=null,bd=Infinity;for(const p of PLACES){if(p.k==='pin')continue;const d=km(ll,p);if(d<bd){bd=d;best=p}}
+ return bd<=0.15?'near '+best.n.replace(' (sample)',''):'on the road, '+(best?Math.round(bd*1000)+' m from '+best.n.replace(' (sample)',''):'route')}
+function setMeet(r,e){const m=meetCalc(e,r);if(!m||!m.geoOK)return;S.meet=S.meet||[];r.origFrom=r.origFrom||r.from;r.origTo=r.origTo||r.to;
+ const mk=(ll,label)=>{const id='mp-'+(S.seq++);const t=nearestTown(ll.lat,ll.lng);S.meet.push({id,n:'Drop point '+label,t,lat:ll.lat,lng:ll.lng,k:'pin',e:'flag'});S.meet=S.meet.slice(-40);return id};
+ r.from=m.pick.hub;const nearEnd=km(P(e.to),P(r.origTo))<=STU.walk;r.to=nearEnd?e.to:mk(m.drop,snapName(m.drop));
+ r.meet={hub:m.pick.hub,walkPick:0,walkDrop:Math.round((nearEnd?km(P(e.to),P(r.origTo)):m.drop.walk)*1000),t:m.pick.t,pickLabel:hubName(m.pick.hub),dropLabel:nearEnd?'at '+P(e.to).n.replace(' (sample)',''):snapName(m.drop)}}
+function clearMeet(r){if(r.origFrom){r.from=r.origFrom;r.to=r.origTo}r.meet=null;r.arriving=false;r.arrivedAt=0}
+function meetEta(r,e){const A1=P(e.from),M=P(r.from);const d=km(A1,M)*(e.status==='started'?Math.max(0,1-routeProg(e)/Math.max(r.meet.t,0.01)):1);return Math.max(1,(e.status==='accepted'?4:0)+Math.round(d/25*60))}
+function meetCard(r,e){const M=P(r.from),B=P(r.to),O=P(r.origTo||r.to);return `<div class="banner info meet-card" id="meetCard" style="margin:0 0 6px">${ic('flag')} <b>Wait at the student hub: ${esc(r.meet.pickLabel||M.n)}</b>. Your rider arrives in about ${meetEta(r,e)} min. They wait up to ${STU.noShowMin} min, so be there first.<br>${ic('pin')} You’ll get off ${esc(r.meet.dropLabel||B.n.replace('Drop point ',''))}${r.meet.walkDrop>20?` and walk ${r.meet.walkDrop} m to ${esc(O.n.replace(' (sample)',''))}`:''}.</div>`}
+function meetArrive(id){const r=ride(id);if(!r)return;r.arriving=true;r.arrivedAt=Date.now();notify('me','arriving',{ref:r.id},r.id);S.notifs[0].text=`LUNAD: Your ride-along for ${r.id} is at the meeting point — it waits up to ${STU.noShowMin} min.`;save();render();toast('Student notified — waiting up to '+STU.noShowMin+' min')}
+function stuNoShow(id){const r=ride(id);if(!r)return;r.status='cancelled';r.why='You weren’t at the meeting point — the rider continued. Your free ride wasn’t used.';notify('me','cancelled',{ref:r.id,fee:''},r.id);save();render();toast('Continuing your trip — the student’s free ride was not used')}
+
+
+/* ---- Student hubs: free ride-alongs are booked from busy, safe places ----
+   Virac core (market, town proper/Cathedral plaza, CatSU gate, port), transport points (airport, San Andres port),
+   every town proper, and verified LUNAD partner businesses. The student must be at a hub (within 300 m). A trip
+   can pick them up if it starts at the hub or passes within 300 m of it and hasn't passed it yet. */
+const HUB_CORE=['market','cath','catsu','vport'],HUB_TRANSPORT=['air','saport'];
+function hubIds(){const towns=PLACES.filter(p=>p.k==='town').map(p=>p.id);const partners=Object.keys(BIZ).filter(k=>BIZ[k]&&BIZ[k].verified&&P(k));return [...new Set([...HUB_CORE,...HUB_TRANSPORT,...towns,...partners])]}
+function isHub(id){return hubIds().includes(id)}
+function hubKind(id){return HUB_CORE.includes(id)?'Student hub':HUB_TRANSPORT.includes(id)?'Transport hub':(P(id)&&P(id).k==='town')?'Town hub':'Partner hub'}
+function hubName(id){const p=P(id);if(!p)return '';if(id==='cath')return 'Virac town proper (Cathedral plaza)';if(id==='catsu')return 'CatSU main gate';return p.n.replace(' (sample)','')}
+function nearHubs(id,n){const a=P(id);if(!a)return [];return hubIds().map(h=>({p:P(h),d:km(a,P(h))})).filter(x=>x.p).sort((x,y)=>x.d-y.d).slice(0,n||4)}
+function hubOf(id){if(!id)return null;if(isHub(id))return id;const h=nearHubs(id,1)[0];return h&&h.d<=STU.walk?h.p.id:null}
+function hubPicker(f){const cur=hubOf(f.from);const list=nearHubs(f.from,4);
+ return `<div class="banner ${cur?'info':'bad'}" id="hubPicker">${ic('flag')} ${cur?`Picking up at <b>${esc(hubName(cur))}</b> · ${esc(hubKind(cur))}`:`<b>Free rides start from a student hub.</b> Walk to one of these and set it as your pickup:`}
+ <div class="chips" style="margin-top:6px">${list.map(x=>`<span class="chip ${x.p.id===cur?'on':''}" data-hub="${x.p.id}" onclick="S.rideForm.from='${x.p.id}';save();render()">${esc(hubName(x.p.id))} · ${x.d<0.05?'here':x.d<1?Math.round(x.d*1000)+' m':x.d.toFixed(1)+' km'}</span>`).join('')}</div></div>`}
+
+
+function stuPaidDoneHTML(r){const A=P(r.from),B=P(r.to),di=drvInfo(prov(r.pid));const paid=!['unpaid','rejected'].includes(r.pay);
+ return `<div class="join-head"><span class="logo">LUNAD</span><span class="join-tag">Student ride-along</span></div>
+ <div class="join-body"><div class="done-ic" aria-hidden="true">${ic('check')}</div><h2 style="margin:6px 0 4px;text-align:center" id="stuPaidDone">Ride completed</h2>
+ <p class="muted" style="margin:0 0 12px;text-align:center">You’ve arrived at ${esc(B.n.replace(' (sample)',''))}. You rode along with a TODA Express rider for a flat ${peso(r.fare)}.</p>
+ <div class="trip-box"><div class="kv"><span>Route</span><b>${esc(A.n.replace(' (sample)',''))} → ${esc(B.n.replace(' (sample)',''))}</b></div>
+ ${di?`<div class="kv"><span>TODA rider</span><b>${esc(di.name)} · ${esc(di.plate)}</b></div>`:''}
+ <div class="kv"><span>${paid?'Paid':'You pay'}</span><b style="font-size:18px">${peso(r.fare)}</b></div></div>
+ ${paid?'':`<button class="btn block" style="margin-top:12px" id="stuPayBtn" onclick="payModal('${r.id}')">Pay ${peso(r.fare)} · QR or cash</button>`}
+ <button class="btn ${paid?'':'sec '}block" style="margin-top:8px" id="stuDoneBtn" onclick="doneAck('${r.id}')">Done</button></div>`}
+
+/* ---- Driver Rewards Program ---- */
+const RW_RULES=[['ride','Completed ride',10],['delivery','Completed TODA Express delivery',12],['student','Student backride (social impact)',15],['five','5-star rating',5],['review','Positive review',5],['streak','Active 5+ days this week',30]];
+const RW_ITEMS=[{id:'prio',n:'Priority booking assignments · 7 days',pts:300,i:'flame'},{id:'boost',n:'Better visibility in driver matching · 7 days',pts:200,i:'target'},{id:'fuel',n:'₱200 fuel voucher',pts:600,i:'gift',soon:true},{id:'maint',n:'Free maintenance check',pts:900,i:'gift',soon:true}];
+function rwOf(pid){S.rewards=S.rewards||{};return S.rewards[pid]=S.rewards[pid]||{spent:0,log:[],boostUntil:0,prioUntil:0}}
+function rwStats(pid){const done=S.rides.filter(r=>r.pid===pid&&r.status==='completed');const c={ride:0,delivery:0,student:0,five:0,review:0,streak:0};
+ for(const r of done){if(isX(r))c.delivery++;else if(r.student)c.student++;else c.ride++}
+ const rs=S.ratings.filter(x=>x.to===pid);c.five=rs.filter(x=>x.stars===5).length;c.review=rs.filter(x=>x.stars>=4&&(((x.comment||'').trim())||(x.tags||[]).length)).length;
+ const days=new Set(done.filter(r=>(r.end||r.start)>=Date.now()-7*864e5).map(r=>new Date(r.end||r.start).toDateString()));c.streak=days.size>=5?1:0;
+ const earned=RW_RULES.reduce((a,[k,,v])=>a+c[k]*v,0);return {c,earned,bal:earned-rwOf(pid).spent,days:days.size,n:done.length}}
+function rwTier(e){return e>=500?['Gold','ok']:e>=200?['Silver','info']:['Bronze','wait']}
+function rwBadges(p,s){return [['First delivery',s.c.delivery>=1],['Island Courier · 10 deliveries',s.c.delivery>=10],['Student Champion · 5 student rides',s.c.student>=5],['Five-Star · 5 five-star ratings',s.c.five>=5],['Consistent · active 5 days',!!s.c.streak],['Reliable · no cancellations',p.reliability===0&&s.n>=3]]}
+function rwPill(p){const s=rwStats(p.id);const t=rwTier(s.earned);return `<div class="card rw-pill"><div class="kv"><span>${ic('star-f','',' #F5B544')} <b>${s.bal} reward points</b> · <span class="st ${t[1]}">${t[0]}</span></span><button class="btn sm ghost" onclick="go('status')">Rewards</button></div></div>`}
+function rwCard(p){const s=rwStats(p.id),w=rwOf(p.id),t=rwTier(s.earned),now=Date.now();
+ return `<div class="card hl rw-card" id="rwCard"><div class="kv"><span><b>${ic('star-f','',' #F5B544')} Driver Rewards</b></span><span class="st ${t[1]}">${t[0]} tier</span></div>
+ <div class="kv"><span>Points balance</span><b id="rwBal" style="font-size:18px">${s.bal}</b></div>
+ <div class="muted" style="margin:2px 0 6px">${s.earned} earned · ${w.spent} redeemed · active ${s.days} day${s.days===1?'':'s'} this week</div>
+ ${(w.prioUntil>now||w.boostUntil>now)?`<div class="banner info" style="margin:6px 0">${ic('flame')} ${w.prioUntil>now?'Priority booking':'Matching boost'} active until ${fmtT(Math.max(w.prioUntil,w.boostUntil))} — you’re offered nearby jobs first.</div>`:''}
+ <h3 style="margin:8px 0 2px">How you earned</h3>${RW_RULES.map(([k,l,v])=>`<div class="kv"><span>${l} <span class="muted">· ${v} pts</span></span><b>${s.c[k]}× = ${s.c[k]*v}</b></div>`).join('')}
+ <h3 style="margin:8px 0 4px">Badges</h3><div class="chips">${rwBadges(p,s).map(([n,on])=>`<span class="chip ${on?'on':''}" title="${on?'Earned':'Not yet'}">${on?ic('check'):ic('star-o')} ${esc(n)}</span>`).join('')}</div>
+ <h3 style="margin:10px 0 4px">Redeem</h3>${RW_ITEMS.map(it=>`<div class="kv"><span>${ic(it.i)} ${esc(it.n)}<br><span class="muted">${it.pts} pts${it.soon?' · coming soon':''}</span></span><button class="btn sm ${it.soon?'ghost':''}" data-rw="${it.id}" ${it.soon||s.bal<it.pts?'disabled':''} onclick="rwRedeem('${p.id}','${it.id}')">${it.soon?'Soon':'Redeem'}</button></div>`).join('')}
+ ${w.log.length?`<p class="muted" style="margin:8px 0 0">Redeemed: ${w.log.map(l=>esc(l.n)).join(', ')}</p>`:''}</div>`}
+function rwRedeem(pid,id){const it=RW_ITEMS.find(x=>x.id===id);const s=rwStats(pid),w=rwOf(pid);if(!it||it.soon)return;if(s.bal<it.pts){toast('Not enough points yet');return}
+ w.spent+=it.pts;w.log.push({id,n:it.n,at:Date.now()});const until=Date.now()+7*864e5;if(id==='prio')w.prioUntil=until;if(id==='boost')w.boostUntil=until;save();render();toast('Redeemed: '+it.n)}
+
 /* =================== BOOT =================== */
 
 /* ---- Fresh start: each time the app opens, leftover trips on this phone are closed and it starts on Home. ---- */
 const FRESH={close:[],leave:[]};let BOOTED=false;
 function freshStart(keepJoins){
- for(const r of S.rides)if(['pending','accepted','started','queued'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
+ for(const r of S.rides)if(['pending','accepted','started','queued','waiting'].includes(r.status)){if(r.liveCode)FRESH.close.push(r.liveCode);r.status='cancelled';r.fee=0;r.tripDone=true;r.reviewShown=true;r.bizReviewShown=true}
  for(const r of S.rides)if(r.status==='completed'){r.reviewShown=true;r.bizReviewShown=true;r.tripDone=true;r.doneSeen=true}
  if(!keepJoins){for(const j of myJoins())FRESH.leave.push(j);setJoins([])}
- S.custom=S.custom.filter(p=>!p.mine);Object.assign(S.rideForm,{from:'catsu',to:'',pax:1,shared:false,pin:'to'});
+ S.custom=S.custom.filter(p=>!p.mine);Object.assign(S.rideForm,{from:'catsu',to:'',pax:1,shared:false,pin:'to'});if(S.rideForm.type==='tricycle'&&!stuMode())S.rideForm.type='moto';S.rideMode='ride';
  S.role='booker';S.tab='home'}
 function freshFlush(){if(!LIVE.db)return;for(const c of FRESH.close.splice(0)){LIVE.db.ref('rides/'+c+'/cancelled').set(true).catch(()=>{});LIVE.db.ref('rides/'+c+'/status').set('closed').catch(()=>{});LIVE.db.ref('open/'+c).remove().catch(()=>{})}
  for(const j of FRESH.leave.splice(0))LIVE.db.ref('rides/'+j.code).transaction(d=>{if(!d||d.fullAt||!d.members||!d.members[j.key])return;delete d.members[j.key];if(d.status==='full')d.status='open';return d}).catch(()=>{})}
@@ -2467,10 +2933,10 @@ function boot(){if(!BOOTED&&!JOIN_ONLY){BOOTED=true;freshStart(location.hash==='
 function splashWanted(){if(JOIN_ONLY||location.hash==='#joined')return false;const q=new URLSearchParams(location.search).get('splash');return q!=='0'}
 let SPLASH_T=null;const SPLASH_OK=splashWanted();
 function splashShow(){if(!SPLASH_OK)return;const el=document.createElement('div');el.id='lunadSplash';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','Welcome to LUNAD');
- el.innerHTML=`<div class="sp-in"><div class="sp-glow"></div><div class="sp-top"><div class="sp-word">LUNAD</div><p class="sp-tag">Book. Ride. Explore Catanduanes.</p></div><div class="sp-foot"><div class="sp-dots" aria-hidden="true"><span></span><span></span><span></span></div><span class="sp-hint">Tap to continue</span><span class="sp-place">CATANDUANES · PHILIPPINES</span></div><div class="sp-sheet"><h1>Your ride around the island</h1><p>Tricycles, motos, cars and vans — solo or shared, with LGU-verified drivers.</p><button class="sp-go" onclick="splashDone('booker')">Get started</button><button class="sp-drv" onclick="splashDone('provider')">I’m a driver</button></div></div>`;
+ el.innerHTML=`<div class="sp-in"><div class="sp-glow"></div><div class="sp-top"><div class="sp-word">LUNAD</div><p class="sp-tag">Book. Ride. Explore Catanduanes.</p></div><div class="sp-foot"><div class="sp-dots" aria-hidden="true"><span></span><span></span><span></span></div><span class="sp-hint">Tap to continue</span><span class="sp-place">CATANDUANES · PHILIPPINES</span></div><div class="sp-sheet"><h1>Your ride around the island</h1><p>Tricycles, motos, cars and vans — solo or shared, with LGU-verified drivers.</p><button class="sp-go" onclick="splashDone('booker')">Get started</button><button class="sp-drv sp-stu" id="spStu" onclick="splashDone('student')">I’m a student</button><button class="sp-drv" onclick="splashDone('provider')">I’m a driver</button></div></div>`;
  el.addEventListener('click',e=>{if(!el.classList.contains('welcome'))splashWelcome()});(document.querySelector('.phone')||document.body).appendChild(el);iphDark(true)}
 function splashWelcome(){const el=document.getElementById('lunadSplash');if(!el||el.classList.contains('welcome'))return;clearTimeout(SPLASH_T);el.classList.add('welcome');iphDark(false);requestAnimationFrame(()=>requestAnimationFrame(()=>{el.classList.add('up')}))}
-function splashDone(role){const el=document.getElementById('lunadSplash');if(!el)return;clearTimeout(SPLASH_T);if(role==='provider'){setRole('provider')}else{S.role='booker';S.tab='home';save();render()}el.classList.add('out');setTimeout(()=>el.remove(),300)}
+function splashDone(role){const el=document.getElementById('lunadSplash');if(!el)return;clearTimeout(SPLASH_T);if(role==='provider'){setRole('provider')}else if(role==='student'){S.role='booker';setPersona('student')}else{S.role='booker';S.tab='home';save();render()}el.classList.add('out');setTimeout(()=>el.remove(),300)}
 
 function iphFrame(){const p=document.getElementById('phone');if(!p||p.parentElement.classList.contains('iph')||new URLSearchParams(location.search).get('frame')==='0')return;const w=document.createElement('div');w.className='iph';p.parentNode.insertBefore(w,p);w.appendChild(p);
  const c='#fff';w.insertAdjacentHTML('beforeend',`<i class="iph-x iph-btn" style="left:-3px;top:150px;height:34px"></i><i class="iph-x iph-btn" style="left:-3px;top:210px;height:62px"></i><i class="iph-x iph-btn" style="left:-3px;top:286px;height:62px"></i><i class="iph-x iph-btn" style="right:-3px;top:236px;height:96px"></i><i class="iph-x iph-btn" style="right:-3px;top:560px;height:52px;width:3px"></i><div class="iph-x iph-sb" aria-hidden="true"><b>9:41</b><span><svg width="19" height="12" viewBox="0 0 19 12"><rect x="0" y="8" width="3.2" height="4" rx="1" fill="${c}"/><rect x="5" y="5.5" width="3.2" height="6.5" rx="1" fill="${c}"/><rect x="10" y="3" width="3.2" height="9" rx="1" fill="${c}"/><rect x="15" y="0" width="3.2" height="12" rx="1" fill="${c}"/></svg><svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.4c2.4 0 4.6.9 6.3 2.5l1.2-1.2A10.6 10.6 0 0 0 8.5.7 10.6 10.6 0 0 0 1 3.7l1.2 1.2A8.9 8.9 0 0 1 8.5 2.4Zm0 3.4c1.5 0 2.9.6 3.9 1.5l1.2-1.2a7.2 7.2 0 0 0-10.2 0l1.2 1.2c1-.9 2.4-1.5 3.9-1.5Zm0 3.4c.6 0 1.2.2 1.6.6L8.5 11.4 6.9 9.8c.4-.4 1-.6 1.6-.6Z" fill="${c}"/></svg><svg width="28" height="13" viewBox="0 0 28 13"><rect x=".5" y=".5" width="24" height="12" rx="3.8" fill="none" stroke="${c}" stroke-opacity=".4"/><rect x="2" y="2" width="21" height="9" rx="2.5" fill="${c}"/><path d="M26 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" fill="${c}" fill-opacity=".45"/></svg></span></div><div class="iph-x iph-di" aria-hidden="true"></div><div class="iph-x iph-hi" aria-hidden="true"></div>`)}
